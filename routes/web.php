@@ -1,0 +1,35 @@
+<?php
+
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiaryController;
+use App\Http\Controllers\ExpeditionPlaceController;
+use App\Http\Controllers\GarminImportController;
+use App\Http\Controllers\PaddleSessionController;
+use App\Http\Controllers\PublicProfileController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Laravel\Fortify\Features;
+
+Route::inertia('/', 'Welcome', [
+    'canRegister' => Features::enabled(Features::registration()),
+])->name('home');
+
+Route::get('/p/{profile:slug}', PublicProfileController::class)->name('profiles.public.show');
+Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, 'publicIndex'])
+    ->name('profiles.public.expeditions.index');
+Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::class, 'publicShow'])
+    ->name('profiles.public.expeditions.show');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('diary', DiaryController::class)->name('diary');
+    Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
+    Route::post('imports/garmin', [GarminImportController::class, 'store'])->name('imports.garmin.store');
+    Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
+    Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
+
+    Route::resource('sessions', PaddleSessionController::class)
+        ->except(['destroy']);
+});
+
+require __DIR__.'/settings.php';
