@@ -521,7 +521,7 @@ onBeforeUnmount(() => {
                     v-for="(style, key) in styleOptions"
                     :key="key"
                     type="button"
-                    class="rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase transition"
+                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
                     :class="selectedStyle === key
                         ? 'border-[color:var(--journal-line-strong)] bg-[rgba(103,114,255,0.14)] text-[color:var(--journal-text)]'
                         : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
@@ -533,30 +533,30 @@ onBeforeUnmount(() => {
                 <button
                     v-if="allowPinView"
                     type="button"
-                    class="rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase transition"
+                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
                     :class="pinFeedback === 'saved'
                         ? 'border-[rgba(137,223,171,0.5)] bg-[rgba(241,255,245,0.9)] text-[#256a48]'
                         : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
                     @click="pinCurrentView"
                 >
-                    {{ pinFeedback === 'saved' ? 'Pinned' : 'Pin view' }}
+                    {{ pinFeedback === 'saved' ? 'Pinned view saved' : 'Pin current view' }}
                 </button>
 
                 <button
                     v-if="allowPinView"
                     type="button"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase text-[color:var(--journal-muted)] transition hover:border-[color:var(--journal-line-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)] transition hover:border-[color:var(--journal-line-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="!pinnedView"
                     @click="goToPinnedView"
                 >
-                    Go to pin
+                    Go to default
                 </button>
             </div>
 
             <div v-if="showFilters" class="flex flex-wrap items-center gap-2">
                 <select
                     v-model="selectedYear"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
                 >
                     <option value="all">All years</option>
                     <option
@@ -571,7 +571,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showKindFilter"
                     v-model="selectedKind"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
                 >
                     <option value="all">All sessions</option>
                     <option value="day">Day sessions</option>
@@ -581,7 +581,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showGeometryFilter"
                     v-model="selectedGeometry"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
                 >
                     <option value="all">Routes and pins</option>
                     <option value="routes">Routes only</option>
@@ -594,9 +594,11 @@ onBeforeUnmount(() => {
             <div ref="mapElement" :class="props.heightClass" />
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[color:var(--journal-muted)]">
-            <span>{{ filteredRoutes.length }} routes · {{ filteredPins.length }} pins</span>
-            <span v-if="pinnedView">Pinned view ready</span>
+        <div
+            v-if="allowPinView && (pinnedView || pinFeedback === 'saved')"
+            class="flex flex-wrap items-center justify-end gap-2 text-xs text-[color:var(--journal-muted)]"
+        >
+            <span>{{ pinFeedback === 'saved' ? 'Pinned view saved.' : 'Pinned view ready.' }}</span>
         </div>
 
         <div

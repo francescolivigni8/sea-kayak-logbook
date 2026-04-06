@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 defineOptions({
     layout: {
@@ -105,34 +104,57 @@ interface SessionDetail {
     conditionRatings: ConditionRating[];
 }
 
+type DetailTab = 'map' | 'charts' | 'stats';
+
 const props = defineProps<{
     profile: ProfileSummary;
     session: SessionDetail;
 }>();
 
+const activeTab = ref<DetailTab>('stats');
+
+const sessionSubtitle = computed(() =>
+    [
+        props.session.date,
+        props.session.launchName ?? props.session.areaName,
+        props.session.startTimeLocal ? `${props.session.startTimeLocal} ${props.session.timezone}` : null,
+    ].filter(Boolean).join(' · '),
+);
+
 const heroChips = computed(() => [
     props.session.routeCategoryLabel,
-    props.session.isExpedition ? 'Expedition' : 'Day session',
-    props.session.bodyOfWater ? props.session.bodyOfWater.toUpperCase() : null,
-    props.session.isPublic ? 'Public' : 'Private',
+    props.session.launchName,
+    props.session.beaufort !== null ? `F${props.session.beaufort}` : null,
+    props.session.isExpedition ? 'Expedition' : null,
+    props.session.routeProfile.length ? 'Track attached' : null,
 ].filter(Boolean) as string[]);
 
 const statCards = computed(() => [
     {
         label: 'Distance',
         value: `${props.session.distanceKm.toFixed(1)} km`,
+        detail: 'Journey',
+        style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Duration',
+        label: 'Time',
         value: `${props.session.durationMinutes} min`,
+        detail: 'Total duration',
+        style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Average speed',
+        label: 'Avg speed',
         value: props.session.averageSpeedKmh !== null ? `${props.session.averageSpeedKmh.toFixed(1)} km/h` : '—',
+        detail: 'Moving pace on the water',
+        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Moving time',
-        value: props.session.movingMinutes !== null ? `${props.session.movingMinutes} min` : '—',
+        label: 'Wind',
+        value: props.session.beaufort !== null
+            ? `F${props.session.beaufort}${props.session.windAvgMs !== null ? ` / ${props.session.windAvgMs.toFixed(1)} m/s` : ''}`
+            : props.session.windAvgMs !== null ? `${props.session.windAvgMs.toFixed(1)} m/s` : '—',
+        detail: 'Sea state snapshot',
+        style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
     },
 ]);
 
@@ -175,7 +197,7 @@ const reflectionCards = computed(() =>
     [
         { label: 'What went well', value: props.session.whatWentWell },
         { label: 'Improve next', value: props.session.improveNext },
-        { label: 'Public notes', value: props.session.notesPublic },
+        { label: 'Observations', value: props.session.notesPublic },
         { label: 'Private notes', value: props.session.notesPrivate },
         { label: 'Expedition notes', value: props.session.expeditionNotes },
     ].filter((item) => item.value),
@@ -187,6 +209,44 @@ const scoreCards = computed(() =>
         { label: 'Fatigue', value: props.session.fatigueScore },
         { label: 'Decision', value: props.session.decisionScore },
     ].filter((item) => item.value !== null),
+);
+
+const journeyFacts = computed(() =>
+    [
+        { label: 'Route', value: `${props.session.launchName ?? 'Unknown launch'}${props.session.landingName ? ` → ${props.session.landingName}` : ''}` },
+        { label: 'Category', value: props.session.routeCategoryLabel },
+        { label: 'Water', value: props.session.bodyOfWater ?? 'Sea' },
+        { label: 'Area', value: props.session.areaName ?? props.profile.homeWater },
+        { label: 'Moving time', value: props.session.movingMinutes !== null ? `${props.session.movingMinutes} min` : '—' },
+        { label: 'Days out', value: props.session.isExpedition ? String(props.session.expeditionDays ?? '—') : 'Day session' },
+    ],
+);
+
+const seaFacts = computed(() =>
+    [
+        { label: 'Wind', value: props.session.windAvgMs !== null ? `${props.session.windAvgMs.toFixed(1)} m/s${props.session.beaufort !== null ? ` / F${props.session.beaufort}` : ''}` : '—' },
+        { label: 'Tide', value: props.session.tideState ?? '—' },
+        { label: 'Current', value: props.session.currentKnots !== null ? `${props.session.currentKnots.toFixed(1)} kt` : '—' },
+        { label: 'Swell', value: props.session.swellHeightM !== null ? `${props.session.swellHeightM.toFixed(1)} m${props.session.swellPeriodS !== null ? ` @ ${props.session.swellPeriodS.toFixed(0)} s` : ''}` : '—' },
+        { label: 'Temps', value: `${props.session.airTempC !== null ? `${props.session.airTempC.toFixed(1)} C air` : '—'} / ${props.session.seaTempC !== null ? `${props.session.seaTempC.toFixed(1)} C sea` : '—'}` },
+        { label: 'Summary', value: props.session.weatherSummary ?? 'No conditions summary logged yet.' },
+    ],
+);
+
+const developmentFacts = computed(() =>
+    [
+        { label: 'Development', value: `${props.session.successfulRollsCount} successful rolls, ${props.session.wetExitsCount} wet exits (swims), ${props.session.towRescuesCount} tow rescues` },
+        { label: 'Skills', value: props.session.skills.length ? props.session.skills.join(', ') : 'No skills logged yet.' },
+        { label: 'Partners', value: props.session.partners.length ? props.session.partners.join(', ') : 'Solo session' },
+        { label: 'Scores', value: scoreCards.value.length ? scoreCards.value.map((score) => `${score.label} ${score.value}/5`).join(' · ') : 'No scores logged yet.' },
+    ],
+);
+
+const attachmentCards = computed(() =>
+    [
+        { label: 'GPX', name: props.session.gpxName, url: props.session.gpxUrl },
+        { label: 'FIT', name: props.session.fitName, url: props.session.fitUrl },
+    ],
 );
 
 const routeMapData = computed(() => {
@@ -245,26 +305,29 @@ const routeMapData = computed(() => {
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-4">
-                    <p class="journal-kicker">Session detail</p>
-                    <Heading
-                        :title="session.title"
-                        :description="`${session.date ?? 'No date'}${session.launchName ? ` · ${session.launchName}` : ''}${session.startTimeLocal ? ` · ${session.startTimeLocal} ${session.timezone}` : ''}`"
-                    />
+                    <p class="journal-kicker">{{ session.date ?? 'Session detail' }}</p>
+                    <div class="space-y-2">
+                        <h1 class="text-[clamp(2rem,3.8vw,3rem)] leading-[0.94] text-[color:var(--journal-text)]">
+                            {{ session.title }}
+                        </h1>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            {{ sessionSubtitle || 'A selected paddle day from the journal.' }}
+                        </p>
+                    </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <span
-                            v-for="chip in heroChips"
-                            :key="chip"
-                            class="journal-chip"
-                        >
+                        <span v-for="chip in heroChips" :key="chip" class="journal-chip">
                             {{ chip }}
                         </span>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-wrap gap-2">
+                    <span class="journal-chip" :class="session.isPublic ? '' : 'journal-chip--primary'">
+                        {{ session.isPublic ? 'Public' : 'Private' }}
+                    </span>
                     <Link href="/sessions" class="journal-utility-link">Back to sessions</Link>
                     <Link :href="`/sessions/${session.id}/edit`" class="journal-primary-link">Edit session</Link>
                 </div>
@@ -276,182 +339,212 @@ const routeMapData = computed(() => {
                 v-for="card in statCards"
                 :key="card.label"
                 class="journal-metric-card"
-                :style="{
-                    background:
-                        card.label === 'Distance'
-                            ? 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))'
-                            : card.label === 'Duration'
-                              ? 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))'
-                              : card.label === 'Average speed'
-                                ? 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))'
-                                : 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
-                }"
+                :style="{ background: card.style }"
             >
                 <p class="journal-kicker">{{ card.label }}</p>
                 <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ card.value }}</p>
+                <p class="mt-2 text-sm text-[color:var(--journal-muted)]">{{ card.detail }}</p>
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-            <article class="journal-card px-5 py-5 md:px-6">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="journal-kicker">Route</p>
-                        <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Route map</h2>
-                    </div>
-                    <span class="journal-chip">
-                        {{ session.routeProfile.length ? `${session.routeProfile.length} sampled points` : 'No GPX profile yet' }}
-                    </span>
-                </div>
-
-                <div class="mt-6">
-                    <RouteAtlasMap
-                        :routes="routeMapData.routes"
-                        :pins="routeMapData.pins"
-                        :default-view="routeMapData.defaultView"
-                        height-class="h-[520px]"
-                    />
-                </div>
-
-                <p v-if="session.routeSummary" class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    {{ session.routeSummary }}
-                </p>
-            </article>
-
-            <article class="journal-card px-5 py-5 md:px-6">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="journal-kicker">Track profile</p>
-                        <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Speed curve</h2>
-                    </div>
-                    <span class="journal-chip">
-                        Garmin-derived
-                    </span>
-                </div>
-
-                <div
-                    v-if="session.routeProfile.length"
-                    class="journal-soft-card mt-6 overflow-hidden"
-                >
-                    <svg viewBox="0 0 340 120" class="w-full">
-                        <path
-                            d="M 18 104 H 322"
-                            stroke="rgba(100, 116, 139, 0.15)"
-                            stroke-width="1"
-                        />
-                        <path
-                            d="M 18 66 H 322"
-                            stroke="rgba(100, 116, 139, 0.1)"
-                            stroke-width="1"
-                            stroke-dasharray="4 6"
-                        />
-                        <polyline
-                            :points="speedChart"
-                            fill="none"
-                            stroke="rgba(244, 114, 182, 0.9)"
-                            stroke-width="4"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
-                </div>
-
-                <div v-else class="mt-6 rounded-[1.35rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-5 py-10 text-sm text-[color:var(--journal-muted)]">
-                    Speed curve appears when a GPX route is attached.
-                </div>
-
-                <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                    <span
-                        v-for="tag in session.routeTags"
-                        :key="tag"
-                        class="journal-chip"
+        <section class="journal-panel px-5 py-5 md:px-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <nav class="inline-flex flex-wrap items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/74 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                    <button
+                        type="button"
+                        :class="['journal-tab', activeTab === 'map' ? 'journal-tab--active' : '']"
+                        @click="activeTab = 'map'"
                     >
-                        {{ tag }}
-                    </span>
+                        Map
+                    </button>
+                    <button
+                        type="button"
+                        :class="['journal-tab', activeTab === 'charts' ? 'journal-tab--active' : '']"
+                        @click="activeTab = 'charts'"
+                    >
+                        Charts
+                    </button>
+                    <button
+                        type="button"
+                        :class="['journal-tab', activeTab === 'stats' ? 'journal-tab--active' : '']"
+                        @click="activeTab = 'stats'"
+                    >
+                        Stats
+                    </button>
+                </nav>
+
+                <span class="journal-chip">
+                    {{ activeTab === 'map' ? 'Route view' : activeTab === 'charts' ? 'Track profile' : 'Session facts' }}
+                </span>
+            </div>
+
+            <div v-if="activeTab === 'map'" class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                <article class="journal-card px-4 py-4 md:px-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">Route</p>
+                            <h2 class="mt-2 text-[1.65rem] leading-none text-[color:var(--journal-text)]">Route map</h2>
+                        </div>
+                        <span class="journal-chip">
+                            {{ session.routeProfile.length ? `${session.routeProfile.length} sampled points` : 'No GPX profile yet' }}
+                        </span>
+                    </div>
+
+                    <div class="mt-6">
+                        <RouteAtlasMap
+                            :routes="routeMapData.routes"
+                            :pins="routeMapData.pins"
+                            :default-view="routeMapData.defaultView"
+                            :show-legend="false"
+                            :show-filters="false"
+                            :allow-pin-view="false"
+                            height-class="h-[560px]"
+                        />
+                    </div>
+                </article>
+
+                <div class="grid gap-4">
+                    <article class="journal-card px-5 py-5">
+                        <p class="journal-kicker">Route notes</p>
+                        <p class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
+                            {{ session.routeSummary ?? 'No route summary written yet.' }}
+                        </p>
+                    </article>
+
+                    <article
+                        v-if="session.photoUrl"
+                        class="overflow-hidden rounded-[26px] border border-[color:var(--journal-line)] bg-white/78"
+                    >
+                        <img :src="session.photoUrl" :alt="session.photoName ?? session.title" class="h-64 w-full object-cover" />
+                    </article>
+
+                    <article class="journal-card px-5 py-5">
+                        <p class="journal-kicker">Route tags</p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span v-for="tag in session.routeTags" :key="tag" class="journal-chip">
+                                {{ tag }}
+                            </span>
+                            <span
+                                v-if="!session.routeTags.length"
+                                class="rounded-full border border-dashed border-[color:var(--journal-line)] bg-white/74 px-3 py-2 text-[color:var(--journal-faint)]"
+                            >
+                                No route tags yet
+                            </span>
+                        </div>
+                    </article>
                 </div>
-            </article>
+            </div>
+
+            <div v-else-if="activeTab === 'charts'" class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+                <article class="journal-card px-5 py-5 md:px-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="journal-kicker">Track profile</p>
+                            <h2 class="mt-2 text-[1.65rem] leading-none text-[color:var(--journal-text)]">Speed curve</h2>
+                        </div>
+                        <span class="journal-chip">Garmin-derived</span>
+                    </div>
+
+                    <div
+                        v-if="session.routeProfile.length"
+                        class="journal-soft-card mt-6 overflow-hidden"
+                    >
+                        <svg viewBox="0 0 340 120" class="w-full">
+                            <path d="M 18 104 H 322" stroke="rgba(100, 116, 139, 0.15)" stroke-width="1" />
+                            <path d="M 18 66 H 322" stroke="rgba(100, 116, 139, 0.1)" stroke-width="1" stroke-dasharray="4 6" />
+                            <polyline
+                                :points="speedChart"
+                                fill="none"
+                                stroke="rgba(244, 114, 182, 0.9)"
+                                stroke-width="4"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-6 rounded-[1.35rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-5 py-10 text-sm text-[color:var(--journal-muted)]"
+                    >
+                        Speed curve appears when a GPX or FIT track is attached.
+                    </div>
+                </article>
+
+                <article class="journal-card px-5 py-5 md:px-6">
+                    <p class="journal-kicker">Conditions</p>
+                    <h2 class="mt-2 text-[1.65rem] leading-none text-[color:var(--journal-text)]">Sea and weather</h2>
+
+                    <div class="mt-6 flex flex-wrap gap-2">
+                        <span v-for="fact in conditionFacts" :key="fact" class="journal-chip">
+                            {{ fact }}
+                        </span>
+                        <span
+                            v-if="!conditionFacts.length"
+                            class="rounded-full border border-dashed border-[color:var(--journal-line)] bg-white/74 px-3 py-2 text-[color:var(--journal-faint)]"
+                        >
+                            No sea-state details logged yet
+                        </span>
+                    </div>
+
+                    <div v-if="session.conditionRatings.length" class="mt-6 grid gap-3 md:grid-cols-2">
+                        <article
+                            v-for="rating in session.conditionRatings"
+                            :key="rating.label"
+                            class="journal-soft-card"
+                        >
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
+                                {{ rating.label }}
+                            </p>
+                            <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
+                                {{ rating.value }}
+                            </p>
+                        </article>
+                    </div>
+
+                    <p v-if="session.weatherSummary" class="mt-6 text-sm leading-6 text-[color:var(--journal-muted)]">
+                        {{ session.weatherSummary }}
+                    </p>
+                </article>
+            </div>
+
+            <div v-else class="mt-6 grid gap-4 xl:grid-cols-3">
+                <article class="journal-card px-5 py-5 md:px-6">
+                    <p class="journal-kicker">Journey</p>
+                    <div class="mt-4 grid gap-3">
+                        <article v-for="item in journeyFacts" :key="item.label" class="journal-soft-card">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ item.label }}</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-[color:var(--journal-text)]">{{ item.value }}</p>
+                        </article>
+                    </div>
+                </article>
+
+                <article class="journal-card px-5 py-5 md:px-6">
+                    <p class="journal-kicker">Sea</p>
+                    <div class="mt-4 grid gap-3">
+                        <article v-for="item in seaFacts" :key="item.label" class="journal-soft-card">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ item.label }}</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-[color:var(--journal-text)]">{{ item.value }}</p>
+                        </article>
+                    </div>
+                </article>
+
+                <article class="journal-card px-5 py-5 md:px-6">
+                    <p class="journal-kicker">Development</p>
+                    <div class="mt-4 grid gap-3">
+                        <article v-for="item in developmentFacts" :key="item.label" class="journal-soft-card">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ item.label }}</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-[color:var(--journal-text)]">{{ item.value }}</p>
+                        </article>
+                    </div>
+                </article>
+            </div>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.88fr)]">
             <article class="journal-card px-5 py-5 md:px-6">
-                <p class="journal-kicker">Conditions</p>
-                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Sea and weather</h2>
-
-                <div class="mt-6 flex flex-wrap gap-2 text-sm text-slate-600">
-                    <span
-                        v-for="fact in conditionFacts"
-                        :key="fact"
-                        class="journal-chip"
-                    >
-                        {{ fact }}
-                    </span>
-                    <span
-                        v-if="!conditionFacts.length"
-                        class="rounded-full border border-dashed border-[color:var(--journal-line)] bg-white/74 px-3 py-2 text-[color:var(--journal-faint)]"
-                    >
-                        No sea-state details logged yet
-                    </span>
-                </div>
-
-                <div v-if="session.conditionRatings.length" class="mt-6 grid gap-3 md:grid-cols-2">
-                    <article
-                        v-for="rating in session.conditionRatings"
-                        :key="rating.label"
-                        class="journal-soft-card"
-                    >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
-                            {{ rating.label }}
-                        </p>
-                        <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
-                            {{ rating.value }}
-                        </p>
-                    </article>
-                </div>
-
-                <p v-if="session.weatherSummary" class="mt-6 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    {{ session.weatherSummary }}
-                </p>
-            </article>
-
-            <article class="journal-card px-5 py-5 md:px-6">
-                <p class="journal-kicker">Development</p>
-                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Rescue, skills, and reflections</h2>
-
-                <div class="mt-6 grid gap-3 md:grid-cols-3">
-                    <article class="journal-soft-card">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Successful rolls</p>
-                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.successfulRollsCount }}</p>
-                    </article>
-                    <article class="journal-soft-card">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Wet exits</p>
-                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.wetExitsCount }}</p>
-                    </article>
-                    <article class="journal-soft-card">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Tow rescues</p>
-                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.towRescuesCount }}</p>
-                    </article>
-                </div>
-
-                <div v-if="session.skills.length" class="mt-6 flex flex-wrap gap-2 text-sm text-slate-600">
-                    <span
-                        v-for="skill in session.skills"
-                        :key="skill"
-                        class="journal-chip"
-                    >
-                        {{ skill }}
-                    </span>
-                </div>
-
-                <div v-if="scoreCards.length" class="mt-6 grid gap-3 md:grid-cols-3">
-                    <article
-                        v-for="score in scoreCards"
-                        :key="score.label"
-                        class="journal-soft-card"
-                    >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ score.label }}</p>
-                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ score.value }}/5</p>
-                    </article>
-                </div>
+                <p class="journal-kicker">Notes</p>
+                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Observations and reflections</h2>
 
                 <div v-if="reflectionCards.length" class="mt-6 grid gap-3">
                     <article
@@ -467,45 +560,12 @@ const routeMapData = computed(() => {
                         </p>
                     </article>
                 </div>
-            </article>
-        </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,1.1fr)]">
-            <article class="journal-card px-5 py-5 md:px-6">
-                <p class="journal-kicker">Journey</p>
-                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Core session facts</h2>
-
-                <div class="mt-6 grid gap-3">
-                    <article class="journal-soft-card">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Launch / landing</p>
-                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                            {{ session.launchName ?? 'Unknown launch' }}<span v-if="session.landingName"> → {{ session.landingName }}</span>
-                        </p>
-                    </article>
-                    <article class="journal-soft-card">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Area</p>
-                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                            {{ session.areaName ?? profile.homeWater }}
-                        </p>
-                    </article>
-                    <article
-                        v-if="session.isExpedition"
-                        class="journal-soft-card"
-                    >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Days out</p>
-                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                            {{ session.expeditionDays ?? '—' }}
-                        </p>
-                    </article>
-                    <article
-                        v-if="session.partners.length"
-                        class="journal-soft-card"
-                    >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Partners</p>
-                        <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                            {{ session.partners.join(', ') }}
-                        </p>
-                    </article>
+                <div
+                    v-else
+                    class="mt-6 rounded-[1.35rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-5 py-8 text-sm text-[color:var(--journal-muted)]"
+                >
+                    No notes added to this session yet.
                 </div>
             </article>
 
@@ -513,30 +573,20 @@ const routeMapData = computed(() => {
                 <p class="journal-kicker">Files</p>
                 <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Attachments</h2>
 
-                <div class="mt-6 grid gap-4">
-                    <div
-                        v-if="session.photoUrl"
-                        class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/72"
+                <div class="mt-6 grid gap-3">
+                    <article
+                        v-for="item in attachmentCards"
+                        :key="item.label"
+                        class="journal-soft-card"
                     >
-                        <img :src="session.photoUrl" :alt="session.photoName ?? session.title" class="h-56 w-full object-cover" />
-                    </div>
-
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <article class="journal-soft-card">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">GPX</p>
-                            <div class="mt-2 flex items-center justify-between gap-3">
-                                <p class="text-sm text-[color:var(--journal-muted)]">{{ session.gpxName ?? 'No GPX attached' }}</p>
-                                <a v-if="session.gpxUrl" :href="session.gpxUrl" target="_blank" rel="noreferrer" class="journal-utility-link">Open</a>
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ item.label }}</p>
+                                <p class="mt-2 text-sm text-[color:var(--journal-muted)]">{{ item.name ?? `No ${item.label} attached` }}</p>
                             </div>
-                        </article>
-                        <article class="journal-soft-card">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">FIT</p>
-                            <div class="mt-2 flex items-center justify-between gap-3">
-                                <p class="text-sm text-[color:var(--journal-muted)]">{{ session.fitName ?? 'No FIT attached' }}</p>
-                                <a v-if="session.fitUrl" :href="session.fitUrl" target="_blank" rel="noreferrer" class="journal-utility-link">Open</a>
-                            </div>
-                        </article>
-                    </div>
+                            <a v-if="item.url" :href="item.url" target="_blank" rel="noreferrer" class="journal-utility-link">Open</a>
+                        </div>
+                    </article>
                 </div>
             </article>
         </section>

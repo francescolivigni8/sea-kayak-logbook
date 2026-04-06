@@ -86,22 +86,22 @@ const steps = [
     {
         key: 'journey',
         title: 'Journey',
-        description: 'Core trip details: where, when, and what kind of paddle it was.',
+        description: 'Where, when, and what kind of paddle it was.',
     },
     {
         key: 'sea',
         title: 'Sea',
-        description: 'Wind, swell, tide, temperatures, and the environmental checklist.',
+        description: 'Wind, swell, tide, temperatures, and checklist ratings.',
     },
     {
         key: 'development',
         title: 'Rescue and development',
-        description: 'Successful rolls, wet exits, tow rescues, and what you learned.',
+        description: 'Rescue events, skills, reflections, and scores.',
     },
     {
         key: 'notes',
         title: 'Notes and files',
-        description: 'Visibility, expedition fields, observations, expedition notes, GPX/FIT, and a photo.',
+        description: 'Visibility, expedition fields, notes, GPX/FIT, and a photo.',
     },
 ] as const;
 
@@ -224,13 +224,20 @@ onBeforeUnmount(() => {
 const pageTitle = computed(() => (props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session'));
 const pageDescription = computed(() =>
     props.mode === 'create'
-        ? 'One clean journey flow: capture the paddle, mark the sea state, log rescue events, and attach the files.'
-        : 'Refine the existing paddle and update its notes, files, and expedition fields.',
+        ? 'Capture the paddle, mark the sea state, log rescue events, and attach the files.'
+        : 'Refine the paddle and update its notes, files, and expedition fields.',
 );
 
 const submitLabel = computed(() => (props.mode === 'create' ? 'Save session' : 'Update session'));
 const fileInputClass =
     'journal-input file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium';
+const metaPills = computed(() => [
+    props.profile.homeWater,
+    props.profile.timezone,
+    '4-step flow',
+    'GPX / FIT',
+].filter(Boolean));
+const stepProgressLabel = computed(() => `Step ${currentStep.value + 1} of ${steps.length}`);
 
 function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event) {
     const target = event.target as HTMLInputElement;
@@ -288,16 +295,28 @@ function submit() {
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
-                    <span class="journal-chip">{{ profile.timezone }}</span>
-                    <span class="journal-chip">{{ profile.name }}</span>
+                    <span
+                        v-for="pill in metaPills"
+                        :key="pill"
+                        class="journal-chip"
+                        :class="pill === profile.homeWater ? 'journal-chip--primary' : ''"
+                    >
+                        {{ pill }}
+                    </span>
                 </div>
             </div>
         </section>
 
         <form class="space-y-5" @submit.prevent="submit">
             <section class="journal-panel px-5 py-5 md:px-6">
-                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-sm font-medium text-[color:var(--journal-muted)]">
+                        {{ stepProgressLabel }}
+                    </p>
+                    <span class="journal-chip">Required: title, date, launch, distance or route file</span>
+                </div>
+
+                <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <button
                         v-for="(step, index) in steps"
                         :key="step.key"
@@ -305,7 +324,7 @@ function submit() {
                         :class="['journal-step', currentStep === index ? 'journal-step--active' : '']"
                         @click="goToStep(index)"
                     >
-                        <span class="journal-kicker">Step {{ index + 1 }}</span>
+                        <span class="journal-kicker">{{ `Step ${index + 1}` }}</span>
                         <strong class="text-[1rem] text-[color:var(--journal-text)]">{{ step.title }}</strong>
                         <span class="text-sm leading-6 text-[color:var(--journal-muted)]">{{ step.description }}</span>
                     </button>
@@ -313,12 +332,18 @@ function submit() {
             </section>
 
             <section class="journal-panel px-5 py-5 md:px-6">
-                <div class="mb-6 space-y-2">
-                    <p class="journal-kicker">{{ currentStepMeta.title }}</p>
-                    <h3 class="text-[1.9rem] leading-none">{{ currentStepMeta.title }}</h3>
-                    <p class="journal-copy max-w-3xl text-sm md:text-base">
-                        {{ currentStepMeta.description }}
-                    </p>
+                <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+                    <div class="space-y-2">
+                        <p class="journal-kicker">{{ currentStepMeta.title }}</p>
+                        <h3 class="text-[1.9rem] leading-none">{{ currentStepMeta.title }}</h3>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            {{ currentStepMeta.description }}
+                        </p>
+                    </div>
+
+                    <span class="journal-chip">
+                        {{ currentStep === steps.length - 1 ? 'Ready to save' : 'Keep going' }}
+                    </span>
                 </div>
 
                 <div v-show="currentStep === 0" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
