@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiaryController;
 use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\GarminImportController;
+use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PublicProfileController;
 use Illuminate\Http\Request;
@@ -29,6 +30,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('workspace');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('diary', DiaryController::class)->name('diary');
+    Route::get('observations', [JournalNotesController::class, 'observations'])->name('observations');
+    Route::get('expedition-notes', [JournalNotesController::class, 'expeditionNotes'])->name('expedition-notes');
     Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
     Route::post('imports/garmin', [GarminImportController::class, 'store'])->name('imports.garmin.store');
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');

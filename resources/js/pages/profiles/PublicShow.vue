@@ -125,27 +125,27 @@ const props = defineProps<{
 
 const metricCards = computed(() => [
     {
-        label: 'Public distance',
+        label: 'Total distance',
         value: `${props.headline.distanceKm.toFixed(1)} km`,
         detail: `${props.headline.sessionCount} public paddles`,
         style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Public hours',
+        label: 'Total duration',
         value: `${props.headline.durationHours.toFixed(1)} h`,
         detail: `${props.headline.paddledMonths} months paddled`,
         style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Longest public outing',
-        value: `${props.headline.longestDistanceKm.toFixed(1)} km`,
-        detail: `${props.headline.averageDistanceKm.toFixed(1)} km average outing`,
+        label: 'Average air',
+        value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
+        detail: 'Across public sessions with air logged',
         style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Mapped routes',
-        value: String(props.headline.trackSessions),
-        detail: 'Public sessions with route data',
+        label: 'Average sea',
+        value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
+        detail: 'Across public sessions with sea logged',
         style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
     },
 ]);
@@ -156,7 +156,6 @@ const expeditionCards = computed(() => [
     { label: 'Multiday trips', value: String(props.expeditionSummary.tripCount), detail: 'Public expedition sessions' },
 ]);
 
-const monthlyMax = computed(() => Math.max(...props.monthlyDistance.map((item) => item.distanceKm), 1));
 const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
 </script>
 
@@ -212,76 +211,12 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-            <article class="journal-card px-5 py-5 md:px-6">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="journal-kicker">Consistency</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Distance by month</h3>
-                    </div>
-                    <span class="journal-chip">Rolling 12 months</span>
-                </div>
-
-                <div class="mt-6 grid gap-4">
-                    <div
-                        v-for="item in monthlyDistance"
-                        :key="item.key"
-                        class="grid grid-cols-[42px_minmax(0,1fr)_72px] items-center gap-3"
-                    >
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
-                            {{ item.label }}
-                        </span>
-                        <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
-                            <div
-                                class="h-full rounded-full"
-                                :style="{
-                                    width: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 0)}%`,
-                                    background: 'linear-gradient(90deg, #6772ff, #9c80ff 48%, #ff9c6b)',
-                                }"
-                            />
-                        </div>
-                        <span class="text-right text-sm font-medium text-[color:var(--journal-muted)]">
-                            {{ item.distanceKm ? `${item.distanceKm.toFixed(1)} km` : '–' }}
-                        </span>
-                    </div>
-                </div>
-            </article>
-
-            <article class="journal-card px-5 py-5 md:px-6">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="journal-kicker">Compare</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / year / 12m</h3>
-                    </div>
-                    <span class="journal-chip">Public only</span>
-                </div>
-
-                <div class="mt-6 grid gap-3">
-                    <article
-                        v-for="snapshot in yearSnapshots"
-                        :key="snapshot.label"
-                        class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
-                    >
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
-                                    {{ snapshot.label }}
-                                </p>
-                                <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                    {{ snapshot.value.toFixed(1) }}
-                                    <span class="text-base text-[color:var(--journal-muted)]">{{ snapshot.unit }}</span>
-                                </p>
-                            </div>
-                            <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
-                                {{ snapshot.detail }}
-                            </p>
-                        </div>
-                    </article>
-                </div>
-            </article>
-        </section>
-
-        <SeaStatePanels :sea-state="seaState" />
+        <SeaStatePanels
+            :sea-state="seaState"
+            :year-snapshots="yearSnapshots"
+            :monthly-distance="monthlyDistance"
+            compare-chip="Public only"
+        />
 
         <section class="journal-panel px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -289,7 +224,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     <p class="journal-kicker">Map</p>
                     <h3 class="mt-2 text-[1.8rem] leading-none">Public route map</h3>
                 </div>
-                <span class="journal-chip">Shareable routes only</span>
+                <span class="journal-chip">{{ mapData.routes.length }} routes</span>
             </div>
 
             <div class="mt-6">
@@ -308,9 +243,18 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Expeditions and multiday</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">I paddled here</h3>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">Expeditions and multiday</h3>
                 </div>
                 <span class="journal-chip">Public expedition places</span>
+            </div>
+
+            <div class="mt-6 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5">
+                <p class="text-base font-semibold text-[color:var(--journal-text)]">
+                    Longer journeys, kept separate and still counted in the public logbook totals.
+                </p>
+                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                    Public expedition routes stay on the main map while the place pins live here.
+                </p>
             </div>
 
             <div class="mt-6 grid gap-4 md:grid-cols-3">
