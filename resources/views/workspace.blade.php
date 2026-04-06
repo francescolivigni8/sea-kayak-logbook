@@ -75,6 +75,12 @@
             border-radius: 22px;
             min-width: 180px;
         }
+        .tile small {
+            display: block;
+            margin-top: 6px;
+            color: rgba(37, 43, 82, 0.64);
+            font-weight: 500;
+        }
         form {
             margin-top: 24px;
         }
@@ -89,7 +95,7 @@
             <div class="eyebrow">Logged in</div>
             <h1>Your kayak workspace</h1>
             <p>
-                This fallback page is only here in case the richer journal view ever needs a recovery route. The normal flow now goes straight to the dashboard.
+                This lighter fallback stays here in case the richer journal screens ever need a recovery route.
             </p>
 
             <div class="chips">
@@ -98,12 +104,12 @@
             </div>
 
             <div class="grid">
-                <a class="tile" href="{{ route('sessions.index') }}">Sessions</a>
-                <a class="tile" href="{{ route('dashboard') }}">Dashboard</a>
-                <a class="tile" href="{{ route('diary') }}">Diary</a>
-                <a class="tile" href="{{ route('expeditions.index') }}">Expeditions</a>
-                <a class="tile" href="{{ route('imports.garmin.create') }}">Garmin import</a>
-                <a class="tile" href="{{ route('profile.edit') }}">Settings</a>
+                <a class="tile" href="{{ route('dashboard') }}">Dashboard<small>Charts, exposure, route map</small></a>
+                <a class="tile" href="{{ route('diary') }}">Diary<small>Calendar and session reading view</small></a>
+                <a class="tile" href="{{ route('sessions.index') }}">Library<small>All paddles in one archive</small></a>
+                <a class="tile" href="{{ route('expeditions.index') }}">Expeditions<small>Multiday places and atlas</small></a>
+                <a class="tile" href="{{ route('imports.garmin.create') }}">Import<small>Garmin CSV, GPX, and FIT</small></a>
+                <a class="tile" href="{{ route('profile.edit') }}">Account<small>Profile, security, appearance</small></a>
             </div>
 
             <form method="POST" action="{{ route('logout') }}">

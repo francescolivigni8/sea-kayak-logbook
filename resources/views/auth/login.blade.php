@@ -27,7 +27,7 @@
                 linear-gradient(180deg, #f5f6ff 0%, #edf0ff 100%);
             color: var(--text);
         }
-        .wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px 64px; }
+        .wrap { max-width: 620px; margin: 0 auto; padding: 40px 20px 64px; }
         .card {
             background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.88));
             border: 1px solid var(--line);
@@ -52,6 +52,24 @@
             letter-spacing: -.04em;
         }
         p { color: var(--muted); line-height: 1.7; }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,.82);
+            color: rgba(37, 43, 82, 0.72);
+            font-family: "IBM Plex Mono", ui-monospace, monospace;
+            font-size: 12px;
+        }
         .field { margin-top: 18px; display: grid; gap: 8px; }
         label { font-size: 14px; font-weight: 600; color: var(--text); }
         input {
@@ -98,6 +116,12 @@
             <div class="eyebrow">Private access</div>
             <h1>Open your kayak dashboard</h1>
             <p>Password-first access to the lighter journal workspace.</p>
+
+            <div class="chips">
+                <div class="chip">Email + password</div>
+                <div class="chip">Private workspace</div>
+                <div class="chip">Route uploads later</div>
+            </div>
 
             @if ($status)
                 <div class="status">{{ $status }}</div>

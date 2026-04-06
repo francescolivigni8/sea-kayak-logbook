@@ -36,7 +36,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                             Account and appearance
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Keep this area in the same journal language too: identity, password, and appearance without drifting into a utility dashboard.
+                            Identity, password, and appearance kept in the same calm journal language.
                         </p>
                     </div>
                 </div>
@@ -51,19 +51,6 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         {{ item.title }}
                     </Link>
                 </div>
-            </div>
-        </section>
-
-        <section class="journal-panel px-5 py-5 md:px-6">
-            <div class="flex flex-wrap gap-2" aria-label="Settings">
-                <Link
-                    v-for="item in sidebarNavItems"
-                    :key="toUrl(item.href)"
-                    :href="item.href"
-                    :class="['journal-tab', isCurrentOrParentUrl(item.href) ? 'journal-tab--active' : '']"
-                >
-                    {{ item.title }}
-                </Link>
             </div>
         </section>
 

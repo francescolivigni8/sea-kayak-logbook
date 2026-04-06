@@ -2,7 +2,6 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import DeleteUser from '@/components/DeleteUser.vue';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/profile';
@@ -36,11 +35,15 @@ const user = computed(() => page.props.auth.user);
         <div class="space-y-5">
             <section class="journal-panel px-5 py-5 md:px-6">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <Heading
-                        variant="small"
-                        title="Profile information"
-                        description="Keep the core identity clean here. This controls how your account appears across the private journal workspace."
-                    />
+                    <div class="space-y-2">
+                        <p class="journal-kicker">Profile</p>
+                        <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                            Profile information
+                        </h2>
+                        <p class="journal-copy max-w-2xl text-sm md:text-base">
+                            Keep the core identity clean here. This controls how your account appears across the private workspace.
+                        </p>
+                    </div>
 
                     <div class="flex flex-wrap gap-2">
                         <span class="journal-chip journal-chip--primary">

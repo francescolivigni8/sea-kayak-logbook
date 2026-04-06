@@ -3,7 +3,6 @@ import { Form, Head } from '@inertiajs/vue3';
 import { ShieldCheck } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TwoFactorRecoveryCodes from '@/components/TwoFactorRecoveryCodes.vue';
@@ -51,11 +50,15 @@ onUnmounted(() => clearTwoFactorAuthData());
     <SettingsLayout>
         <div class="space-y-6">
             <section class="journal-panel px-5 py-5 md:px-6">
-                <Heading
-                    variant="small"
-                    title="Password"
-                    description="Keep sign-in straightforward here with a strong password and a clean recovery path."
-                />
+                <div class="space-y-2">
+                    <p class="journal-kicker">Security</p>
+                    <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                        Password
+                    </h2>
+                    <p class="journal-copy max-w-2xl text-sm md:text-base">
+                        Keep sign-in straightforward here with a strong password and a clean recovery path.
+                    </p>
+                </div>
 
                 <Form
                     v-bind="SecurityController.update.form()"
@@ -137,11 +140,15 @@ onUnmounted(() => clearTwoFactorAuthData());
             </section>
 
             <section v-if="canManageTwoFactor" class="journal-panel px-5 py-5 md:px-6">
-                <Heading
-                    variant="small"
-                    title="Two-factor authentication"
-                    description="Optional extra security when you want a second step at sign-in without complicating the normal journal flow."
-                />
+                <div class="space-y-2">
+                    <p class="journal-kicker">Security</p>
+                    <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                        Two-factor authentication
+                    </h2>
+                    <p class="journal-copy max-w-2xl text-sm md:text-base">
+                        Optional extra security when you want a second step at sign-in without complicating the normal journal flow.
+                    </p>
+                </div>
 
                 <div
                     v-if="!twoFactorEnabled"
