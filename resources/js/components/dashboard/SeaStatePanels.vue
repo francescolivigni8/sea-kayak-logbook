@@ -292,21 +292,6 @@ function tidePercent(count: number) {
                         </span>
                     </div>
                 </div>
-
-                <div class="mt-6 grid gap-3 md:grid-cols-2">
-                    <article class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4">
-                        <p class="journal-kicker">Average air</p>
-                        <p class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]">
-                            {{ seaState.temperatureAverages.air !== null ? `${seaState.temperatureAverages.air.toFixed(1)} C` : '—' }}
-                        </p>
-                    </article>
-                    <article class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4">
-                        <p class="journal-kicker">Average sea</p>
-                        <p class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]">
-                            {{ seaState.temperatureAverages.sea !== null ? `${seaState.temperatureAverages.sea.toFixed(1)} C` : '—' }}
-                        </p>
-                    </article>
-                </div>
             </article>
         </section>
 

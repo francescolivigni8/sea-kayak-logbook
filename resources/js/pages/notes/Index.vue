@@ -59,11 +59,22 @@ defineProps<{
             </div>
         </section>
 
+        <section class="journal-banner journal-banner--soft">
+            These note surfaces stay deliberately simple: short cards, a few tags, and a direct link back to the session that generated them.
+        </section>
+
         <section class="grid gap-4 md:grid-cols-2">
             <article
                 v-for="item in items"
                 :key="item.id"
                 class="journal-card overflow-hidden px-5 py-5 md:px-6"
+                :style="{
+                    background: item.photoUrl
+                        ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
+                        : item.visibility === 'Public'
+                          ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))'
+                          : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(148,141,255,0.08))',
+                }"
             >
                 <div class="flex flex-col gap-4">
                     <div class="flex flex-wrap gap-2 text-xs font-medium">

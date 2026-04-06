@@ -195,6 +195,10 @@ function stepMonth(direction: -1 | 1) {
                 </p>
             </div>
 
+            <div class="mt-5 journal-banner journal-banner--soft">
+                The diary keeps the calendar compact and lets the selected day open into a clearer reading layout on the right.
+            </div>
+
             <div class="mt-6 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <aside class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/76 px-4 py-4">
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -229,15 +233,8 @@ function stepMonth(direction: -1 | 1) {
                         </button>
                     </div>
 
-                    <div class="mt-5 grid gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-                        <div class="flex items-center gap-2">
-                            <span class="h-2.5 w-2.5 rounded-full bg-[rgba(255,156,107,0.9)]" />
-                            <span>Public</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="h-2.5 w-2.5 rounded-full bg-[rgba(148,141,255,0.9)]" />
-                            <span>Private</span>
-                        </div>
+                    <div class="mt-5 text-xs font-medium text-[color:var(--journal-muted)]">
+                        Dots mark paddled days.
                     </div>
 
                     <div class="mt-6 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
@@ -270,9 +267,6 @@ function stepMonth(direction: -1 | 1) {
                                     class="h-2 w-2 rounded-full"
                                     :style="{ background: day.entries.some((entry) => !entry.isPublic) ? '#948dff' : '#ff9c6b' }"
                                 />
-                                <span v-if="day.entries.length" class="text-[10px] font-medium text-[color:var(--journal-muted)]">
-                                    paddle
-                                </span>
                             </div>
                         </button>
                     </div>
@@ -381,9 +375,6 @@ function stepMonth(direction: -1 | 1) {
                         <div class="flex flex-wrap gap-2">
                             <Link :href="selectedPrimaryEntry.path" class="journal-utility-link">
                                 Open session
-                            </Link>
-                            <Link :href="`${selectedPrimaryEntry.path}/edit`" class="journal-utility-link">
-                                Edit session
                             </Link>
                         </div>
 

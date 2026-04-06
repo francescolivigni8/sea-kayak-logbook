@@ -191,31 +191,32 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                             All sessions
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Distance, exposure, rescue, map, and expedition context in the same logbook language as the prototype.
+                            Distance, exposure, rescue, maps, and expeditions in one lighter overview.
                         </p>
                     </div>
                 </div>
 
                 <div class="flex flex-col items-start gap-3 xl:items-end">
                     <p class="text-sm font-medium text-[color:var(--journal-muted)]">
-                        Distance, exposure, rescue, map.
+                        {{ headline.sessionCount }} paddles across {{ headline.paddledMonths }} active months.
                     </p>
                     <div class="flex flex-wrap gap-2">
-                    <Link v-if="profile.isPublic" :href="profile.publicPath" class="journal-utility-link">
-                        Open public profile
-                    </Link>
-                    <Link href="/sessions" class="journal-utility-link">
-                        All sessions
-                    </Link>
-                    <Link href="/imports/garmin" class="journal-utility-link">
-                        Garmin import
-                    </Link>
-                    <Link href="/sessions/create" class="journal-primary-link">
-                        Add session
-                    </Link>
+                        <Link v-if="profile.isPublic" :href="profile.publicPath" class="journal-utility-link">
+                            Public profile
+                        </Link>
+                        <Link href="/sessions" class="journal-utility-link">
+                            Library
+                        </Link>
+                        <Link href="/sessions/create" class="journal-primary-link">
+                            Add session
+                        </Link>
                     </div>
                 </div>
             </div>
+        </section>
+
+        <section class="journal-banner journal-banner--soft">
+            The dashboard stays aggregate-first: wind, tide, conditions, routes, and expedition footprint before individual stories.
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -266,7 +267,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
         <section class="journal-panel px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="journal-kicker">Expeditions and multiday</p>
+                    <p class="journal-kicker">Expeditions</p>
                     <h3 class="mt-2 text-[1.8rem] leading-none">Expeditions and multiday</h3>
                 </div>
                 <span class="journal-chip">Checklist tagged</span>
@@ -298,6 +299,14 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
             </div>
 
             <div class="mt-6">
+                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="journal-kicker">Expeditions</p>
+                        <h4 class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]">I paddled here</h4>
+                    </div>
+                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionPlaces.length }} places</span>
+                </div>
+
                 <RouteAtlasMap
                     :routes="expeditionMapData.routes"
                     :pins="expeditionMapData.pins"
@@ -307,6 +316,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
+                    :allow-pin-view="false"
                     empty-message="No expedition locations logged yet."
                     height-class="h-[420px]"
                 />
@@ -317,6 +327,11 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     v-for="place in featuredPlaces"
                     :key="place.slug"
                     class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/78"
+                    :style="{
+                        background: place.photoUrl
+                            ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
+                            : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
+                    }"
                 >
                     <img
                         v-if="place.photoUrl"
@@ -336,15 +351,17 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                                 </p>
                             </div>
 
-                            <Link :href="place.path" class="journal-utility-link">
-                                Open
-                            </Link>
+                            <span class="journal-chip">{{ place.tripCount }} trips</span>
                         </div>
 
                         <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
                             <span class="journal-chip">{{ place.distanceKm.toFixed(1) }} km</span>
                             <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
                         </div>
+
+                        <Link :href="place.path" class="journal-utility-link w-full justify-center">
+                            Open place
+                        </Link>
                     </div>
                 </article>
             </div>
@@ -366,6 +383,11 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     v-for="session in recentSessions"
                     :key="session.id"
                     class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 p-4"
+                    :style="{
+                        background: session.isExpedition
+                            ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,156,107,0.08))'
+                            : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
+                    }"
                 >
                     <div class="flex flex-wrap gap-2 text-xs font-medium">
                         <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
@@ -390,12 +412,28 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                         <span class="journal-chip">{{ session.isPublic ? 'Public' : 'Private' }}</span>
                     </div>
 
-                    <div class="mt-5 flex gap-2">
-                        <Link :href="`/sessions/${session.id}`" class="journal-utility-link">
-                            Open
-                        </Link>
-                        <Link :href="`/sessions/${session.id}/edit`" class="journal-utility-link">
-                            Edit
+                    <p class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
+                        {{ session.launchName ?? profile.homeWater }} · {{ session.routeCategoryLabel.toLowerCase() }} day{{ session.isExpedition ? ' with expedition tagging' : '' }}.
+                    </p>
+
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Place</p>
+                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                {{ session.launchName ?? profile.homeWater }}
+                            </p>
+                        </div>
+                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Session</p>
+                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                {{ session.hasTrack ? 'Track attached' : 'Manual entry' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-5">
+                        <Link :href="`/sessions/${session.id}`" class="journal-utility-link w-full justify-center">
+                            Open session
                         </Link>
                     </div>
                 </article>
