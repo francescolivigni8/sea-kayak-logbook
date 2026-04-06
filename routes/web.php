@@ -6,6 +6,7 @@ use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PublicProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -21,7 +22,11 @@ Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::
     ->name('profiles.public.expeditions.show');
 
 Route::middleware(['auth'])->group(function () {
-    Route::inertia('workspace', 'Workspace')->name('workspace');
+    Route::get('workspace', function (Request $request) {
+        return response()->view('workspace', [
+            'user' => $request->user(),
+        ]);
+    })->name('workspace');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('diary', DiaryController::class)->name('diary');
     Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
