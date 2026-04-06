@@ -20,7 +20,8 @@ Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, '
 Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::class, 'publicShow'])
     ->name('profiles.public.expeditions.show');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
+    Route::inertia('workspace', 'Workspace')->name('workspace');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('diary', DiaryController::class)->name('diary');
     Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
