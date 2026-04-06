@@ -1,22 +1,8 @@
 <script setup lang="ts">
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
-import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Sea Kayak Logbook',
-                href: dashboard(),
-            },
-        ],
-    },
-});
 
 interface ProfileSummary {
     name: string;
@@ -48,22 +34,6 @@ interface MonthlyDistanceRow {
     key: string;
     label: string;
     distanceKm: number;
-}
-
-interface RouteMixRow {
-    key: string;
-    label: string;
-    sessionCount: number;
-    distanceKm: number;
-    share: number;
-    tone: string;
-}
-
-interface CoverageRow {
-    label: string;
-    count: number;
-    percent: number;
-    tone: string;
 }
 
 interface SeaState {
@@ -145,8 +115,6 @@ const props = defineProps<{
     headline: HeadlineStats;
     yearSnapshots: SnapshotCard[];
     monthlyDistance: MonthlyDistanceRow[];
-    routeMix: RouteMixRow[];
-    dataCoverage: CoverageRow[];
     seaState: SeaState;
     mapData: MapData;
     expeditionSummary: ExpeditionSummary;
@@ -162,214 +130,169 @@ const metricCards = computed(() => [
     {
         label: 'Total distance',
         value: `${props.headline.distanceKm.toFixed(1)} km`,
-        detail: `${props.headline.sessionCount} sessions in this logbook`,
-        accent: 'from-cyan-200 via-sky-100 to-white',
+        detail: `${props.headline.sessionCount} paddles logged`,
+        style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))',
     },
     {
         label: 'Time on water',
         value: `${props.headline.durationHours.toFixed(1)} h`,
-        detail: `${props.headline.paddledMonths} active months so far`,
-        accent: 'from-violet-200 via-indigo-100 to-white',
+        detail: `${props.headline.paddledMonths} active months`,
+        style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
         label: 'Longest outing',
         value: `${props.headline.longestDistanceKm.toFixed(1)} km`,
         detail: `${props.headline.averageDistanceKm.toFixed(1)} km average outing`,
-        accent: 'from-amber-200 via-orange-100 to-white',
+        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
     },
     {
         label: 'Tracked routes',
-        value: props.headline.trackSessions.toString(),
-        detail: 'Sessions with route or FIT track data',
-        accent: 'from-emerald-200 via-teal-100 to-white',
+        value: String(props.headline.trackSessions),
+        detail: 'GPX or FIT-backed sessions',
+        style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
     },
 ]);
 
-const monthlyMax = computed(() =>
-    Math.max(...props.monthlyDistance.map((item) => item.distanceKm), 1),
-);
-
-const routeToneClasses: Record<string, string> = {
-    sky: 'bg-sky-500',
-    violet: 'bg-violet-500',
-    amber: 'bg-amber-500',
-    emerald: 'bg-emerald-500',
-    rose: 'bg-rose-500',
-    indigo: 'bg-indigo-500',
-    slate: 'bg-slate-500',
-};
-
-const coverageToneClasses: Record<string, string> = {
-    cyan: 'bg-cyan-500',
-    emerald: 'bg-emerald-500',
-    amber: 'bg-amber-500',
-    violet: 'bg-violet-500',
-};
-
-const coverageCopy = computed(() =>
-    props.dataCoverage.some((item) => item.count > 0)
-        ? 'The Garmin import already filled the history. Sea-state notes and development fields can now be layered on top.'
-        : 'The logbook is ready, but none of the deeper context fields have been logged yet.',
-);
+const monthlyMax = computed(() => Math.max(...props.monthlyDistance.map((item) => item.distanceKm), 1));
 
 const expeditionCards = computed(() => [
     {
         label: 'Expedition distance',
         value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
-        detail: 'Counted inside the global distance totals as well',
+        detail: 'Also counted inside the total distance',
     },
     {
         label: 'Days out',
-        value: props.expeditionSummary.daysOut.toString(),
-        detail: 'Total expedition and multiday days logged',
+        value: String(props.expeditionSummary.daysOut),
+        detail: 'Total multiday days recorded',
     },
     {
         label: 'Multiday trips',
-        value: props.expeditionSummary.tripCount.toString(),
+        value: String(props.expeditionSummary.tripCount),
         detail: 'Sessions tagged as expedition',
     },
 ]);
+
+const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
 </script>
 
 <template>
     <Head title="Dashboard" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[2rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm md:p-8">
-            <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400">
-                        Expedition workspace
-                    </p>
-                    <Heading
-                        title="Sea Kayak Logbook"
-                        description="Your imported history is now live in Laravel. This dashboard is reading real paddles, route categories, track coverage, and year-on-year distance straight from your account."
-                    />
+    <div class="flex flex-col gap-5">
+        <section v-if="successMessage" class="journal-banner">
+            {{ successMessage }}
+        </section>
 
-                    <div class="flex flex-wrap gap-3 text-sm text-slate-500">
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
-                            {{ profile.name }}
-                        </span>
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
-                            {{ profile.homeWater }}
-                        </span>
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
-                            {{ profile.timezone }}
-                        </span>
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
-                            {{ profile.isPublic ? 'Public-ready profile' : 'Private profile' }}
-                        </span>
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <p class="journal-kicker">Dashboard</p>
+                    <div class="space-y-2">
+                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                            Chart-first overview
+                        </h2>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            Distance, exposure, maps, and expedition context, without the extra admin framing.
+                        </p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <Button v-if="profile.isPublic" as-child variant="outline">
-                        <Link :href="profile.publicPath">Open public profile</Link>
-                    </Button>
-                    <Button as-child variant="outline">
-                        <Link href="/imports/garmin">Garmin import</Link>
-                    </Button>
-                    <Button as-child variant="outline">
-                        <Link href="/sessions">View sessions</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link href="/sessions/create">Add session</Link>
-                    </Button>
+                <div class="flex flex-wrap gap-2">
+                    <Link v-if="profile.isPublic" :href="profile.publicPath" class="journal-utility-link">
+                        Open public profile
+                    </Link>
+                    <Link href="/sessions" class="journal-utility-link">
+                        All sessions
+                    </Link>
+                    <Link href="/imports/garmin" class="journal-utility-link">
+                        Garmin import
+                    </Link>
+                    <Link href="/sessions/create" class="journal-primary-link">
+                        Add session
+                    </Link>
                 </div>
             </div>
-        </section>
-
-        <section
-            v-if="successMessage"
-            class="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
-        >
-            {{ successMessage }}
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article
                 v-for="card in metricCards"
                 :key="card.label"
-                class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm"
+                class="journal-metric-card"
+                :style="{ background: card.style }"
             >
-                <div
-                    class="inline-flex rounded-full border border-white/80 bg-gradient-to-r px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600"
-                    :class="card.accent"
-                >
-                    {{ card.label }}
-                </div>
-                <p class="mt-5 text-3xl font-semibold tracking-tight text-slate-900">
+                <p class="journal-kicker">{{ card.label }}</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)] md:text-[2.2rem]">
                     {{ card.value }}
                 </p>
-                <p class="mt-2 text-sm leading-6 text-slate-500">
+                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
                     {{ card.detail }}
                 </p>
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <div class="flex items-start justify-between gap-4">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+            <article class="journal-card px-5 py-5 md:px-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                            Consistency
-                        </p>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                            Distance by month
-                        </h2>
+                        <p class="journal-kicker">Consistency</p>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">Distance by month</h3>
                     </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                        Last 12 months
-                    </span>
+                    <span class="journal-chip">Rolling 12 months</span>
                 </div>
 
                 <div class="mt-6 grid gap-4">
                     <div
                         v-for="item in monthlyDistance"
                         :key="item.key"
-                        class="grid grid-cols-[44px_minmax(0,1fr)_66px] items-center gap-3"
+                        class="grid grid-cols-[42px_minmax(0,1fr)_72px] items-center gap-3"
                     >
-                        <span class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                             {{ item.label }}
                         </span>
-                        <div class="h-4 overflow-hidden rounded-full bg-slate-100">
+                        <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                             <div
-                                class="h-full rounded-full bg-gradient-to-r from-sky-400 via-violet-400 to-orange-300"
-                                :style="{ width: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 0)}%` }"
+                                class="h-full rounded-full"
+                                :style="{
+                                    width: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 0)}%`,
+                                    background: 'linear-gradient(90deg, #6772ff, #9c80ff 48%, #ff9c6b)',
+                                }"
                             />
                         </div>
-                        <span class="text-right text-sm font-medium text-slate-500">
+                        <span class="text-right text-sm font-medium text-[color:var(--journal-muted)]">
                             {{ item.distanceKm ? `${item.distanceKm.toFixed(1)} km` : '–' }}
                         </span>
                     </div>
                 </div>
             </article>
 
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Year view
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Distance snapshots
-                </h2>
+            <article class="journal-card px-5 py-5 md:px-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="journal-kicker">Compare</p>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / year / 12m</h3>
+                    </div>
+                    <span class="journal-chip">Distance windows</span>
+                </div>
 
                 <div class="mt-6 grid gap-3">
                     <article
                         v-for="snapshot in yearSnapshots"
                         :key="snapshot.label"
-                        class="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                     >
-                        <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start justify-between gap-3">
                             <div>
-                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                                     {{ snapshot.label }}
                                 </p>
-                                <p class="mt-2 text-2xl font-semibold text-slate-900">
+                                <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">
                                     {{ snapshot.value.toFixed(1) }}
-                                    <span class="text-base text-slate-500">{{ snapshot.unit }}</span>
+                                    <span class="text-base text-[color:var(--journal-muted)]">{{ snapshot.unit }}</span>
                                 </p>
                             </div>
-                            <p class="max-w-[150px] text-right text-xs leading-5 text-slate-500">
+                            <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
                                 {{ snapshot.detail }}
                             </p>
                         </div>
@@ -378,105 +301,15 @@ const expeditionCards = computed(() => [
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.95fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                            Session mix
-                        </p>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                            Route categories
-                        </h2>
-                    </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                        Distance share
-                    </span>
-                </div>
-
-                <div class="mt-6 grid gap-4">
-                    <article
-                        v-for="item in routeMix"
-                        :key="item.key"
-                        class="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
-                    >
-                        <div class="flex items-center justify-between gap-3">
-                            <div>
-                                <h3 class="text-base font-semibold text-slate-900">
-                                    {{ item.label }}
-                                </h3>
-                                <p class="mt-1 text-sm text-slate-500">
-                                    {{ item.sessionCount }} sessions · {{ item.distanceKm.toFixed(1) }} km
-                                </p>
-                            </div>
-                            <span class="text-sm font-semibold text-slate-600">
-                                {{ item.share.toFixed(1) }}%
-                            </span>
-                        </div>
-                        <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                                class="h-full rounded-full"
-                                :class="routeToneClasses[item.tone] ?? routeToneClasses.slate"
-                                :style="{ width: `${Math.max(item.share, item.share > 0 ? 8 : 0)}%` }"
-                            />
-                        </div>
-                    </article>
-                </div>
-            </article>
-
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Coverage
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Logbook readiness
-                </h2>
-                <p class="mt-3 text-sm leading-6 text-slate-500">
-                    {{ coverageCopy }}
-                </p>
-
-                <div class="mt-6 grid gap-4">
-                    <article
-                        v-for="item in dataCoverage"
-                        :key="item.label"
-                        class="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
-                    >
-                        <div class="flex items-center justify-between gap-3">
-                            <h3 class="text-base font-semibold text-slate-900">
-                                {{ item.label }}
-                            </h3>
-                            <span class="text-sm font-semibold text-slate-600">
-                                {{ item.count }} / {{ headline.sessionCount }}
-                            </span>
-                        </div>
-                        <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                                class="h-full rounded-full"
-                                :class="coverageToneClasses[item.tone] ?? coverageToneClasses.cyan"
-                                :style="{ width: `${Math.max(item.percent, item.count > 0 ? 8 : 0)}%` }"
-                            />
-                        </div>
-                    </article>
-                </div>
-            </article>
-        </section>
-
         <SeaStatePanels :sea-state="seaState" />
 
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
+        <section class="journal-panel px-5 py-5 md:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                        Route atlas
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                        Mapped sessions
-                    </h2>
+                    <p class="journal-kicker">Map</p>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">Route map</h3>
                 </div>
-
-                <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                    Route-backed sessions and launch pins
-                </span>
+                <span class="journal-chip">Mapped sessions and launch pins</span>
             </div>
 
             <div class="mt-6">
@@ -485,40 +318,32 @@ const expeditionCards = computed(() => [
                     :pins="mapData.pins"
                     :default-view="mapData.defaultView"
                     :storage-key="`${profile.slug}-route-atlas`"
-                    height-class="h-[500px]"
+                    :show-filters="false"
+                    height-class="h-[520px]"
                 />
             </div>
         </section>
 
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
+        <section class="journal-panel px-5 py-5 md:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                        Expeditions and multiday
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                        Expedition footprint
-                    </h2>
+                    <p class="journal-kicker">Expeditions and multiday</p>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">I paddled here</h3>
                 </div>
-
-                <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                    Expedition tracks stay in the main atlas. This map shows where they happened.
-                </span>
+                <span class="journal-chip">Routes stay on the main map, places live here</span>
             </div>
 
             <div class="mt-6 grid gap-4 md:grid-cols-3">
                 <article
                     v-for="card in expeditionCards"
                     :key="card.label"
-                    class="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                    class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                 >
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                        {{ card.label }}
-                    </p>
-                    <p class="mt-3 text-3xl font-semibold text-slate-900">
+                    <p class="journal-kicker">{{ card.label }}</p>
+                    <p class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]">
                         {{ card.value }}
                     </p>
-                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                    <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
                         {{ card.detail }}
                     </p>
                 </article>
@@ -531,132 +356,99 @@ const expeditionCards = computed(() => [
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-expedition-footprint`"
                     :show-legend="false"
+                    :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    empty-message="No expedition locations yet. Tag a session as expedition to start building the world footprint."
-                    height-class="h-[460px]"
+                    empty-message="No expedition locations logged yet."
+                    height-class="h-[420px]"
                 />
             </div>
 
-            <div class="mt-4 flex justify-end">
-                <Button as-child variant="outline">
-                    <Link href="/expeditions">View all expedition places</Link>
-                </Button>
-            </div>
-
-            <div v-if="expeditionPlaces.length" class="mt-6 grid gap-3 lg:grid-cols-3">
+            <div v-if="featuredPlaces.length" class="mt-6 grid gap-4 lg:grid-cols-3">
                 <article
-                    v-for="place in expeditionPlaces.slice(0, 6)"
+                    v-for="place in featuredPlaces"
                     :key="place.slug"
-                    class="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50/80"
+                    class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/78"
                 >
                     <img
                         v-if="place.photoUrl"
                         :src="place.photoUrl"
                         :alt="place.label"
-                        class="h-36 w-full object-cover"
+                        class="h-40 w-full object-cover"
                     />
-                    <div class="p-4">
+
+                    <div class="space-y-3 p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <h3 class="text-base font-semibold text-slate-900">
+                                <h4 class="text-lg font-semibold text-[color:var(--journal-text)]">
                                     {{ place.label }}
-                                </h3>
-                                <p class="mt-1 text-sm text-slate-500">
+                                </h4>
+                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
                                     {{ place.tripCount }} trips · {{ place.daysOut }} days
                                 </p>
                             </div>
-                            <Button as-child variant="outline" size="sm">
-                                <Link :href="place.path">Open</Link>
-                            </Button>
+
+                            <Link :href="place.path" class="journal-utility-link">
+                                Open
+                            </Link>
                         </div>
-                        <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                            <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
-                                {{ place.distanceKm.toFixed(1) }} km
-                            </span>
-                            <span
-                                v-if="place.latestDate"
-                                class="rounded-full border border-slate-200 bg-white px-3 py-1"
-                            >
-                                {{ place.latestDate }}
-                            </span>
+
+                        <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
+                            <span class="journal-chip">{{ place.distanceKm.toFixed(1) }} km</span>
+                            <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
                         </div>
                     </div>
                 </article>
             </div>
         </section>
 
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
+        <section class="journal-panel px-5 py-5 md:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                        Recent sessions
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                        Latest paddles
-                    </h2>
+                    <p class="journal-kicker">Recent paddles</p>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">Latest sessions</h3>
                 </div>
-
-                <Button as-child variant="outline">
-                    <Link href="/sessions">All sessions</Link>
-                </Button>
+                <Link href="/diary" class="journal-utility-link">
+                    Open diary
+                </Link>
             </div>
 
-            <div class="mt-6 grid gap-3 lg:grid-cols-2">
+            <div class="mt-6 grid gap-4 xl:grid-cols-3">
                 <article
                     v-for="session in recentSessions"
                     :key="session.id"
-                    class="rounded-[1.35rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                    class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 p-4"
                 >
-                    <div class="flex items-start justify-between gap-4">
-                        <div class="space-y-2">
-                            <div class="flex flex-wrap gap-2 text-xs font-medium">
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">
-                                    {{ session.routeCategoryLabel }}
-                                </span>
-                                <span
-                                    class="rounded-full px-3 py-1"
-                                    :class="session.isPublic ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-                                >
-                                    {{ session.isPublic ? 'Public' : 'Private' }}
-                                </span>
-                                <span
-                                    v-if="session.hasTrack"
-                                    class="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700"
-                                >
-                                    Track
-                                </span>
-                            </div>
+                    <div class="flex flex-wrap gap-2 text-xs font-medium">
+                        <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
+                        <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
+                        <span v-if="session.hasTrack" class="journal-chip">Track</span>
+                    </div>
 
-                            <div>
-                                <h3 class="text-lg font-semibold text-slate-900">
-                                    {{ session.title }}
-                                </h3>
-                                <p class="mt-1 text-sm text-slate-500">
-                                    {{ session.date ?? 'No date' }}
-                                    <span v-if="session.launchName">· {{ session.launchName }}</span>
-                                </p>
-                            </div>
+                    <div class="mt-4 space-y-2">
+                        <h4 class="text-xl font-semibold text-[color:var(--journal-text)]">
+                            {{ session.title }}
+                        </h4>
+                        <p class="text-sm text-[color:var(--journal-muted)]">
+                            {{ session.date ?? 'No date' }}
+                            <span v-if="session.launchName">· {{ session.launchName }}</span>
+                        </p>
+                    </div>
 
-                            <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
-                                    {{ session.distanceKm.toFixed(1) }} km
-                                </span>
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
-                                    {{ session.durationMinutes }} min
-                                </span>
-                                <span
-                                    v-if="session.beaufort !== null"
-                                    class="rounded-full border border-slate-200 bg-white px-3 py-1"
-                                >
-                                    F{{ session.beaufort }}
-                                </span>
-                            </div>
-                        </div>
+                    <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
+                        <span class="journal-chip">{{ session.distanceKm.toFixed(1) }} km</span>
+                        <span class="journal-chip">{{ session.durationMinutes }} min</span>
+                        <span v-if="session.isExpedition" class="journal-chip journal-chip--primary">Expedition</span>
+                        <span class="journal-chip">{{ session.isPublic ? 'Public' : 'Private' }}</span>
+                    </div>
 
-                        <Button as-child variant="outline">
-                            <Link :href="`/sessions/${session.id}`">Open</Link>
-                        </Button>
+                    <div class="mt-5 flex gap-2">
+                        <Link :href="`/sessions/${session.id}`" class="journal-utility-link">
+                            Open
+                        </Link>
+                        <Link :href="`/sessions/${session.id}/edit`" class="journal-utility-link">
+                            Edit
+                        </Link>
                     </div>
                 </article>
             </div>

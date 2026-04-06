@@ -1,24 +1,6 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Sea Kayak Logbook',
-                href: dashboard(),
-            },
-            {
-                title: 'Diary',
-                href: '/diary',
-            },
-        ],
-    },
-});
 
 interface ProfileSummary {
     name: string;
@@ -77,11 +59,13 @@ const entryMap = computed(() => {
 });
 
 const availableMonths = computed(() => {
-    const months = Array.from(new Set(
-        props.entries
-            .map((entry) => entry.date?.slice(0, 7))
-            .filter((value): value is string => Boolean(value)),
-    ));
+    const months = Array.from(
+        new Set(
+            props.entries
+                .map((entry) => entry.date?.slice(0, 7))
+                .filter((value): value is string => Boolean(value)),
+        ),
+    );
 
     return months.sort().reverse();
 });
@@ -92,11 +76,7 @@ const selectedDate = ref<string | null>(props.entries.find((entry) => entry.date
 watch(
     availableMonths,
     (months) => {
-        if (!months.length) {
-            return;
-        }
-
-        if (!months.includes(activeMonth.value)) {
+        if (months.length && !months.includes(activeMonth.value)) {
             activeMonth.value = months[0];
         }
     },
@@ -180,6 +160,13 @@ const selectedLabel = computed(() => {
     });
 });
 
+const statCards = computed(() => [
+    { label: 'Paddled days', value: String(props.stats.paddledDays), detail: 'Days with at least one session' },
+    { label: 'Sessions', value: String(props.stats.sessionCount), detail: 'Logged paddles in the diary' },
+    { label: 'Distance', value: `${props.stats.distanceKm.toFixed(1)} km`, detail: 'Total distance recorded' },
+    { label: 'Expeditions', value: String(props.stats.expeditionTrips), detail: 'Sessions tagged as multiday' },
+]);
+
 function stepMonth(direction: -1 | 1) {
     const monthIndex = availableMonths.value.indexOf(activeMonth.value);
 
@@ -198,82 +185,86 @@ function stepMonth(direction: -1 | 1) {
 <template>
     <Head title="Diary" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <Heading
-                    title="Diary"
-                    :description="`Calendar-first logbook view for ${profile.name}. Browse paddle days, jump into sessions, and review notes by date instead of by import order.`"
-                />
+    <div class="flex flex-col gap-5">
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <p class="journal-kicker">Diary</p>
+                    <div class="space-y-2">
+                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                            Calendar-first logbook
+                        </h2>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            Browse paddles by day, then jump into the entries that matter instead of scanning a long admin list.
+                        </p>
+                    </div>
+                </div>
 
-                <div class="flex items-center gap-3">
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
-                        {{ profile.homeWater }}
-                    </span>
-                    <Button as-child variant="outline">
-                        <Link href="/sessions">All sessions</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link href="/sessions/create">Add session</Link>
-                    </Button>
+                <div class="flex flex-wrap gap-2">
+                    <Link href="/sessions" class="journal-utility-link">
+                        All sessions
+                    </Link>
+                    <Link href="/sessions/create" class="journal-primary-link">
+                        Add session
+                    </Link>
                 </div>
             </div>
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Paddled days</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ stats.paddledDays }}</p>
-            </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Sessions</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ stats.sessionCount }}</p>
-            </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Distance</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ stats.distanceKm.toFixed(1) }} km</p>
-            </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Expeditions</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ stats.expeditionTrips }}</p>
+            <article
+                v-for="card in statCards"
+                :key="card.label"
+                class="journal-metric-card"
+                style="background: rgba(255, 255, 255, 0.86)"
+            >
+                <p class="journal-kicker">{{ card.label }}</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">
+                    {{ card.value }}
+                </p>
+                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                    {{ card.detail }}
+                </p>
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-3">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
+            <article class="journal-panel px-5 py-5 md:px-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                            Calendar
-                        </p>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-900">
+                        <p class="journal-kicker">Calendar</p>
+                        <h3 class="mt-2 text-[1.8rem] leading-none">
                             {{ monthLabel }}
-                        </h2>
+                        </h3>
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <Button variant="outline" size="sm" :disabled="availableMonths.indexOf(activeMonth) === availableMonths.length - 1" @click="stepMonth(-1)">
+                        <button
+                            type="button"
+                            class="journal-utility-link disabled:cursor-not-allowed disabled:opacity-50"
+                            :disabled="availableMonths.indexOf(activeMonth) === availableMonths.length - 1"
+                            @click="stepMonth(-1)"
+                        >
                             Prev
-                        </Button>
-                        <Button variant="outline" size="sm" :disabled="availableMonths.indexOf(activeMonth) <= 0" @click="stepMonth(1)">
+                        </button>
+                        <button
+                            type="button"
+                            class="journal-utility-link disabled:cursor-not-allowed disabled:opacity-50"
+                            :disabled="availableMonths.indexOf(activeMonth) <= 0"
+                            @click="stepMonth(1)"
+                        >
                             Next
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
-                <div class="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        {{ monthSummary.sessions }} sessions
-                    </span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        {{ monthSummary.days }} paddled days
-                    </span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        {{ monthSummary.distanceKm.toFixed(1) }} km
-                    </span>
+                <div class="mt-5 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
+                    <span class="journal-chip">{{ monthSummary.sessions }} sessions</span>
+                    <span class="journal-chip">{{ monthSummary.days }} paddled days</span>
+                    <span class="journal-chip">{{ monthSummary.distanceKm.toFixed(1) }} km</span>
                 </div>
 
-                <div class="mt-6 grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <div class="mt-6 grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                     <span v-for="label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="label">
                         {{ label }}
                     </span>
@@ -284,51 +275,47 @@ function stepMonth(direction: -1 | 1) {
                         v-for="day in monthDays"
                         :key="day.iso"
                         type="button"
-                        class="min-h-[84px] rounded-[1.1rem] border px-2 py-2 text-left transition"
+                        class="min-h-[86px] rounded-[1.2rem] border px-2 py-2 text-left transition"
                         :class="[
-                            day.inMonth ? 'border-slate-200 bg-slate-50/80' : 'border-slate-100 bg-slate-50/40 text-slate-300',
-                            selectedDate === day.iso ? 'ring-2 ring-orange-300' : '',
-                            day.entries.length ? 'hover:border-orange-200 hover:bg-orange-50/50' : '',
+                            day.inMonth
+                                ? 'border-[color:var(--journal-line)] bg-white/78'
+                                : 'border-[rgba(103,114,255,0.08)] bg-white/38 text-[color:var(--journal-faint)]',
+                            selectedDate === day.iso ? 'shadow-[0_0_0_3px_rgba(255,156,107,0.18)]' : '',
+                            day.entries.length ? 'hover:border-[color:var(--journal-line-strong)] hover:bg-white/88' : '',
                         ]"
                         @click="selectedDate = day.entries.length ? day.iso : selectedDate"
                     >
                         <div class="flex items-start justify-between gap-2">
-                            <span class="text-sm font-semibold text-slate-700">
+                            <span class="text-sm font-semibold text-[color:var(--journal-text)]">
                                 {{ day.day }}
                             </span>
                             <span
                                 v-if="day.entries.length"
-                                class="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-sky-400 to-violet-400"
+                                class="mt-0.5 h-2.5 w-2.5 rounded-full"
+                                style="background: linear-gradient(90deg, #6772ff, #ff9c6b)"
                             />
                         </div>
 
-                        <div v-if="day.entries.length" class="mt-4 space-y-1">
-                            <p class="text-[11px] font-medium text-slate-500">
-                                {{ day.entries.length }} paddle{{ day.entries.length > 1 ? 's' : '' }}
-                            </p>
-                            <p class="text-[11px] font-semibold text-slate-700">
-                                {{ day.distanceKm.toFixed(1) }} km
-                            </p>
+                        <div v-if="day.entries.length" class="mt-5 text-[11px] font-medium text-[color:var(--journal-muted)]">
+                            Paddled
                         </div>
                     </button>
                 </div>
             </article>
 
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
+            <article class="journal-panel px-5 py-5 md:px-6">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                        Selected day
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">
+                    <p class="journal-kicker">Selected day</p>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">
                         {{ selectedLabel }}
-                    </h2>
+                    </h3>
                 </div>
 
                 <div v-if="selectedEntries.length" class="mt-6 grid gap-3">
                     <article
                         v-for="entry in selectedEntries"
                         :key="entry.id"
-                        class="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50/80"
+                        class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/78"
                     >
                         <img
                             v-if="entry.photoUrl"
@@ -336,58 +323,42 @@ function stepMonth(direction: -1 | 1) {
                             :alt="entry.title"
                             class="h-40 w-full object-cover"
                         />
-                        <div class="p-4">
+                        <div class="space-y-4 p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <div class="flex flex-wrap gap-2 text-xs font-medium">
-                                        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">
-                                            {{ entry.routeCategoryLabel }}
-                                        </span>
-                                        <span
-                                            class="rounded-full px-3 py-1"
-                                            :class="entry.isExpedition ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'"
-                                        >
-                                            {{ entry.isExpedition ? 'Expedition' : 'Day session' }}
+                                        <span class="journal-chip">{{ entry.routeCategoryLabel }}</span>
+                                        <span v-if="entry.isExpedition" class="journal-chip journal-chip--primary">
+                                            Expedition
                                         </span>
                                     </div>
-                                    <h3 class="mt-3 text-lg font-semibold text-slate-900">
+                                    <h4 class="mt-3 text-xl font-semibold text-[color:var(--journal-text)]">
                                         {{ entry.title }}
-                                    </h3>
-                                    <p class="mt-1 text-sm text-slate-500">
+                                    </h4>
+                                    <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
                                         {{ entry.launchName ?? profile.homeWater }}
                                     </p>
                                 </div>
 
-                                <Button as-child variant="outline" size="sm">
-                                    <Link :href="entry.path">Open</Link>
-                                </Button>
+                                <Link :href="entry.path" class="journal-utility-link">
+                                    Open
+                                </Link>
                             </div>
 
-                            <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
-                                    {{ entry.distanceKm.toFixed(1) }} km
-                                </span>
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
-                                    {{ entry.durationMinutes }} min
-                                </span>
-                                <span
-                                    v-if="entry.beaufort !== null"
-                                    class="rounded-full border border-slate-200 bg-white px-3 py-1"
-                                >
-                                    F{{ entry.beaufort }}
-                                </span>
-                                <span
-                                    v-if="entry.isExpedition && entry.expeditionDays"
-                                    class="rounded-full border border-slate-200 bg-white px-3 py-1"
-                                >
+                            <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
+                                <span class="journal-chip">{{ entry.distanceKm.toFixed(1) }} km</span>
+                                <span class="journal-chip">{{ entry.durationMinutes }} min</span>
+                                <span v-if="entry.beaufort !== null" class="journal-chip">F{{ entry.beaufort }}</span>
+                                <span v-if="entry.isExpedition && entry.expeditionDays" class="journal-chip">
                                     {{ entry.expeditionDays }} days out
                                 </span>
+                                <span v-if="entry.hasTrack" class="journal-chip">Track attached</span>
                             </div>
 
-                            <p v-if="entry.notesPreview" class="mt-4 text-sm leading-6 text-slate-500">
+                            <p v-if="entry.notesPreview" class="text-sm leading-6 text-[color:var(--journal-muted)]">
                                 {{ entry.notesPreview }}
                             </p>
-                            <p v-else-if="entry.weatherSummary" class="mt-4 text-sm leading-6 text-slate-500">
+                            <p v-else-if="entry.weatherSummary" class="text-sm leading-6 text-[color:var(--journal-muted)]">
                                 {{ entry.weatherSummary }}
                             </p>
                         </div>
@@ -396,7 +367,7 @@ function stepMonth(direction: -1 | 1) {
 
                 <div
                     v-else
-                    class="mt-6 rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50/80 px-4 py-10 text-sm text-slate-500"
+                    class="mt-6 rounded-[1.25rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-10 text-sm text-[color:var(--journal-muted)]"
                 >
                     No paddles on the selected day yet.
                 </div>

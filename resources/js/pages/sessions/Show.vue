@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -244,23 +243,21 @@ const routeMapData = computed(() => {
 <template>
     <Head :title="session.title" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[2rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm md:p-8">
+    <div class="space-y-5">
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400">
-                        Session detail
-                    </p>
+                    <p class="journal-kicker">Session detail</p>
                     <Heading
                         :title="session.title"
                         :description="`${session.date ?? 'No date'}${session.launchName ? ` · ${session.launchName}` : ''}${session.startTimeLocal ? ` · ${session.startTimeLocal} ${session.timezone}` : ''}`"
                     />
 
-                    <div class="flex flex-wrap gap-3 text-sm text-slate-500">
+                    <div class="flex flex-wrap gap-2">
                         <span
                             v-for="chip in heroChips"
                             :key="chip"
-                            class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2"
+                            class="journal-chip"
                         >
                             {{ chip }}
                         </span>
@@ -268,12 +265,8 @@ const routeMapData = computed(() => {
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <Button as-child variant="outline">
-                        <Link href="/sessions">Back to sessions</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link :href="`/sessions/${session.id}/edit`">Edit session</Link>
-                    </Button>
+                    <Link href="/sessions" class="journal-utility-link">Back to sessions</Link>
+                    <Link :href="`/sessions/${session.id}/edit`" class="journal-primary-link">Edit session</Link>
                 </div>
             </div>
         </section>
@@ -282,29 +275,31 @@ const routeMapData = computed(() => {
             <article
                 v-for="card in statCards"
                 :key="card.label"
-                class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm"
+                class="journal-metric-card"
+                :style="{
+                    background:
+                        card.label === 'Distance'
+                            ? 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))'
+                            : card.label === 'Duration'
+                              ? 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))'
+                              : card.label === 'Average speed'
+                                ? 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))'
+                                : 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
+                }"
             >
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
-                    {{ card.label }}
-                </p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">
-                    {{ card.value }}
-                </p>
+                <p class="journal-kicker">{{ card.label }}</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ card.value }}</p>
             </article>
         </section>
 
         <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
+            <article class="journal-card px-5 py-5 md:px-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                            Route
-                        </p>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                            Route map
-                        </h2>
+                        <p class="journal-kicker">Route</p>
+                        <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Route map</h2>
                     </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    <span class="journal-chip">
                         {{ session.routeProfile.length ? `${session.routeProfile.length} sampled points` : 'No GPX profile yet' }}
                     </span>
                 </div>
@@ -318,29 +313,25 @@ const routeMapData = computed(() => {
                     />
                 </div>
 
-                <p v-if="session.routeSummary" class="mt-4 text-sm leading-6 text-slate-500">
+                <p v-if="session.routeSummary" class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
                     {{ session.routeSummary }}
                 </p>
             </article>
 
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
+            <article class="journal-card px-5 py-5 md:px-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                            Route pace
-                        </p>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                            Speed curve
-                        </h2>
+                        <p class="journal-kicker">Track profile</p>
+                        <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Speed curve</h2>
                     </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    <span class="journal-chip">
                         Garmin-derived
                     </span>
                 </div>
 
                 <div
                     v-if="session.routeProfile.length"
-                    class="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4"
+                    class="journal-soft-card mt-6 overflow-hidden"
                 >
                     <svg viewBox="0 0 340 120" class="w-full">
                         <path
@@ -365,7 +356,7 @@ const routeMapData = computed(() => {
                     </svg>
                 </div>
 
-                <div v-else class="mt-6 rounded-[1.35rem] border border-dashed border-slate-300 bg-slate-50/80 px-5 py-10 text-sm text-slate-500">
+                <div v-else class="mt-6 rounded-[1.35rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-5 py-10 text-sm text-[color:var(--journal-muted)]">
                     Speed curve appears when a GPX route is attached.
                 </div>
 
@@ -373,7 +364,7 @@ const routeMapData = computed(() => {
                     <span
                         v-for="tag in session.routeTags"
                         :key="tag"
-                        class="rounded-full border border-slate-200 bg-white px-3 py-1"
+                        class="journal-chip"
                     >
                         {{ tag }}
                     </span>
@@ -382,25 +373,21 @@ const routeMapData = computed(() => {
         </section>
 
         <section class="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Conditions
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Sea and weather
-                </h2>
+            <article class="journal-card px-5 py-5 md:px-6">
+                <p class="journal-kicker">Conditions</p>
+                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Sea and weather</h2>
 
                 <div class="mt-6 flex flex-wrap gap-2 text-sm text-slate-600">
                     <span
                         v-for="fact in conditionFacts"
                         :key="fact"
-                        class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2"
+                        class="journal-chip"
                     >
                         {{ fact }}
                     </span>
                     <span
                         v-if="!conditionFacts.length"
-                        class="rounded-full border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-slate-400"
+                        class="rounded-full border border-dashed border-[color:var(--journal-line)] bg-white/74 px-3 py-2 text-[color:var(--journal-faint)]"
                     >
                         No sea-state details logged yet
                     </span>
@@ -410,42 +397,38 @@ const routeMapData = computed(() => {
                     <article
                         v-for="rating in session.conditionRatings"
                         :key="rating.label"
-                        class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="journal-soft-card"
                     >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                             {{ rating.label }}
                         </p>
-                        <p class="mt-2 text-lg font-semibold text-slate-900">
+                        <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
                             {{ rating.value }}
                         </p>
                     </article>
                 </div>
 
-                <p v-if="session.weatherSummary" class="mt-6 text-sm leading-6 text-slate-500">
+                <p v-if="session.weatherSummary" class="mt-6 text-sm leading-6 text-[color:var(--journal-muted)]">
                     {{ session.weatherSummary }}
                 </p>
             </article>
 
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Development
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Rescue, skills, and reflections
-                </h2>
+            <article class="journal-card px-5 py-5 md:px-6">
+                <p class="journal-kicker">Development</p>
+                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Rescue, skills, and reflections</h2>
 
                 <div class="mt-6 grid gap-3 md:grid-cols-3">
-                    <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Successful rolls</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ session.successfulRollsCount }}</p>
+                    <article class="journal-soft-card">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Successful rolls</p>
+                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.successfulRollsCount }}</p>
                     </article>
-                    <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Wet exits</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ session.wetExitsCount }}</p>
+                    <article class="journal-soft-card">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Wet exits</p>
+                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.wetExitsCount }}</p>
                     </article>
-                    <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Tow rescues</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ session.towRescuesCount }}</p>
+                    <article class="journal-soft-card">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Tow rescues</p>
+                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ session.towRescuesCount }}</p>
                     </article>
                 </div>
 
@@ -453,7 +436,7 @@ const routeMapData = computed(() => {
                     <span
                         v-for="skill in session.skills"
                         :key="skill"
-                        class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2"
+                        class="journal-chip"
                     >
                         {{ skill }}
                     </span>
@@ -463,10 +446,10 @@ const routeMapData = computed(() => {
                     <article
                         v-for="score in scoreCards"
                         :key="score.label"
-                        class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="journal-soft-card"
                     >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{{ score.label }}</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ score.value }}/5</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">{{ score.label }}</p>
+                        <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">{{ score.value }}/5</p>
                     </article>
                 </div>
 
@@ -474,12 +457,12 @@ const routeMapData = computed(() => {
                     <article
                         v-for="reflection in reflectionCards"
                         :key="reflection.label"
-                        class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="journal-soft-card"
                     >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                             {{ reflection.label }}
                         </p>
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                        <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
                             {{ reflection.value }}
                         </p>
                     </article>
@@ -488,81 +471,69 @@ const routeMapData = computed(() => {
         </section>
 
         <section class="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,1.1fr)]">
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Journey
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Core session facts
-                </h2>
+            <article class="journal-card px-5 py-5 md:px-6">
+                <p class="journal-kicker">Journey</p>
+                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Core session facts</h2>
 
                 <div class="mt-6 grid gap-3">
-                    <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Launch / landing</p>
-                        <p class="mt-2 text-base font-semibold text-slate-900">
+                    <article class="journal-soft-card">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Launch / landing</p>
+                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
                             {{ session.launchName ?? 'Unknown launch' }}<span v-if="session.landingName"> → {{ session.landingName }}</span>
                         </p>
                     </article>
-                    <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Area</p>
-                        <p class="mt-2 text-base font-semibold text-slate-900">
+                    <article class="journal-soft-card">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Area</p>
+                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
                             {{ session.areaName ?? profile.homeWater }}
                         </p>
                     </article>
                     <article
                         v-if="session.isExpedition"
-                        class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="journal-soft-card"
                     >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Days out</p>
-                        <p class="mt-2 text-base font-semibold text-slate-900">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Days out</p>
+                        <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
                             {{ session.expeditionDays ?? '—' }}
                         </p>
                     </article>
                     <article
                         v-if="session.partners.length"
-                        class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
+                        class="journal-soft-card"
                     >
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Partners</p>
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">Partners</p>
+                        <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
                             {{ session.partners.join(', ') }}
                         </p>
                     </article>
                 </div>
             </article>
 
-            <article class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                    Files
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                    Attachments
-                </h2>
+            <article class="journal-card px-5 py-5 md:px-6">
+                <p class="journal-kicker">Files</p>
+                <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Attachments</h2>
 
                 <div class="mt-6 grid gap-4">
                     <div
                         v-if="session.photoUrl"
-                        class="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-50"
+                        class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/72"
                     >
                         <img :src="session.photoUrl" :alt="session.photoName ?? session.title" class="h-56 w-full object-cover" />
                     </div>
 
                     <div class="grid gap-3 md:grid-cols-2">
-                        <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">GPX</p>
+                        <article class="journal-soft-card">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">GPX</p>
                             <div class="mt-2 flex items-center justify-between gap-3">
-                                <p class="text-sm text-slate-600">{{ session.gpxName ?? 'No GPX attached' }}</p>
-                                <Button v-if="session.gpxUrl" as-child variant="outline">
-                                    <a :href="session.gpxUrl" target="_blank" rel="noreferrer">Open</a>
-                                </Button>
+                                <p class="text-sm text-[color:var(--journal-muted)]">{{ session.gpxName ?? 'No GPX attached' }}</p>
+                                <a v-if="session.gpxUrl" :href="session.gpxUrl" target="_blank" rel="noreferrer" class="journal-utility-link">Open</a>
                             </div>
                         </article>
-                        <article class="rounded-[1.15rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">FIT</p>
+                        <article class="journal-soft-card">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">FIT</p>
                             <div class="mt-2 flex items-center justify-between gap-3">
-                                <p class="text-sm text-slate-600">{{ session.fitName ?? 'No FIT attached' }}</p>
-                                <Button v-if="session.fitUrl" as-child variant="outline">
-                                    <a :href="session.fitUrl" target="_blank" rel="noreferrer">Open</a>
-                                </Button>
+                                <p class="text-sm text-[color:var(--journal-muted)]">{{ session.fitName ?? 'No FIT attached' }}</p>
+                                <a v-if="session.fitUrl" :href="session.fitUrl" target="_blank" rel="noreferrer" class="journal-utility-link">Open</a>
                             </div>
                         </article>
                     </div>

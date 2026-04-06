@@ -1,24 +1,6 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Sea Kayak Logbook',
-                href: dashboard(),
-            },
-            {
-                title: 'Sessions',
-                href: '/sessions',
-            },
-        ],
-    },
-});
 
 interface ProfileSummary {
     name: string;
@@ -58,58 +40,43 @@ const page = usePage();
 const successMessage = computed(() => page.props.flash?.success as string | undefined);
 
 const statCards = computed(() => [
-    {
-        label: 'Sessions',
-        value: props.stats.sessionCount.toString(),
-        detail: 'Saved paddles in this logbook.',
-    },
-    {
-        label: 'Distance',
-        value: `${props.stats.distanceKm.toFixed(1)} km`,
-        detail: 'All recorded distance so far.',
-    },
-    {
-        label: 'Expedition trips',
-        value: props.stats.expeditionTrips.toString(),
-        detail: 'Tagged expedition or multiday sessions.',
-    },
-    {
-        label: 'Expedition days',
-        value: props.stats.expeditionDays.toString(),
-        detail: 'Total multiday days logged.',
-    },
+    { label: 'Sessions', value: String(props.stats.sessionCount), detail: 'Saved paddles in the journal' },
+    { label: 'Distance', value: `${props.stats.distanceKm.toFixed(1)} km`, detail: 'Total recorded distance' },
+    { label: 'Expedition trips', value: String(props.stats.expeditionTrips), detail: 'Tagged multiday paddles' },
+    { label: 'Days out', value: String(props.stats.expeditionDays), detail: 'Total expedition days logged' },
 ]);
 </script>
 
 <template>
     <Head title="Sessions" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/90 p-5 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <Heading
-                    title="Sessions"
-                    :description="`All paddles for ${profile.name}, ready for editing, uploads, and future dashboard aggregation.`"
-                />
+    <div class="flex flex-col gap-5">
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <p class="journal-kicker">Session library</p>
+                    <div class="space-y-2">
+                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                            All paddles
+                        </h2>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            A clean list for opening, editing, and reviewing the sessions already inside your journal.
+                        </p>
+                    </div>
+                </div>
 
-                <div class="flex items-center gap-3">
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
-                        {{ profile.homeWater }}
-                    </span>
-                    <Button as-child variant="outline">
-                        <Link href="/imports/garmin">Import Garmin</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link href="/sessions/create">Add session</Link>
-                    </Button>
+                <div class="flex flex-wrap gap-2">
+                    <Link href="/imports/garmin" class="journal-utility-link">
+                        Garmin import
+                    </Link>
+                    <Link href="/sessions/create" class="journal-primary-link">
+                        Add session
+                    </Link>
                 </div>
             </div>
         </section>
 
-        <section
-            v-if="successMessage"
-            class="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
-        >
+        <section v-if="successMessage" class="journal-banner">
             {{ successMessage }}
         </section>
 
@@ -117,15 +84,14 @@ const statCards = computed(() => [
             <article
                 v-for="card in statCards"
                 :key="card.label"
-                class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/90 p-5 shadow-sm"
+                class="journal-metric-card"
+                style="background: rgba(255, 255, 255, 0.86)"
             >
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
-                    {{ card.label }}
-                </p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">
+                <p class="journal-kicker">{{ card.label }}</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">
                     {{ card.value }}
                 </p>
-                <p class="mt-2 text-sm leading-6 text-slate-500">
+                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
                     {{ card.detail }}
                 </p>
             </article>
@@ -135,95 +101,68 @@ const statCards = computed(() => [
             <article
                 v-for="session in sessions"
                 :key="session.id"
-                class="overflow-hidden rounded-[1.75rem] border border-sidebar-border/70 bg-white/90 shadow-sm"
+                class="journal-panel overflow-hidden px-5 py-5 md:px-6"
             >
-                <div class="grid gap-4 p-5 lg:grid-cols-[140px_minmax(0,1fr)_auto] lg:items-center">
-                    <div class="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50">
+                <div class="grid gap-4 lg:grid-cols-[150px_minmax(0,1fr)_auto] lg:items-center">
+                    <div class="overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/70">
                         <img
                             v-if="session.photoUrl"
                             :src="session.photoUrl"
                             alt="Session cover"
-                            class="h-28 w-full object-cover"
+                            class="h-32 w-full object-cover"
                         />
                         <div
                             v-else
-                            class="flex h-28 items-center justify-center text-xs font-medium uppercase tracking-[0.24em] text-slate-400"
+                            class="flex h-32 items-center justify-center text-xs font-medium uppercase tracking-[0.24em] text-[color:var(--journal-faint)]"
                         >
                             No photo
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h2 class="text-xl font-semibold text-slate-900">
-                                {{ session.title }}
-                            </h2>
-                            <span class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
-                                {{ session.routeCategoryLabel }}
-                            </span>
-                            <span
-                                class="rounded-full px-3 py-1 text-xs font-medium"
-                                :class="session.isPublic ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-                            >
-                                {{ session.isPublic ? 'Public' : 'Private' }}
-                            </span>
-                            <span
-                                class="rounded-full px-3 py-1 text-xs font-medium"
-                                :class="session.isExpedition ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'"
-                            >
-                                {{ session.isExpedition ? 'Expedition' : 'Day session' }}
-                            </span>
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-2 text-xs font-medium">
+                            <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
+                            <span v-if="session.isExpedition" class="journal-chip journal-chip--primary">Expedition</span>
+                            <span class="journal-chip">{{ session.isPublic ? 'Public' : 'Private' }}</span>
+                            <span v-if="session.hasTrack" class="journal-chip">Track attached</span>
                         </div>
 
-                        <p class="text-sm text-slate-500">
-                            {{ session.date ?? 'No date' }}
-                            <span v-if="session.launchName">· {{ session.launchName }}</span>
-                        </p>
+                        <div>
+                            <h3 class="text-[1.45rem] leading-none text-[color:var(--journal-text)]">
+                                {{ session.title }}
+                            </h3>
+                            <p class="mt-2 text-sm text-[color:var(--journal-muted)]">
+                                {{ session.date ?? 'No date' }}
+                                <span v-if="session.launchName">· {{ session.launchName }}</span>
+                            </p>
+                        </div>
 
-                        <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                                {{ session.distanceKm.toFixed(1) }} km
-                            </span>
-                            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                                {{ session.durationMinutes }} min
-                            </span>
-                            <span
-                                v-if="session.beaufort !== null"
-                                class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
-                            >
-                                F{{ session.beaufort }}
-                            </span>
-                            <span
-                                v-if="session.isExpedition && session.expeditionDays"
-                                class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
-                            >
+                        <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
+                            <span class="journal-chip">{{ session.distanceKm.toFixed(1) }} km</span>
+                            <span class="journal-chip">{{ session.durationMinutes }} min</span>
+                            <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
+                            <span v-if="session.isExpedition && session.expeditionDays" class="journal-chip">
                                 {{ session.expeditionDays }} days out
-                            </span>
-                            <span
-                                v-if="session.hasTrack"
-                                class="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-cyan-700"
-                            >
-                                Track attached
                             </span>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-start gap-2 lg:justify-end">
-                        <Button as-child variant="outline">
-                            <Link :href="`/sessions/${session.id}`">Open</Link>
-                        </Button>
-                        <Button as-child variant="outline">
-                            <Link :href="`/sessions/${session.id}/edit`">Edit</Link>
-                        </Button>
+                    <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                        <Link :href="`/sessions/${session.id}`" class="journal-utility-link">
+                            Open
+                        </Link>
+                        <Link :href="`/sessions/${session.id}/edit`" class="journal-utility-link">
+                            Edit
+                        </Link>
                     </div>
                 </div>
             </article>
 
             <article
                 v-if="!sessions.length"
-                class="rounded-[1.75rem] border border-dashed border-slate-300 bg-white/90 px-5 py-10 text-sm leading-7 text-slate-500 shadow-sm"
+                class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
             >
-                No sessions yet. Start by adding your first paddle, then we can plug Garmin imports and the chart-first dashboard into real Laravel data.
+                No sessions yet. Start by adding your first paddle or importing Garmin history.
             </article>
         </section>
     </div>

@@ -4,15 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sea Kayak Logbook Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
     <style>
         :root {
             color-scheme: light;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
         }
         body {
             margin: 0;
-            background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-            color: #0f172a;
+            background:
+                linear-gradient(90deg, rgba(103, 114, 255, 0.14), rgba(255, 156, 107, 0.08) 24%, transparent 58%),
+                radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.14), transparent 26%),
+                linear-gradient(180deg, #f5f6ff 0%, #edf0ff 100%);
+            color: #252b52;
         }
         .wrap {
             max-width: 860px;
@@ -20,27 +29,30 @@
             padding: 40px 20px 64px;
         }
         .card {
-            background: rgba(255,255,255,0.96);
-            border: 1px solid #e2e8f0;
-            border-radius: 28px;
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+            background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.88));
+            border: 1px solid rgba(103, 114, 255, 0.16);
+            border-radius: 30px;
+            box-shadow: 0 24px 54px rgba(96, 112, 186, 0.14);
             padding: 28px;
         }
         .eyebrow {
+            font-family: "IBM Plex Mono", ui-monospace, monospace;
             font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.28em;
+            font-weight: 500;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: #f97316;
+            color: #ff9c6b;
         }
         h1 {
             margin: 12px 0 0;
+            font-family: "Sora", "Manrope", ui-sans-serif, system-ui, sans-serif;
             font-size: clamp(32px, 5vw, 52px);
-            line-height: 1.02;
+            line-height: .98;
+            letter-spacing: -.04em;
         }
         p {
             line-height: 1.7;
-            color: #475569;
+            color: rgba(37, 43, 82, 0.68);
         }
         .chips, .grid {
             display: flex;
@@ -49,11 +61,11 @@
         }
         .chip, .tile, .logout {
             border-radius: 999px;
-            border: 1px solid #e2e8f0;
-            background: #fff;
+            border: 1px solid rgba(103, 114, 255, 0.16);
+            background: rgba(255,255,255,.82);
             padding: 12px 18px;
             text-decoration: none;
-            color: #0f172a;
+            color: #252b52;
             font-weight: 600;
         }
         .grid {
@@ -77,8 +89,7 @@
             <div class="eyebrow">Logged in</div>
             <h1>Your kayak workspace</h1>
             <p>
-                This is a plain server-rendered workspace page. If you can see this after signing in,
-                auth and session persistence are working and the remaining issue is in the richer app layer.
+                This fallback page is only here in case the richer journal view ever needs a recovery route. The normal flow now goes straight to the dashboard.
             </p>
 
             <div class="chips">

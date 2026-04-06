@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import JournalLayout from '@/layouts/JournalLayout.vue';
 import 'leaflet/dist/leaflet.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -18,11 +19,11 @@ createInertiaApp({
             case name.startsWith('profiles/'):
                 return null;
             default:
-                return null;
+                return JournalLayout;
         }
     },
     progress: {
-        color: '#4B5563',
+        color: '#6772ff',
     },
 });
 

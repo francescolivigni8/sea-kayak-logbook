@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -73,22 +72,25 @@ function submit() {
 <template>
     <Head title="Garmin import" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <Heading
-                    title="Garmin import"
-                    description="Upload a Garmin CSV export and optionally the matching GPX files. The importer will attach sessions to your active profile, match GPX routes when possible, and refresh the dashboard."
-                />
+    <div class="space-y-5">
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+            <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <p class="journal-kicker">Garmin import</p>
+                    <Heading
+                        title="Bring in Garmin history"
+                        description="Upload a Garmin CSV export and, when you have them, the matching GPX or FIT files. The import stays profile-scoped and updates existing paddles by external reference when possible."
+                    />
+                </div>
 
-                <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                <div class="flex flex-wrap gap-2">
+                    <span class="journal-chip journal-chip--primary">
                         {{ props.profile.name }}
                     </span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                    <span class="journal-chip">
                         {{ props.profile.homeWater }}
                     </span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                    <span class="journal-chip">
                         {{ props.profile.timezone }}
                     </span>
                 </div>
@@ -96,95 +98,91 @@ function submit() {
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Current sessions</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ props.stats.sessionCount }}</p>
+            <article class="journal-metric-card" style="background: linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))">
+                <p class="journal-kicker">Current sessions</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ props.stats.sessionCount }}</p>
             </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Current distance</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ props.stats.distanceKm.toFixed(1) }} km</p>
+            <article class="journal-metric-card" style="background: linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))">
+                <p class="journal-kicker">Current distance</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ props.stats.distanceKm.toFixed(1) }} km</p>
             </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">Track-backed sessions</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ props.stats.trackSessions }}</p>
+            <article class="journal-metric-card" style="background: linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))">
+                <p class="journal-kicker">Track-backed sessions</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ props.stats.trackSessions }}</p>
             </article>
-            <article class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">FIT attached</p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">{{ props.stats.fitSessions }}</p>
+            <article class="journal-metric-card" style="background: linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))">
+                <p class="journal-kicker">FIT attached</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ props.stats.fitSessions }}</p>
             </article>
         </section>
 
         <form class="space-y-6" @submit.prevent="submit">
-            <section class="grid gap-6 rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section class="journal-panel grid gap-6 px-5 py-5 md:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                 <div class="space-y-6">
-                    <div class="space-y-2">
-                        <Heading title="Import files" description="CSV is required. GPX and FIT files are optional, but they unlock route previews, timing, and richer Garmin track data." variant="small" />
-                    </div>
+                    <Heading title="Import files" description="CSV is required. GPX and FIT stay optional, but they unlock route previews, timing, and richer track data." variant="small" />
 
                     <div class="grid gap-5">
-                        <div class="grid gap-2">
-                            <Label for="csv_file">Garmin activities CSV</Label>
-                            <Input id="csv_file" type="file" accept=".csv,text/csv" @change="assignCsv" />
-                            <p class="text-sm text-slate-500">
+                        <article class="journal-soft-card grid gap-2">
+                            <Label class="journal-field-label" for="csv_file">Garmin activities CSV</Label>
+                            <Input id="csv_file" class="journal-input px-3 py-2 file:mr-3 file:rounded-full file:border-0 file:bg-[rgba(103,114,255,0.12)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[color:var(--journal-text)]" type="file" accept=".csv,text/csv" @change="assignCsv" />
+                            <p class="text-sm text-[color:var(--journal-muted)]">
                                 Use the Garmin export that includes activity date, type, distance, and time.
                             </p>
                             <InputError :message="form.errors.csv_file" />
-                        </div>
+                        </article>
 
-                        <div class="grid gap-2">
-                            <Label for="gpx_files">Matching GPX files</Label>
-                            <Input id="gpx_files" type="file" accept=".gpx,.xml" multiple @change="assignGpx" />
-                            <p class="text-sm text-slate-500">
+                        <article class="journal-soft-card grid gap-2">
+                            <Label class="journal-field-label" for="gpx_files">Matching GPX files</Label>
+                            <Input id="gpx_files" class="journal-input px-3 py-2 file:mr-3 file:rounded-full file:border-0 file:bg-[rgba(122,215,208,0.2)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[color:var(--journal-text)]" type="file" accept=".gpx,.xml" multiple @change="assignGpx" />
+                            <p class="text-sm text-[color:var(--journal-muted)]">
                                 Optional. Upload one or many GPX files and the importer will match them to sessions by date/time.
                             </p>
                             <InputError :message="form.errors.gpx_files" />
                             <InputError :message="form.errors['gpx_files.0']" />
-                        </div>
+                        </article>
 
-                        <div class="grid gap-2">
-                            <Label for="fit_files">Matching FIT files</Label>
-                            <Input id="fit_files" type="file" accept=".fit,application/octet-stream" multiple @change="assignFit" />
-                            <p class="text-sm text-slate-500">
+                        <article class="journal-soft-card grid gap-2">
+                            <Label class="journal-field-label" for="fit_files">Matching FIT files</Label>
+                            <Input id="fit_files" class="journal-input px-3 py-2 file:mr-3 file:rounded-full file:border-0 file:bg-[rgba(255,156,107,0.18)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[color:var(--journal-text)]" type="file" accept=".fit,application/octet-stream" multiple @change="assignFit" />
+                            <p class="text-sm text-[color:var(--journal-muted)]">
                                 Optional. FIT files can fill route geometry, timing, start coordinates, and Garmin-native metrics when GPX is missing.
                             </p>
                             <InputError :message="form.errors.fit_files" />
                             <InputError :message="form.errors['fit_files.0']" />
-                        </div>
+                        </article>
                     </div>
                 </div>
 
-                <aside class="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
-                        Import summary
-                    </p>
+                <aside class="journal-card p-5">
+                    <p class="journal-kicker">Import summary</p>
                     <dl class="mt-5 space-y-4 text-sm text-slate-600">
                         <div class="flex items-center justify-between gap-3">
                             <dt>CSV selected</dt>
-                            <dd class="font-medium text-slate-900">
+                            <dd class="font-medium text-[color:var(--journal-text)]">
                                 {{ form.csv_file?.name ?? 'Not selected' }}
                             </dd>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <dt>GPX files</dt>
-                            <dd class="font-medium text-slate-900">
+                            <dd class="font-medium text-[color:var(--journal-text)]">
                                 {{ selectedGpxCount }}
                             </dd>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <dt>FIT files</dt>
-                            <dd class="font-medium text-slate-900">
+                            <dd class="font-medium text-[color:var(--journal-text)]">
                                 {{ selectedFitCount }}
                             </dd>
                         </div>
-                        <div class="rounded-[1.15rem] border border-dashed border-slate-300 bg-white/80 p-4 text-xs leading-6 text-slate-500">
-                            Existing sessions are updated by external reference when possible, so repeated imports stay safer than a one-off script. GPX takes priority for route geometry, while FIT fills missing timing and Garmin-native track data.
+                        <div class="journal-banner journal-banner--soft text-xs leading-6">
+                            Repeated imports stay safer than one-off scripts because existing paddles are updated by external reference when possible. GPX takes priority for route geometry, while FIT fills timing and Garmin-native gaps.
                         </div>
                     </dl>
 
-                    <Button class="mt-6 w-full" type="submit" :disabled="form.processing">
+                    <button class="journal-primary-link mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70" type="submit" :disabled="form.processing">
                         <Spinner v-if="form.processing" class="mr-2 h-4 w-4" />
                         {{ form.processing ? 'Importing...' : 'Run Garmin import' }}
-                    </Button>
+                    </button>
                 </aside>
             </section>
         </form>

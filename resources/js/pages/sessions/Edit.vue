@@ -45,7 +45,7 @@ defineProps<{
 <template>
     <Head title="Edit session" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
+    <div class="flex flex-col gap-5">
         <SessionForm
             mode="edit"
             :profile="profile"

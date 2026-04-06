@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -95,26 +94,20 @@ const cards = computed(() => [
 <template>
     <Head title="Expeditions" />
 
-    <div class="flex flex-1 flex-col gap-6 rounded-[2rem] p-4 md:p-6">
-        <section class="rounded-[2rem] border border-sidebar-border/70 bg-white/95 p-6 shadow-sm md:p-8">
+    <div class="space-y-5">
+        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400">
-                        Expeditions and multiday
-                    </p>
+                    <p class="journal-kicker">Expeditions and multiday</p>
                     <Heading
                         title="Expedition atlas"
-                        :description="`A dedicated view of where ${profile.name} has paddled on multiday or expedition-tagged sessions.`"
+                        :description="`A lighter atlas view of where ${profile.name} has paddled on expedition-tagged or multiday sessions.`"
                     />
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <Button v-if="profile.isPublic" as-child variant="outline">
-                        <Link :href="`${profile.publicPath}/expeditions`">Open public expedition atlas</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link href="/sessions/create">Add expedition session</Link>
-                    </Button>
+                    <Link v-if="profile.isPublic" :href="`${profile.publicPath}/expeditions`" class="journal-utility-link">Open public expedition atlas</Link>
+                    <Link href="/sessions/create" class="journal-primary-link">Add expedition session</Link>
                 </div>
             </div>
         </section>
@@ -123,31 +116,29 @@ const cards = computed(() => [
             <article
                 v-for="card in cards"
                 :key="card.label"
-                class="rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm"
+                class="journal-metric-card"
+                :style="{
+                    background:
+                        card.label === 'Expedition km'
+                            ? 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))'
+                            : card.label === 'Days out'
+                              ? 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))'
+                              : 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
+                }"
             >
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
-                    {{ card.label }}
-                </p>
-                <p class="mt-4 text-3xl font-semibold text-slate-900">
-                    {{ card.value }}
-                </p>
-                <p class="mt-2 text-sm leading-6 text-slate-500">
-                    {{ card.detail }}
-                </p>
+                <p class="journal-kicker">{{ card.label }}</p>
+                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ card.value }}</p>
+                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">{{ card.detail }}</p>
             </article>
         </section>
 
-        <section class="rounded-[1.75rem] border border-sidebar-border/70 bg-white/95 p-5 shadow-sm">
+        <section class="journal-card px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
-                        I paddled here
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                        Global expedition footprint
-                    </h2>
+                    <p class="journal-kicker">I paddled here</p>
+                    <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Global expedition footprint</h2>
                 </div>
-                <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                <span class="journal-chip">
                     Tap a pin to open the place page
                 </span>
             </div>
@@ -171,7 +162,7 @@ const cards = computed(() => [
             <article
                 v-for="place in expeditionPlaces"
                 :key="place.slug"
-                class="overflow-hidden rounded-[1.5rem] border border-sidebar-border/70 bg-white/95 shadow-sm"
+                class="journal-card overflow-hidden"
             >
                 <img
                     v-if="place.photoUrl"
@@ -182,25 +173,23 @@ const cards = computed(() => [
                 <div class="p-5">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-lg font-semibold text-slate-900">
+                            <h3 class="text-lg font-semibold text-[color:var(--journal-text)]">
                                 {{ place.label }}
                             </h3>
-                            <p class="mt-1 text-sm text-slate-500">
+                            <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
                                 {{ place.tripCount }} trips · {{ place.daysOut }} days out
                             </p>
                         </div>
-                        <Button as-child variant="outline" size="sm">
-                            <Link :href="place.path">Open</Link>
-                        </Button>
+                        <Link :href="place.path" class="journal-utility-link">Open</Link>
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                        <span class="journal-chip">
                             {{ place.distanceKm.toFixed(1) }} km
                         </span>
                         <span
                             v-if="place.latestDate"
-                            class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+                            class="journal-chip"
                         >
                             {{ place.latestDate }}
                         </span>

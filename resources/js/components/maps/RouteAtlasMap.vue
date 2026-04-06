@@ -522,7 +522,9 @@ onBeforeUnmount(() => {
                     :key="key"
                     type="button"
                     class="rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase transition"
-                    :class="selectedStyle === key ? 'border-slate-300 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                    :class="selectedStyle === key
+                        ? 'border-[color:var(--journal-line-strong)] bg-[rgba(103,114,255,0.14)] text-[color:var(--journal-text)]'
+                        : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
                     @click="switchStyle(key)"
                 >
                     {{ style.label }}
@@ -532,7 +534,9 @@ onBeforeUnmount(() => {
                     v-if="allowPinView"
                     type="button"
                     class="rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase transition"
-                    :class="pinFeedback === 'saved' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                    :class="pinFeedback === 'saved'
+                        ? 'border-[rgba(137,223,171,0.5)] bg-[rgba(241,255,245,0.9)] text-[#256a48]'
+                        : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
                     @click="pinCurrentView"
                 >
                     {{ pinFeedback === 'saved' ? 'Pinned' : 'Pin view' }}
@@ -541,7 +545,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="allowPinView"
                     type="button"
-                    class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase text-slate-500 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.18em] uppercase text-[color:var(--journal-muted)] transition hover:border-[color:var(--journal-line-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="!pinnedView"
                     @click="goToPinnedView"
                 >
@@ -552,7 +556,7 @@ onBeforeUnmount(() => {
             <div v-if="showFilters" class="flex flex-wrap items-center gap-2">
                 <select
                     v-model="selectedYear"
-                    class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-slate-500"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
                 >
                     <option value="all">All years</option>
                     <option
@@ -567,7 +571,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showKindFilter"
                     v-model="selectedKind"
-                    class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-slate-500"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
                 >
                     <option value="all">All sessions</option>
                     <option value="day">Day sessions</option>
@@ -577,7 +581,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showGeometryFilter"
                     v-model="selectedGeometry"
-                    class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-slate-500"
+                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase text-[color:var(--journal-muted)]"
                 >
                     <option value="all">Routes and pins</option>
                     <option value="routes">Routes only</option>
@@ -586,18 +590,18 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50/80">
+        <div class="overflow-hidden rounded-[1.7rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
             <div ref="mapElement" :class="props.heightClass" />
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[color:var(--journal-muted)]">
             <span>{{ filteredRoutes.length }} routes · {{ filteredPins.length }} pins</span>
             <span v-if="pinnedView">Pinned view ready</span>
         </div>
 
         <div
             v-if="!hasGeometry"
-            class="rounded-[1.15rem] border border-dashed border-slate-300 bg-slate-50/80 px-4 py-4 text-sm text-slate-500"
+            class="rounded-[1.15rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-muted)]"
         >
             {{ emptyMessage }}
         </div>
@@ -606,7 +610,7 @@ onBeforeUnmount(() => {
             <span
                 v-for="route in legendRoutes"
                 :key="route.id"
-                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600"
+                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1 text-xs text-[color:var(--journal-muted)]"
             >
                 <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: route.color }" />
                 {{ route.label }}
