@@ -1,24 +1,7 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Sea Kayak Logbook',
-                href: dashboard(),
-            },
-            {
-                title: 'Expeditions',
-                href: '/expeditions',
-            },
-        ],
-    },
-});
 
 interface ProfileSummary {
     name: string;
@@ -74,19 +57,19 @@ const props = defineProps<{
 
 const cards = computed(() => [
     {
-        label: 'Expedition km',
+        label: 'Total expedition km',
         value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
-        detail: 'Distance logged from expedition-tagged sessions',
+        detail: 'Tagged in the checklist',
     },
     {
-        label: 'Days out',
+        label: 'Total expedition days',
         value: props.expeditionSummary.daysOut.toString(),
-        detail: 'Total multiday days recorded',
+        detail: 'Logged days out',
     },
     {
-        label: 'Trips',
+        label: 'Total multiday trips',
         value: props.expeditionSummary.tripCount.toString(),
-        detail: `${props.expeditionPlaces.length} named expedition places`,
+        detail: `${props.expeditionPlaces.length} named places`,
     },
 ]);
 </script>
@@ -96,20 +79,29 @@ const cards = computed(() => [
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-4">
-                    <p class="journal-kicker">Expeditions and multiday</p>
-                    <Heading
-                        title="Expedition atlas"
-                        :description="`A lighter atlas view of where ${profile.name} has paddled on expedition-tagged or multiday sessions.`"
-                    />
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
+                    <p class="journal-kicker">Expeditions</p>
+                    <div class="space-y-2">
+                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                            Expeditions and multiday
+                        </h2>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            Longer journeys, kept separate and still counted in the full logbook totals.
+                        </p>
+                    </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-wrap gap-2">
+                    <span class="journal-chip journal-chip--primary">Checklist tagged</span>
                     <Link v-if="profile.isPublic" :href="`${profile.publicPath}/expeditions`" class="journal-utility-link">Open public expedition atlas</Link>
                     <Link href="/sessions/create" class="journal-primary-link">Add expedition session</Link>
                 </div>
             </div>
+        </section>
+
+        <section class="journal-banner journal-banner--soft">
+            Tag a session as expedition in the checklist and optionally log the days out to build this area automatically.
         </section>
 
         <section class="grid gap-4 md:grid-cols-3">
@@ -119,9 +111,9 @@ const cards = computed(() => [
                 class="journal-metric-card"
                 :style="{
                     background:
-                        card.label === 'Expedition km'
+                        card.label === 'Total expedition km'
                             ? 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))'
-                            : card.label === 'Days out'
+                            : card.label === 'Total expedition days'
                               ? 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))'
                               : 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
                 }"
@@ -138,9 +130,7 @@ const cards = computed(() => [
                     <p class="journal-kicker">I paddled here</p>
                     <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Global expedition footprint</h2>
                 </div>
-                <span class="journal-chip">
-                    Tap a pin to open the place page
-                </span>
+                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionPlaces.length }} places</span>
             </div>
 
             <div class="mt-6">
@@ -150,8 +140,10 @@ const cards = computed(() => [
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-expedition-index`"
                     :show-legend="false"
+                    :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
+                    :allow-pin-view="false"
                     height-class="h-[520px]"
                     empty-message="No expedition locations yet."
                 />
@@ -163,6 +155,11 @@ const cards = computed(() => [
                 v-for="place in expeditionPlaces"
                 :key="place.slug"
                 class="journal-card overflow-hidden"
+                :style="{
+                    background: place.photoUrl
+                        ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
+                        : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
+                }"
             >
                 <img
                     v-if="place.photoUrl"
@@ -180,10 +177,10 @@ const cards = computed(() => [
                                 {{ place.tripCount }} trips · {{ place.daysOut }} days out
                             </p>
                         </div>
-                        <Link :href="place.path" class="journal-utility-link">Open</Link>
+                        <span class="journal-chip">{{ place.tripCount }} trips</span>
                     </div>
 
-                    <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                    <div class="mt-4 flex flex-wrap gap-2">
                         <span class="journal-chip">
                             {{ place.distanceKm.toFixed(1) }} km
                         </span>
@@ -193,6 +190,10 @@ const cards = computed(() => [
                         >
                             {{ place.latestDate }}
                         </span>
+                    </div>
+
+                    <div class="mt-5">
+                        <Link :href="place.path" class="journal-utility-link w-full justify-center">Open place</Link>
                     </div>
                 </div>
             </article>

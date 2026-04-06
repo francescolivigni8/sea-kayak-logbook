@@ -58,9 +58,9 @@ const primaryNav = [
 
 const utilityLinks = computed(() => {
     const links = [
-        { label: 'All sessions', href: '/sessions' },
-        { label: 'Garmin import', href: '/imports/garmin' },
-        { label: 'Settings', href: '/settings/profile' },
+        { label: 'Library', href: '/sessions' },
+        { label: 'Import', href: '/imports/garmin' },
+        { label: 'Account', href: '/settings/profile' },
     ];
 
     if (activeProfile.value?.isPublic && activeProfile.value.publicPath) {
@@ -145,7 +145,7 @@ function goBack() {
                                 {{ titleText }}
                             </h1>
                             <p class="journal-copy max-w-2xl text-sm md:text-base">
-                                Journal-first navigation for paddles, notes, expeditions, and public sharing.
+                                Distance, notes, sea state, expeditions, and route memory in one place.
                             </p>
                         </div>
 

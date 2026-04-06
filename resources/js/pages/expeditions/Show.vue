@@ -1,24 +1,7 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { dashboard } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Sea Kayak Logbook',
-                href: dashboard(),
-            },
-            {
-                title: 'Expeditions',
-                href: '#',
-            },
-        ],
-    },
-});
 
 interface ProfileSummary {
     name: string;
@@ -118,12 +101,12 @@ const cards = computed(() => [
     {
         label: 'Trips',
         value: props.place.tripCount.toString(),
-        detail: props.place.latestDate ? `Latest expedition ${props.place.latestDate}` : 'No latest date logged',
+        detail: props.place.latestDate ? `Latest trip ${props.place.latestDate}` : 'No latest date logged',
     },
     {
         label: 'Tracked routes',
         value: props.mapData.routes.length.toString(),
-        detail: 'Expedition sessions here with route track data',
+        detail: 'Expedition sessions here with route data',
     },
 ]);
 </script>
@@ -133,34 +116,33 @@ const cards = computed(() => [
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-4">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="space-y-3">
                     <p class="journal-kicker">Expedition place</p>
-                    <Heading
-                        :title="place.label"
-                        :description="`Grouped expedition view for ${profile.name}. Tracks stay session-specific while this page gathers multiday field notes, photos, and repeat visits in one place.`"
-                    />
-
-                    <div class="flex flex-wrap gap-2">
-                        <span class="journal-chip journal-chip--primary">
-                            {{ profile.homeWater }}
-                        </span>
-                        <span class="journal-chip">
-                            {{ place.tripCount }} trips
-                        </span>
-                        <span
-                            v-if="place.latestDate"
-                            class="journal-chip"
-                        >
-                            {{ place.latestDate }}
-                        </span>
+                    <div class="space-y-2">
+                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                            {{ place.label }}
+                        </h2>
+                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                            Repeated visits, tracks, photos, and expedition notes gathered in one place.
+                        </p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <Link v-if="profile.isPublic" :href="place.publicPath" class="journal-utility-link">Open public view</Link>
-                    <Link href="/dashboard" class="journal-utility-link">Back to dashboard</Link>
-                    <Link href="/sessions/create" class="journal-primary-link">Add session</Link>
+                <div class="flex flex-col items-start gap-3 xl:items-end">
+                    <div class="flex flex-wrap gap-2">
+                        <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
+                        <span class="journal-chip">{{ place.tripCount }} trips</span>
+                        <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
+                        <Link v-if="profile.isPublic" :href="place.publicPath" class="journal-utility-link">Open public view</Link>
+                    </div>
+
+                    <img
+                        v-if="place.photoUrl"
+                        :src="place.photoUrl"
+                        :alt="place.label"
+                        class="h-24 w-40 rounded-[20px] border border-[color:var(--journal-line)] object-cover shadow-[var(--journal-shadow)]"
+                    />
                 </div>
             </div>
         </section>
@@ -193,9 +175,7 @@ const cards = computed(() => [
                     <p class="journal-kicker">Expedition atlas</p>
                     <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Tracks and launch points</h2>
                 </div>
-                <span class="journal-chip">
-                    Year filter and pinned view stay local to this place
-                </span>
+                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ mapData.routes.length }} tracked routes</span>
             </div>
 
             <div class="mt-6">
@@ -204,14 +184,17 @@ const cards = computed(() => [
                     :pins="mapData.pins"
                     :default-view="mapData.defaultView"
                     :storage-key="`${profile.slug}-${place.slug}-place-atlas`"
+                    :show-legend="false"
+                    :show-filters="false"
                     :show-kind-filter="false"
+                    :allow-pin-view="false"
                     height-class="h-[520px]"
                     empty-message="No mapped geometry at this expedition place yet."
                 />
             </div>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
             <article class="journal-card px-5 py-5 md:px-6">
                 <div>
                     <p class="journal-kicker">Expedition sessions</p>
@@ -223,49 +206,66 @@ const cards = computed(() => [
                         v-for="session in sessions"
                         :key="session.id"
                         class="journal-soft-card"
+                        :style="{
+                            background: session.photoUrl
+                                ? 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(122,215,208,0.08))'
+                                : 'rgba(255,255,255,0.82)',
+                        }"
                     >
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="space-y-3">
-                                <div class="flex flex-wrap gap-2 text-xs font-medium">
-                                    <span class="journal-chip">
-                                        {{ session.routeCategoryLabel }}
-                                    </span>
-                                    <span class="journal-chip">
-                                        {{ session.daysOut }} days
-                                    </span>
-                                    <span
-                                        v-if="session.beaufort !== null"
-                                        class="journal-chip"
-                                    >
-                                        F{{ session.beaufort }}
-                                    </span>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="space-y-3">
+                                    <div class="flex flex-wrap gap-2 text-xs font-medium">
+                                        <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
+                                        <span class="journal-chip">{{ session.daysOut }} days</span>
+                                        <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-[color:var(--journal-text)]">
+                                            {{ session.title }}
+                                        </h3>
+                                        <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
+                                            {{ session.date ?? 'No date' }}
+                                            <span v-if="session.launchName">· {{ session.launchName }}</span>
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <h3 class="text-lg font-semibold text-[color:var(--journal-text)]">
-                                        {{ session.title }}
-                                    </h3>
-                                    <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                        {{ session.date ?? 'No date' }}
-                                        <span v-if="session.launchName">· {{ session.launchName }}</span>
-                                    </p>
-                                </div>
-
-                                <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                                    <span class="journal-chip">
-                                        {{ session.distanceKm.toFixed(1) }} km
-                                    </span>
-                                    <span class="journal-chip">
-                                        {{ session.durationMinutes }} min
-                                    </span>
-                                </div>
-
-                                <p v-if="session.notes" class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    {{ session.notes }}
-                                </p>
+                                <img
+                                    v-if="session.photoUrl"
+                                    :src="session.photoUrl"
+                                    :alt="session.title"
+                                    class="h-[4.5rem] w-24 rounded-[18px] border border-[color:var(--journal-line)] object-cover"
+                                />
                             </div>
 
-                            <Link v-if="session.path" :href="session.path" class="journal-utility-link">Open</Link>
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Distance</p>
+                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                        {{ session.distanceKm.toFixed(1) }} km
+                                    </p>
+                                </div>
+                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Time</p>
+                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                        {{ session.durationMinutes }} min
+                                    </p>
+                                </div>
+                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Launch</p>
+                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                        {{ session.launchName ?? 'Unknown' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p v-if="session.notes" class="text-sm leading-6 text-[color:var(--journal-muted)]">
+                                {{ session.notes }}
+                            </p>
+
+                            <Link v-if="session.path" :href="session.path" class="journal-utility-link w-full justify-center">Open session</Link>
                         </div>
                     </article>
                 </div>
@@ -304,7 +304,7 @@ const cards = computed(() => [
                     v-else
                     class="mt-6 rounded-[1.25rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-10 text-sm text-[color:var(--journal-muted)]"
                 >
-                    No expedition photos here yet. Add session photos during logging to build the place gallery.
+                    No expedition photos here yet. Add session photos while logging to build the place gallery.
                 </div>
             </article>
         </section>
