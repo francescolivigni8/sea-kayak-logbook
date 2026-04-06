@@ -457,8 +457,12 @@ class ProfileDashboardData
     private function buildMapData(Profile $profile, Collection $sessions): array
     {
         $palette = $this->mapPalette();
+        $mappedSessions = $sessions
+            ->filter(fn (PaddleSession $session) => $this->hasTrackData($session) || (filled($session->launch_lat) && filled($session->launch_lng)))
+            ->take(8)
+            ->values();
 
-        $routes = $sessions
+        $routes = $mappedSessions
             ->filter(fn (PaddleSession $session) => is_array($session->route_profile) && count($session->route_profile) > 1)
             ->values()
             ->map(function (PaddleSession $session, int $index) use ($palette) {
@@ -470,21 +474,14 @@ class ProfileDashboardData
                     'years' => $session->session_date?->year ? [$session->session_date->year] : [],
                     'isExpedition' => (bool) $session->is_expedition,
                     'category' => $session->route_category ?: 'journey',
-                    'points' => collect($session->route_profile)
-                        ->filter(fn ($point) => isset($point['lat'], $point['lng']))
-                        ->map(fn ($point) => [
-                            'lat' => (float) $point['lat'],
-                            'lng' => (float) $point['lng'],
-                        ])
-                        ->values()
-                        ->all(),
+                    'points' => $this->sampleRouteProfile($session->route_profile),
                 ];
             })
             ->filter(fn (array $route) => count($route['points']) > 1)
             ->values()
             ->all();
 
-        $pins = $sessions
+        $pins = $mappedSessions
             ->filter(fn (PaddleSession $session) => filled($session->launch_lat) && filled($session->launch_lng) && ! (is_array($session->route_profile) && count($session->route_profile) > 1))
             ->values()
             ->map(function (PaddleSession $session, int $index) use ($palette) {
@@ -508,6 +505,37 @@ class ProfileDashboardData
             'routes' => $routes,
             'pins' => $pins,
         ];
+    }
+
+    private function sampleRouteProfile(mixed $routeProfile, int $maxPoints = 180): array
+    {
+        $points = collect(is_array($routeProfile) ? $routeProfile : [])
+            ->filter(fn ($point) => isset($point['lat'], $point['lng']))
+            ->map(fn ($point) => [
+                'lat' => (float) $point['lat'],
+                'lng' => (float) $point['lng'],
+            ])
+            ->values();
+
+        $count = $points->count();
+
+        if ($count <= $maxPoints) {
+            return $points->all();
+        }
+
+        $step = max((int) floor($count / $maxPoints), 1);
+        $sampled = $points
+            ->filter(fn (array $point, int $index) => $index % $step === 0)
+            ->values();
+
+        if ($sampled->last() !== $points->last()) {
+            $sampled->push($points->last());
+        }
+
+        return $sampled
+            ->take($maxPoints)
+            ->values()
+            ->all();
     }
 
     private function buildExpeditionSummary(Collection $expeditionSessions): array
