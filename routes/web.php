@@ -9,12 +9,12 @@ use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PublicProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
-Route::inertia('/', 'Welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function (Request $request) {
+    return $request->user()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
 
 Route::get('/p/{profile:slug}', PublicProfileController::class)->name('profiles.public.show');
 Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, 'publicIndex'])
