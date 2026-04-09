@@ -96,20 +96,6 @@ interface ExpeditionPlace {
     publicPath: string;
 }
 
-interface RecentSession {
-    id: number;
-    title: string;
-    date: string | null;
-    distanceKm: number;
-    durationMinutes: number;
-    routeCategoryLabel: string;
-    launchName: string | null;
-    beaufort: number | null;
-    isPublic: boolean;
-    hasTrack: boolean;
-    isExpedition: boolean;
-}
-
 const props = defineProps<{
     profile: ProfileSummary;
     headline: HeadlineStats;
@@ -120,7 +106,6 @@ const props = defineProps<{
     expeditionSummary: ExpeditionSummary;
     expeditionPlaces: ExpeditionPlace[];
     expeditionMapData: MapData;
-    recentSessions: RecentSession[];
 }>();
 
 const page = usePage();
@@ -136,19 +121,19 @@ const metricCards = computed(() => [
     {
         label: 'Total duration',
         value: `${props.headline.durationHours.toFixed(1)} h`,
-        detail: `${props.headline.averageDistanceKm.toFixed(1)} km average session`,
+        detail: `${props.headline.averageDistanceKm.toFixed(1)} km avg session`,
         style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
         label: 'Average air temperature',
         value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
-        detail: 'Across sessions with air temperature logged',
+        detail: 'Logged air readings',
         style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
     },
     {
         label: 'Average sea temperature',
         value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
-        detail: 'Across sessions with sea temperature logged',
+        detail: 'Logged sea readings',
         style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
     },
 ]);
@@ -171,7 +156,7 @@ const expeditionCards = computed(() => [
     },
 ]);
 
-const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
+const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
 </script>
 
 <template>
@@ -182,7 +167,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
             {{ successMessage }}
         </section>
 
-        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+        <section class="journal-panel journal-panel--dashboard-intro px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-3">
                     <p class="journal-kicker">Dashboard</p>
@@ -197,18 +182,13 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                 </div>
 
                 <div class="flex flex-col items-start gap-3 xl:items-end">
-                    <p class="text-sm font-medium text-[color:var(--journal-muted)]">
-                        {{ headline.sessionCount }} paddles across {{ headline.paddledMonths }} active months.
-                    </p>
                     <div class="flex flex-wrap gap-2">
-                        <Link v-if="profile.isPublic" :href="profile.publicPath" class="journal-utility-link">
-                            Public profile
-                        </Link>
-                        <Link href="/sessions" class="journal-utility-link">
-                            Library
-                        </Link>
+                        <span class="journal-chip">{{ headline.paddledMonths }} active months</span>
+                        <span class="journal-chip">{{ headline.trackSessions }} tracked sessions</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
                         <Link href="/sessions/create" class="journal-primary-link">
-                            Add session
+                            Add a session
                         </Link>
                     </div>
                 </div>
@@ -255,7 +235,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     :default-view="mapData.defaultView"
                     :storage-key="`${profile.slug}-route-atlas`"
                     :show-filters="false"
-                    height-class="h-[520px]"
+                    height-class="h-[560px]"
                 />
             </div>
         </section>
@@ -274,7 +254,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     Longer journeys, kept separate and still counted in the full logbook totals.
                 </p>
                 <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Tag a session as expedition in the checklist and optionally log the days out.
+                    Tag a session as expedition and optionally log the days out in the checklist.
                 </p>
             </div>
 
@@ -319,48 +299,18 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                 />
             </div>
 
-            <div v-if="featuredPlaces.length" class="mt-6 grid gap-4 lg:grid-cols-3">
-                <article
-                    v-for="place in featuredPlaces"
+            <div v-if="expeditionPlaceChips.length" class="mt-5 flex flex-wrap gap-2">
+                <Link
+                    v-for="place in expeditionPlaceChips"
                     :key="place.slug"
-                    class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/78"
-                    :style="{
-                        background: place.photoUrl
-                            ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
-                            : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
-                    }"
+                    :href="place.path"
+                    class="journal-chip transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
                 >
-                    <img
-                        v-if="place.photoUrl"
-                        :src="place.photoUrl"
-                        :alt="place.label"
-                        class="h-40 w-full object-cover"
-                    />
-
-                    <div class="space-y-3 p-4">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <h4 class="text-lg font-semibold text-[color:var(--journal-text)]">
-                                    {{ place.label }}
-                                </h4>
-                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                    {{ place.tripCount }} trips · {{ place.daysOut }} days
-                                </p>
-                            </div>
-
-                            <span class="journal-chip">{{ place.tripCount }} trips</span>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-                            <span class="journal-chip">{{ place.distanceKm.toFixed(1) }} km</span>
-                            <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
-                        </div>
-
-                        <Link :href="place.path" class="journal-utility-link w-full justify-center">
-                            Open place
-                        </Link>
-                    </div>
-                </article>
+                    {{ place.label }}
+                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgba(103,114,255,0.12)] px-1.5 text-[11px] font-semibold text-[color:var(--journal-text)]">
+                        {{ place.tripCount }}
+                    </span>
+                </Link>
             </div>
         </section>
     </div>

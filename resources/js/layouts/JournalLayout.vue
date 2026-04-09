@@ -145,7 +145,7 @@ function goBack() {
 
 <template>
     <div class="journal-page">
-        <header class="journal-panel overflow-hidden px-5 py-5 md:px-6 md:py-6">
+        <header :class="['journal-panel overflow-hidden px-5 py-5 md:px-6 md:py-6', isDashboard ? 'journal-panel--hero' : '']">
             <div class="flex flex-col gap-5">
                 <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
                     <div class="space-y-3">
