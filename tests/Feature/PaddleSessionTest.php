@@ -67,6 +67,38 @@ class PaddleSessionTest extends TestCase
         ]);
     }
 
+    public function test_manual_sessions_can_store_launch_and_landing_coordinates_without_a_track_file(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Manual geolocated paddle',
+                'session_date' => '2026-04-06',
+                'launch_name' => 'Reykjavik',
+                'launch_lat' => '64.146600',
+                'launch_lng' => '-21.942600',
+                'landing_name' => 'Grotta',
+                'landing_lat' => '64.167200',
+                'landing_lng' => '-22.022600',
+                'route_category' => 'journey',
+                'distance_km' => '6.2',
+                'is_public' => true,
+            ])
+            ->assertRedirect();
+
+        $profile = $user->resolveActiveProfile();
+
+        $this->assertDatabaseHas(PaddleSession::class, [
+            'profile_id' => $profile->id,
+            'title' => 'Manual geolocated paddle',
+            'launch_lat' => 64.1466,
+            'launch_lng' => -21.9426,
+            'landing_lat' => 64.1672,
+            'landing_lng' => -22.0226,
+        ]);
+    }
+
     public function test_manual_gpx_uploads_are_parsed_into_route_data(): void
     {
         Storage::fake('public');

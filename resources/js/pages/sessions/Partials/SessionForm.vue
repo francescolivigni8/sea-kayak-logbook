@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
 import InputError from '@/components/InputError.vue';
 import { useForm } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -21,7 +22,11 @@ interface SessionFormDefaults {
     session_date: string;
     start_time_local: string;
     launch_name: string;
+    launch_lat: string;
+    launch_lng: string;
     landing_name: string;
+    landing_lat: string;
+    landing_lng: string;
     area_name: string;
     route_category: string;
     body_of_water: string;
@@ -119,7 +124,11 @@ const stepFieldMap: Record<string, number> = {
     session_date: 0,
     start_time_local: 0,
     launch_name: 0,
+    launch_lat: 0,
+    launch_lng: 0,
     landing_name: 0,
+    landing_lat: 0,
+    landing_lng: 0,
     area_name: 0,
     route_category: 0,
     body_of_water: 0,
@@ -238,6 +247,10 @@ const metaPills = computed(() => [
     'GPX / FIT',
 ].filter(Boolean));
 const stepProgressLabel = computed(() => `Step ${currentStep.value + 1} of ${steps.length}`);
+const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(form.launch_lat)));
+const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
+const landingLatNumber = computed(() => (form.landing_lat === '' ? null : Number(form.landing_lat)));
+const landingLngNumber = computed(() => (form.landing_lng === '' ? null : Number(form.landing_lng)));
 
 function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event) {
     const target = event.target as HTMLInputElement;
@@ -246,6 +259,20 @@ function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event
 
 function goToStep(stepIndex: number) {
     currentStep.value = stepIndex;
+}
+
+function copyLaunchToLanding() {
+    if (form.launch_lat === '' || form.launch_lng === '') {
+        return;
+    }
+
+    form.landing_lat = form.launch_lat;
+    form.landing_lng = form.launch_lng;
+}
+
+function clearLandingCoordinates() {
+    form.landing_lat = '';
+    form.landing_lng = '';
 }
 
 function nextStep() {
@@ -446,6 +473,55 @@ function submit() {
                             placeholder="Anna, team night paddle"
                         />
                         <InputError :message="form.errors.partners_text" />
+                    </div>
+
+                    <div class="md:col-span-2 xl:col-span-3">
+                        <SessionLocationPicker
+                            :launch-lat="launchLatNumber"
+                            :launch-lng="launchLngNumber"
+                            :landing-lat="landingLatNumber"
+                            :landing-lng="landingLngNumber"
+                            @update:launch-lat="form.launch_lat = $event"
+                            @update:launch-lng="form.launch_lng = $event"
+                            @update:landing-lat="form.landing_lat = $event"
+                            @update:landing-lng="form.landing_lng = $event"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="launch_lat">Launch latitude</label>
+                        <input id="launch_lat" v-model="form.launch_lat" type="number" step="0.000001" min="-90" max="90" class="journal-input" placeholder="64.146600" />
+                        <InputError :message="form.errors.launch_lat" />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="launch_lng">Launch longitude</label>
+                        <input id="launch_lng" v-model="form.launch_lng" type="number" step="0.000001" min="-180" max="180" class="journal-input" placeholder="-21.942600" />
+                        <InputError :message="form.errors.launch_lng" />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="landing_lat">Landing latitude</label>
+                        <input id="landing_lat" v-model="form.landing_lat" type="number" step="0.000001" min="-90" max="90" class="journal-input" placeholder="Optional" />
+                        <InputError :message="form.errors.landing_lat" />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="landing_lng">Landing longitude</label>
+                        <input id="landing_lng" v-model="form.landing_lng" type="number" step="0.000001" min="-180" max="180" class="journal-input" placeholder="Optional" />
+                        <InputError :message="form.errors.landing_lng" />
+                    </div>
+
+                    <div class="md:col-span-2 xl:col-span-2 flex flex-wrap items-end gap-2">
+                        <button type="button" class="journal-utility-link" @click="copyLaunchToLanding">
+                            Use launch for landing
+                        </button>
+                        <button type="button" class="journal-utility-link" @click="clearLandingCoordinates">
+                            Clear landing point
+                        </button>
+                        <p class="text-sm text-[color:var(--journal-muted)]">
+                            Manual coordinates are enough to add a pin on the homepage and public maps.
+                        </p>
                     </div>
                 </div>
 
