@@ -262,11 +262,11 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-expedition-footprint`"
                     pin-presentation="pin"
+                    :auto-fit-to-geometry="false"
                     :show-legend="false"
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    :allow-pin-view="false"
                     empty-message="No expedition locations logged yet."
                     height-class="h-[440px]"
                 />

@@ -57,6 +57,7 @@ const props = withDefaults(defineProps<{
     storageKey?: string | null;
     emptyMessage?: string;
     pinPresentation?: PinPresentation;
+    autoFitToGeometry?: boolean;
 }>(), {
     routes: () => [],
     pins: () => [],
@@ -74,6 +75,7 @@ const props = withDefaults(defineProps<{
     storageKey: null,
     emptyMessage: 'No mapped geometry yet. Attach GPX files or add launch coordinates to start building the route atlas.',
     pinPresentation: 'dot',
+    autoFitToGeometry: true,
 });
 
 const mapElement = ref<HTMLElement | null>(null);
@@ -308,6 +310,15 @@ function fitMapToGeometry() {
         return;
     }
 
+    if (!props.autoFitToGeometry) {
+        if (!initialViewportApplied) {
+            initialViewportApplied = true;
+            applyFallbackView();
+        }
+
+        return;
+    }
+
     if (pinnedView.value && !initialViewportApplied) {
         initialViewportApplied = true;
         map.setView([pinnedView.value.lat, pinnedView.value.lng], pinnedView.value.zoom);
@@ -383,15 +394,15 @@ function renderGeometry() {
                 icon: L.divIcon({
                     className: 'journal-map-pin-wrapper',
                     html: `
-                        <div class="journal-map-pin" style="--pin-color: ${pin.color}">
-                            <span class="journal-map-pin__body">
+                        <div class="journal-map-pin journal-map-pin--minimal" style="--pin-color: ${pin.color}">
+                            <span class="journal-map-pin__core">
                                 ${count > 1 ? `<span class="journal-map-pin__count">${count}</span>` : '<span class="journal-map-pin__dot"></span>'}
                             </span>
                         </div>
                     `,
-                    iconSize: [34, 46],
-                    iconAnchor: [17, 44],
-                    tooltipAnchor: [0, -34],
+                    iconSize: [26, 34],
+                    iconAnchor: [13, 33],
+                    tooltipAnchor: [0, -24],
                 }),
             })
             : L.circleMarker([pin.lat, pin.lng], {

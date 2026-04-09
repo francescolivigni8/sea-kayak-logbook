@@ -289,11 +289,12 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     :pins="expeditionMapData.pins"
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-public-expedition-atlas`"
+                    pin-presentation="pin"
+                    :auto-fit-to-geometry="false"
                     :show-legend="false"
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    :allow-pin-view="false"
                     empty-message="No public expedition locations yet."
                     height-class="h-[420px]"
                 />

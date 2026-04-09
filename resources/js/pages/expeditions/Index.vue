@@ -139,11 +139,12 @@ const cards = computed(() => [
                     :pins="expeditionMapData.pins"
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-expedition-index`"
+                    pin-presentation="pin"
+                    :auto-fit-to-geometry="false"
                     :show-legend="false"
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    :allow-pin-view="false"
                     height-class="h-[520px]"
                     empty-message="No expedition locations yet."
                 />
