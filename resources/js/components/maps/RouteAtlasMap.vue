@@ -42,6 +42,7 @@ interface DefaultView {
 type MapStyle = 'chart' | 'clean' | 'activity';
 type SessionKind = 'all' | 'day' | 'expedition';
 type GeometryKind = 'all' | 'routes' | 'pins';
+type PinPresentation = 'dot' | 'pin';
 
 const props = withDefaults(defineProps<{
     routes?: AtlasRouteItem[];
@@ -55,6 +56,7 @@ const props = withDefaults(defineProps<{
     allowPinView?: boolean;
     storageKey?: string | null;
     emptyMessage?: string;
+    pinPresentation?: PinPresentation;
 }>(), {
     routes: () => [],
     pins: () => [],
@@ -71,6 +73,7 @@ const props = withDefaults(defineProps<{
     allowPinView: true,
     storageKey: null,
     emptyMessage: 'No mapped geometry yet. Attach GPX files or add launch coordinates to start building the route atlas.',
+    pinPresentation: 'dot',
 });
 
 const mapElement = ref<HTMLElement | null>(null);
@@ -375,13 +378,29 @@ function renderGeometry() {
 
     filteredPins.value.forEach((pin) => {
         const count = Math.max(pinCountForSelection(pin), 1);
-        const marker = L.circleMarker([pin.lat, pin.lng], {
-            radius: Math.min(6 + Math.max(count - 1, 0), 12),
-            color: '#ffffff',
-            weight: 2,
-            fillColor: pin.color,
-            fillOpacity: 0.95,
-        });
+        const marker = props.pinPresentation === 'pin'
+            ? L.marker([pin.lat, pin.lng], {
+                icon: L.divIcon({
+                    className: 'journal-map-pin-wrapper',
+                    html: `
+                        <div class="journal-map-pin" style="--pin-color: ${pin.color}">
+                            <span class="journal-map-pin__body">
+                                ${count > 1 ? `<span class="journal-map-pin__count">${count}</span>` : '<span class="journal-map-pin__dot"></span>'}
+                            </span>
+                        </div>
+                    `,
+                    iconSize: [34, 46],
+                    iconAnchor: [17, 44],
+                    tooltipAnchor: [0, -34],
+                }),
+            })
+            : L.circleMarker([pin.lat, pin.lng], {
+                radius: Math.min(7 + Math.max(count - 1, 0), 14),
+                color: '#ffffff',
+                weight: 2,
+                fillColor: pin.color,
+                fillOpacity: 0.95,
+            });
 
         const label = count > 1 ? `${pin.label} · ${count} trips` : pin.label;
         marker.bindTooltip(label).addTo(pinLayerGroup);

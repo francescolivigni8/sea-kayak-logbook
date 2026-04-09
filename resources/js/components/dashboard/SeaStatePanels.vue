@@ -300,7 +300,7 @@ function tidePercent(count: number) {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Conditions</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Condition levels</h3>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">Environmental conditions</h3>
                     </div>
                     <span class="journal-chip">Session checklist</span>
                 </div>

@@ -29,8 +29,18 @@ const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
 const authUser = computed(() => page.props.auth?.user as { name?: string } | undefined);
 const activeProfile = computed(() => (props.profile ?? (page.props.profile as ProfileShape | undefined)) ?? null);
 const journalNav = computed(() => (page.props.journalNav as JournalNavShape | undefined) ?? null);
+const isDashboard = computed(() => currentPath.value === '/dashboard');
 
 const titleText = computed(() => activeProfile.value?.name || authUser.value?.name || 'Sea Kayak Logbook');
+const homeWaterText = computed(() => journalNav.value?.homeWater || activeProfile.value?.homeWater || 'Home water');
+const heroTitle = computed(() => (isDashboard.value ? 'Your kayaking journal' : titleText.value));
+const heroCopy = computed(() => {
+    if (isDashboard.value) {
+        return `${titleText.value} · ${homeWaterText.value}. Sea state, routes, expedition memory, and notes in one place.`;
+    }
+
+    return 'Distance, notes, sea state, expeditions, and route memory in one place.';
+});
 
 const metaPills = computed(() => {
     const pills = [];
@@ -142,10 +152,16 @@ function goBack() {
                         <p class="journal-kicker">Sea kayak logbook</p>
                         <div class="space-y-2">
                             <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
-                                {{ titleText }}
+                                {{ heroTitle }}
                             </h1>
+                            <p
+                                v-if="isDashboard"
+                                class="text-sm font-semibold tracking-[-0.02em] text-[color:var(--journal-muted)] md:text-base"
+                            >
+                                {{ titleText }}
+                            </p>
                             <p class="journal-copy max-w-2xl text-sm md:text-base">
-                                Distance, notes, sea state, expeditions, and route memory in one place.
+                                {{ heroCopy }}
                             </p>
                         </div>
 

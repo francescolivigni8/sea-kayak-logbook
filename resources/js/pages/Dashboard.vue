@@ -136,17 +136,17 @@ const metricCards = computed(() => [
     {
         label: 'Total duration',
         value: `${props.headline.durationHours.toFixed(1)} h`,
-        detail: `${props.headline.paddledMonths} active months`,
+        detail: `${props.headline.averageDistanceKm.toFixed(1)} km average session`,
         style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Average air',
+        label: 'Average air temperature',
         value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
         detail: 'Across sessions with air temperature logged',
         style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Average sea',
+        label: 'Average sea temperature',
         value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
         detail: 'Across sessions with sea temperature logged',
         style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
@@ -191,7 +191,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                             All sessions
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Distance, exposure, rescue, maps, and expeditions in one lighter overview.
+                            Distance, exposure, rescue, routes, and expedition footprint at a glance.
                         </p>
                     </div>
                 </div>
@@ -213,10 +213,6 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     </div>
                 </div>
             </div>
-        </section>
-
-        <section class="journal-banner journal-banner--soft">
-            The dashboard stays aggregate-first: wind, tide, conditions, routes, and expedition footprint before individual stories.
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -312,13 +308,14 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     :pins="expeditionMapData.pins"
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-expedition-footprint`"
+                    pin-presentation="pin"
                     :show-legend="false"
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
                     :allow-pin-view="false"
                     empty-message="No expedition locations logged yet."
-                    height-class="h-[420px]"
+                    height-class="h-[440px]"
                 />
             </div>
 
@@ -361,79 +358,6 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
 
                         <Link :href="place.path" class="journal-utility-link w-full justify-center">
                             Open place
-                        </Link>
-                    </div>
-                </article>
-            </div>
-        </section>
-
-        <section class="journal-panel px-5 py-5 md:px-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <p class="journal-kicker">Latest sessions</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Recent paddles</h3>
-                </div>
-                <Link href="/diary" class="journal-utility-link">
-                    Open diary
-                </Link>
-            </div>
-
-            <div class="mt-6 grid gap-4 xl:grid-cols-3">
-                <article
-                    v-for="session in recentSessions"
-                    :key="session.id"
-                    class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 p-4"
-                    :style="{
-                        background: session.isExpedition
-                            ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,156,107,0.08))'
-                            : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
-                    }"
-                >
-                    <div class="flex flex-wrap gap-2 text-xs font-medium">
-                        <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
-                        <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
-                        <span v-if="session.hasTrack" class="journal-chip">Track</span>
-                    </div>
-
-                    <div class="mt-4 space-y-2">
-                        <h4 class="text-xl font-semibold text-[color:var(--journal-text)]">
-                            {{ session.title }}
-                        </h4>
-                        <p class="text-sm text-[color:var(--journal-muted)]">
-                            {{ session.date ?? 'No date' }}
-                            <span v-if="session.launchName">· {{ session.launchName }}</span>
-                        </p>
-                    </div>
-
-                    <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-                        <span class="journal-chip">{{ session.distanceKm.toFixed(1) }} km</span>
-                        <span class="journal-chip">{{ session.durationMinutes }} min</span>
-                        <span v-if="session.isExpedition" class="journal-chip journal-chip--primary">Expedition</span>
-                        <span class="journal-chip">{{ session.isPublic ? 'Public' : 'Private' }}</span>
-                    </div>
-
-                    <p class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
-                        {{ session.launchName ?? profile.homeWater }} · {{ session.routeCategoryLabel.toLowerCase() }} day{{ session.isExpedition ? ' with expedition tagging' : '' }}.
-                    </p>
-
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Place</p>
-                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                                {{ session.launchName ?? profile.homeWater }}
-                            </p>
-                        </div>
-                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Session</p>
-                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                                {{ session.hasTrack ? 'Track attached' : 'Manual entry' }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="mt-5">
-                        <Link :href="`/sessions/${session.id}`" class="journal-utility-link w-full justify-center">
-                            Open session
                         </Link>
                     </div>
                 </article>
