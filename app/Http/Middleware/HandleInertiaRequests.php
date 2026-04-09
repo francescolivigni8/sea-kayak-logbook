@@ -43,6 +43,8 @@ class HandleInertiaRequests extends Middleware
             $currentYear = now($profile->timezone)->year;
             $baseSessions = $profile->sessions();
             $allSessions = (clone $baseSessions)->get(['distance_km', 'wind_beaufort', 'session_date']);
+            $registeredKayaks = data_get($profile->settings, 'registered_kayaks');
+            $registeredPaddles = data_get($profile->settings, 'registered_paddles');
 
             $journalNav = [
                 'homeWater' => $profile->home_water,
@@ -52,6 +54,17 @@ class HandleInertiaRequests extends Middleware
                 'thisYearDistanceKm' => round((float) $allSessions
                     ->filter(fn (PaddleSession $session) => $session->session_date?->year === $currentYear)
                     ->sum('distance_km'), 1),
+                'paddlerCard' => [
+                    'name' => $profile->name,
+                    'age' => data_get($profile->settings, 'paddler_age'),
+                    'club' => data_get($profile->settings, 'kayak_club', 'Independent'),
+                    'registeredKayaks' => is_array($registeredKayaks)
+                        ? count(array_filter($registeredKayaks))
+                        : (int) data_get($profile->settings, 'registered_kayaks_count', 0),
+                    'registeredPaddles' => is_array($registeredPaddles)
+                        ? count(array_filter($registeredPaddles))
+                        : (int) data_get($profile->settings, 'registered_paddles_count', 0),
+                ],
             ];
         }
 

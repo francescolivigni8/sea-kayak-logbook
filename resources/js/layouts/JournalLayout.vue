@@ -18,6 +18,13 @@ type JournalNavShape = {
     sessionCount?: number;
     topForce?: number | null;
     thisYearDistanceKm?: number;
+    paddlerCard?: {
+        name?: string;
+        age?: number | string | null;
+        club?: string | null;
+        registeredKayaks?: number;
+        registeredPaddles?: number;
+    };
 };
 
 const props = defineProps<{
@@ -37,11 +44,28 @@ const homeWaterText = computed(() => journalNav.value?.homeWater || activeProfil
 const heroTitle = computed(() => (isDashboard.value ? 'Your kayaking journal' : titleText.value));
 const heroCopy = computed(() => {
     if (isDashboard.value) {
-        return `${titleText.value} · ${homeWaterText.value}. Sea state, routes, expedition memory, and notes in one place.`;
+        return '';
     }
 
     return 'Distance, notes, sea state, expeditions, and route memory in one place.';
 });
+const paddlerCard = computed(() => journalNav.value?.paddlerCard ?? null);
+const paddlerAgeText = computed(() => {
+    const value = paddlerCard.value?.age;
+
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+
+    return String(value);
+});
+const paddlerClubText = computed(() => {
+    const value = paddlerCard.value?.club;
+
+    return value && value.trim() !== '' ? value : 'Independent';
+});
+const paddlerRegisteredKayaks = computed(() => paddlerCard.value?.registeredKayaks ?? 0);
+const paddlerRegisteredPaddles = computed(() => paddlerCard.value?.registeredPaddles ?? 0);
 
 const metaPills = computed(() => {
     const pills = [];
@@ -155,16 +179,42 @@ function goBack() {
                             <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
                                 {{ heroTitle }}
                             </h1>
-                            <p
-                                v-if="isDashboard"
-                                class="text-sm font-semibold tracking-[-0.02em] text-[color:var(--journal-muted)] md:text-base"
-                            >
-                                {{ titleText }}
-                            </p>
-                            <p class="journal-copy max-w-2xl text-sm md:text-base">
+                            <p v-if="heroCopy" class="journal-copy max-w-2xl text-sm md:text-base">
                                 {{ heroCopy }}
                             </p>
                         </div>
+
+                        <article v-if="isDashboard && paddlerCard" class="journal-paddler-card">
+                            <div class="space-y-1">
+                                <p class="journal-kicker">Paddler profile</p>
+                                <h2 class="text-[1.15rem] font-semibold leading-none text-[color:var(--journal-text)]">
+                                    {{ paddlerCard.name || titleText }}
+                                </h2>
+                            </div>
+
+                            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Name</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Age</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerAgeText }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Kayak club</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerClubText }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Registered kayaks</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerRegisteredKayaks }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Registered paddles</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerRegisteredPaddles }}</strong>
+                                </div>
+                            </div>
+                        </article>
 
                         <div v-if="!isDashboard" class="flex flex-wrap gap-2">
                             <span
