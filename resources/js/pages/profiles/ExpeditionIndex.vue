@@ -128,7 +128,7 @@ const cards = computed(() => [
                         </h2>
                     </div>
                     <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                        Tap a pin to open the place page
+                        {{ expeditionMapData.pins.length }} public expedition pins
                     </span>
                 </div>
 
@@ -145,6 +145,10 @@ const cards = computed(() => [
                         empty-message="No public expedition locations yet."
                     />
                 </div>
+
+                <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-slate-500">
+                    The map shows one pin per public expedition session. The cards below group repeated places together.
+                </p>
             </section>
 
             <section class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">

@@ -248,7 +248,7 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
                     Longer journeys, kept separate and still counted in the full logbook totals.
                 </p>
                 <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Tag a session as expedition and optionally log the days out in the checklist.
+                    Tag a session as expedition and optionally log the days out in the checklist. Each tagged session drops its own world pin here.
                 </p>
             </div>
 
@@ -274,7 +274,7 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
                         <p class="journal-kicker">Expeditions</p>
                         <h4 class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]">I paddled here</h4>
                     </div>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionPlaces.length }} places</span>
+                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
                 </div>
 
                 <RouteAtlasMap
@@ -306,6 +306,9 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
                     </span>
                 </Link>
             </div>
+            <p v-if="expeditionPlaceChips.length" class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+                Place chips below still group repeated expeditions by area for quick browsing.
+            </p>
         </section>
     </div>
 </template>

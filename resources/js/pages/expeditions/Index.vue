@@ -130,7 +130,7 @@ const cards = computed(() => [
                     <p class="journal-kicker">I paddled here</p>
                     <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Global expedition footprint</h2>
                 </div>
-                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionPlaces.length }} places</span>
+                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
             </div>
 
             <div class="mt-6">
@@ -148,6 +148,10 @@ const cards = computed(() => [
                     empty-message="No expedition locations yet."
                 />
             </div>
+
+            <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
+                The map shows one pin per expedition session. The cards below group those pins back into named places.
+            </p>
         </section>
 
         <section class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">

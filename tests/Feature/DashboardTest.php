@@ -45,14 +45,29 @@ class DashboardTest extends TestCase
             'is_public' => true,
         ]);
 
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-08',
+            'title' => 'Westfjord second push',
+            'launch_name' => 'Isafjordur',
+            'launch_lat' => 66.0748,
+            'launch_lng' => -23.1267,
+            'route_category' => 'expedition',
+            'distance_km' => 18.0,
+            'expedition_days' => 2,
+            'is_expedition' => true,
+            'is_public' => true,
+        ]);
+
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('expeditionSummary.distanceKm', 42.5)
-                ->where('expeditionSummary.daysOut', 3)
-                ->where('expeditionSummary.tripCount', 1)
-                ->has('expeditionMapData.pins', 1));
+                ->where('expeditionSummary.distanceKm', 60.5)
+                ->where('expeditionSummary.daysOut', 5)
+                ->where('expeditionSummary.tripCount', 2)
+                ->has('expeditionMapData.pins', 2)
+                ->has('expeditionPlaces', 1));
     }
 }

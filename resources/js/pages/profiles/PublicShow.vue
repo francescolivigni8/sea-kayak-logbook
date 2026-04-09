@@ -255,7 +255,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                     Longer journeys, kept separate and still counted in the public logbook totals.
                 </p>
                 <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Public expedition routes stay on the main map while the place pins live here.
+                    Public expedition routes stay on the main map while each public expedition session drops its own world pin here.
                 </p>
             </div>
 
@@ -281,7 +281,7 @@ const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
                         <p class="journal-kicker">Expeditions</p>
                         <h4 class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]">I paddled here</h4>
                     </div>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionPlaces.length }} places</span>
+                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
                 </div>
 
                 <RouteAtlasMap

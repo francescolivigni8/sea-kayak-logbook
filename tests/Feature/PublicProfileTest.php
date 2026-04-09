@@ -44,13 +44,28 @@ class PublicProfileTest extends TestCase
             'is_public' => true,
         ]);
 
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-08',
+            'title' => 'Public expedition second day',
+            'launch_name' => 'Isafjordur',
+            'launch_lat' => 66.0748,
+            'launch_lng' => -23.1267,
+            'route_category' => 'expedition',
+            'distance_km' => 14.3,
+            'expedition_days' => 1,
+            'is_expedition' => true,
+            'is_public' => true,
+        ]);
+
         $this->get(route('profiles.public.show', $profile))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profiles/PublicShow')
                 ->where('profile.slug', 'francesco-public-logbook')
-                ->where('expeditionSummary.tripCount', 1)
-                ->has('expeditionMapData.pins', 1));
+                ->where('expeditionSummary.tripCount', 2)
+                ->has('expeditionMapData.pins', 2)
+                ->has('expeditionPlaces', 1));
     }
 
     public function test_private_profiles_are_not_exposed_publicly(): void

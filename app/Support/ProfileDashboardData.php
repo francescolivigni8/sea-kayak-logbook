@@ -61,7 +61,7 @@ class ProfileDashboardData
             'mapData' => $this->buildMapData($profile, $sessions),
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
-            'expeditionMapData' => $this->buildExpeditionMapData($expeditionPlaces),
+            'expeditionMapData' => $this->buildExpeditionMapData($profile, $expeditionSessions, $publicView),
             'recentSessions' => $sessions
                 ->take(6)
                 ->map(fn (PaddleSession $session) => $this->mapRecentSession($session))
@@ -91,7 +91,7 @@ class ProfileDashboardData
             ],
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
-            'expeditionMapData' => $this->buildExpeditionMapData($expeditionPlaces),
+            'expeditionMapData' => $this->buildExpeditionMapData($profile, $expeditionSessions, $publicView),
             'meta' => [
                 'publicView' => $publicView,
             ],
@@ -639,26 +639,38 @@ class ProfileDashboardData
             ->all();
     }
 
-    private function buildExpeditionMapData(array $expeditionPlaces): array
+    private function buildExpeditionMapData(Profile $profile, Collection $expeditionSessions, bool $publicView = false): array
     {
-        $pins = collect($expeditionPlaces)
-            ->map(fn (array $place, int $index) => [
-                'id' => 'expedition-pin-'.$index,
-                'label' => $place['label'],
-                'color' => $place['color'],
-                'lat' => $place['lat'],
-                'lng' => $place['lng'],
-                'count' => $place['tripCount'],
-                'countsByYear' => $place['countsByYear'],
-                'year' => $place['year'],
-                'years' => $place['years'],
-                'isExpedition' => true,
-                'category' => 'expedition',
-                'distanceKm' => $place['distanceKm'],
-                'daysOut' => $place['daysOut'],
-                'path' => $place['path'],
-            ])
-            ->all();
+        $palette = $this->mapPalette();
+
+        $pins = $expeditionSessions
+            ->values()
+            ->map(function (PaddleSession $session, int $index) use ($palette, $publicView) {
+                $point = $this->expeditionReferencePoint($session);
+
+                if (! $point) {
+                    return null;
+                }
+
+                return [
+                    'id' => 'expedition-pin-'.$session->id,
+                    'label' => trim(($session->session_date?->format('d M Y') ?? 'Session').' · '.$session->title),
+                    'color' => $palette[$index % count($palette)],
+                    'lat' => (float) $point['lat'],
+                    'lng' => (float) $point['lng'],
+                    'count' => 1,
+                    'countsByYear' => $session->session_date?->year ? [(string) $session->session_date->year => 1] : [],
+                    'year' => $session->session_date?->year,
+                    'years' => $session->session_date?->year ? [$session->session_date->year] : [],
+                    'isExpedition' => true,
+                    'category' => 'expedition',
+                    'distanceKm' => round((float) $session->distance_km, 1),
+                    'daysOut' => (int) ($session->expedition_days ?? 0),
+                    'path' => $publicView ? null : route('sessions.show', $session),
+                ];
+            })
+            ->filter()
+            ->values();
 
         return [
             'defaultView' => [
@@ -667,8 +679,35 @@ class ProfileDashboardData
                 'zoom' => 2,
             ],
             'routes' => [],
-            'pins' => $pins,
+            'pins' => $this->spreadExpeditionPins($pins)->values()->all(),
         ];
+    }
+
+    private function spreadExpeditionPins(Collection $pins): Collection
+    {
+        return $pins
+            ->groupBy(fn (array $pin) => sprintf('%.5f:%.5f', $pin['lat'], $pin['lng']))
+            ->flatMap(function (Collection $group) {
+                if ($group->count() <= 1) {
+                    return $group;
+                }
+
+                $centerLat = (float) $group->first()['lat'];
+                $centerLng = (float) $group->first()['lng'];
+                $radius = min(0.32, 0.12 + (($group->count() - 2) * 0.03));
+                $lngScale = max(cos(deg2rad($centerLat)), 0.35);
+
+                return $group->values()->map(function (array $pin, int $index) use ($centerLat, $centerLng, $group, $radius, $lngScale) {
+                    $angle = (2 * M_PI * $index) / $group->count();
+
+                    return [
+                        ...$pin,
+                        'lat' => round($centerLat + (sin($angle) * $radius), 6),
+                        'lng' => round($centerLng + ((cos($angle) * $radius) / $lngScale), 6),
+                    ];
+                });
+            })
+            ->values();
     }
 
     private function mapRecentSession(PaddleSession $session): array
