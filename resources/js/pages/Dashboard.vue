@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface ProfileSummary {
@@ -160,33 +160,6 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
     <div class="flex flex-col gap-5">
         <section v-if="successMessage" class="journal-banner">
             {{ successMessage }}
-        </section>
-
-        <section class="journal-panel journal-panel--profile-bio px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-3">
-                    <p class="journal-kicker">Profile</p>
-                    <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
-                            About the paddler
-                        </h2>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            {{ profile.bio }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex flex-col items-start gap-3 xl:items-end">
-                    <p class="text-sm font-medium text-white/88">
-                        {{ profile.homeWater }} · {{ headline.sessionCount }} paddles logged
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <Link href="/sessions/create" class="journal-primary-link">
-                            Add a session
-                        </Link>
-                    </div>
-                </div>
-            </div>
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
