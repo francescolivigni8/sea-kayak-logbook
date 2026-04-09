@@ -57,6 +57,7 @@ interface MapData {
         id: number | string;
         label: string;
         color: string;
+        path?: string | null;
         year?: number | null;
         years?: number[];
         isExpedition?: boolean;

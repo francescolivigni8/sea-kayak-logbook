@@ -58,7 +58,7 @@ class ProfileDashboardData
             'routeMix' => $this->buildRouteMix($sessions, $totalDistance),
             'dataCoverage' => $this->buildDataCoverage($sessions),
             'seaState' => $this->buildSeaState($sessions),
-            'mapData' => $this->buildMapData($profile, $sessions),
+            'mapData' => $this->buildMapData($profile, $sessions, $publicView),
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
             'expeditionMapData' => $this->buildExpeditionMapData($profile, $expeditionSessions, $publicView),
@@ -471,7 +471,7 @@ class ProfileDashboardData
         ];
     }
 
-    private function buildMapData(Profile $profile, Collection $sessions): array
+    private function buildMapData(Profile $profile, Collection $sessions, bool $publicView = false): array
     {
         $palette = $this->mapPalette();
         $mappedSessions = $sessions
@@ -482,7 +482,7 @@ class ProfileDashboardData
         $routes = $mappedSessions
             ->filter(fn (PaddleSession $session) => is_array($session->route_profile) && count($session->route_profile) > 1)
             ->values()
-            ->map(function (PaddleSession $session, int $index) use ($palette) {
+            ->map(function (PaddleSession $session, int $index) use ($palette, $publicView) {
                 return [
                     'id' => $session->id,
                     'label' => trim(($session->session_date?->format('d M Y') ?? 'Session').' · '.$session->title),
@@ -491,6 +491,7 @@ class ProfileDashboardData
                     'years' => $session->session_date?->year ? [$session->session_date->year] : [],
                     'isExpedition' => (bool) $session->is_expedition,
                     'category' => $session->route_category ?: 'journey',
+                    'path' => $publicView ? null : route('sessions.show', $session),
                     'points' => $this->sampleRouteProfile($session->route_profile),
                 ];
             })
@@ -501,7 +502,7 @@ class ProfileDashboardData
         $pins = $mappedSessions
             ->filter(fn (PaddleSession $session) => filled($session->launch_lat) && filled($session->launch_lng) && ! (is_array($session->route_profile) && count($session->route_profile) > 1))
             ->values()
-            ->map(function (PaddleSession $session, int $index) use ($palette) {
+            ->map(function (PaddleSession $session, int $index) use ($palette, $publicView) {
                 return [
                     'id' => 'pin-'.$session->id,
                     'label' => trim(($session->launch_name ?: $profile->home_water).' · '.$session->title),
@@ -510,6 +511,7 @@ class ProfileDashboardData
                     'years' => $session->session_date?->year ? [$session->session_date->year] : [],
                     'isExpedition' => (bool) $session->is_expedition,
                     'category' => $session->route_category ?: 'journey',
+                    'path' => $publicView ? null : route('sessions.show', $session),
                     'count' => 1,
                     'lat' => (float) $session->launch_lat,
                     'lng' => (float) $session->launch_lng,

@@ -12,6 +12,7 @@ interface AtlasRouteItem {
     label: string;
     color: string;
     points: LatLngPoint[];
+    path?: string | null;
     year?: number | null;
     years?: number[];
     isExpedition?: boolean;
@@ -359,13 +360,19 @@ function renderGeometry() {
 
         const latLngs = route.points.map((point) => [point.lat, point.lng] as [number, number]);
 
-        L.polyline(latLngs, {
+        const polyline = L.polyline(latLngs, {
             color: route.color,
             weight: route.isExpedition ? 5 : 4,
             opacity: 0.9,
         })
             .bindTooltip(route.label)
             .addTo(routeLayerGroup);
+
+        if (route.path && typeof window !== 'undefined') {
+            polyline.on('click', () => {
+                window.location.assign(route.path as string);
+            });
+        }
 
         const startPoint = route.points[0];
         const endPoint = route.points[route.points.length - 1];
