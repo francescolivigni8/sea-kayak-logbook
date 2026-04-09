@@ -34,6 +34,8 @@ class UpsertPaddleSessionRequest extends FormRequest
             'area_name' => ['nullable', 'string', 'max:255'],
             'route_category' => ['required', 'string', 'max:100'],
             'body_of_water' => ['nullable', 'string', 'max:100'],
+            'kayak_used' => ['nullable', 'string', 'max:255'],
+            'paddle_used' => ['nullable', 'string', 'max:255'],
             'distance_km' => ['nullable', 'numeric', 'min:0', 'required_without_all:gpx_file,fit_file'],
             'duration_minutes' => ['nullable', 'integer', 'min:0'],
             'moving_minutes' => ['nullable', 'integer', 'min:0'],

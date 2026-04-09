@@ -8,6 +8,8 @@ interface ProfileSummary {
     name: string;
     homeWater: string;
     timezone: string;
+    kayaksOwned?: string[];
+    paddlesOwned?: string[];
 }
 
 interface ExistingAssets {
@@ -30,6 +32,8 @@ interface SessionFormDefaults {
     area_name: string;
     route_category: string;
     body_of_water: string;
+    kayak_used: string;
+    paddle_used: string;
     distance_km: string;
     duration_minutes: string;
     moving_minutes: string;
@@ -132,6 +136,8 @@ const stepFieldMap: Record<string, number> = {
     area_name: 0,
     route_category: 0,
     body_of_water: 0,
+    kayak_used: 0,
+    paddle_used: 0,
     distance_km: 0,
     duration_minutes: 0,
     moving_minutes: 0,
@@ -433,6 +439,36 @@ function submit() {
                         <label class="journal-field-label" for="area_name">Area</label>
                         <input id="area_name" v-model="form.area_name" class="journal-input" placeholder="Faxafloi" />
                         <InputError :message="form.errors.area_name" />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="kayak_used">Kayak used</label>
+                        <input
+                            id="kayak_used"
+                            v-model="form.kayak_used"
+                            class="journal-input"
+                            list="kayaks-owned-options"
+                            placeholder="Select or type kayak model"
+                        />
+                        <datalist id="kayaks-owned-options">
+                            <option v-for="kayak in profile.kayaksOwned ?? []" :key="kayak" :value="kayak" />
+                        </datalist>
+                        <InputError :message="form.errors.kayak_used" />
+                    </div>
+
+                    <div>
+                        <label class="journal-field-label" for="paddle_used">Paddle used</label>
+                        <input
+                            id="paddle_used"
+                            v-model="form.paddle_used"
+                            class="journal-input"
+                            list="paddles-owned-options"
+                            placeholder="Select or type paddle model"
+                        />
+                        <datalist id="paddles-owned-options">
+                            <option v-for="paddle in profile.paddlesOwned ?? []" :key="paddle" :value="paddle" />
+                        </datalist>
+                        <InputError :message="form.errors.paddle_used" />
                     </div>
 
                     <div>

@@ -32,8 +32,8 @@ class ProfileUpdateTest extends TestCase
                 'email' => 'test@example.com',
                 'paddler_name' => 'Francesco Li Vigni',
                 'kayak_club' => 'Brokey Kayak Club',
-                'registered_kayaks_count' => 2,
-                'registered_paddles_count' => 3,
+                'kayaks_owned_text' => 'Valley Etain 17-7, P&H Scorpio MV',
+                'paddles_owned_text' => 'Werner Cyprus, Gearlab Kalleq',
                 'bio' => 'Cold-water paddler focused on sea state, route memory, and expedition notes.',
             ]);
 
@@ -49,8 +49,8 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->email_verified_at);
         $this->assertSame('Francesco Li Vigni', data_get($profile->settings, 'paddler_name'));
         $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
-        $this->assertSame(2, data_get($profile->settings, 'registered_kayaks_count'));
-        $this->assertSame(3, data_get($profile->settings, 'registered_paddles_count'));
+        $this->assertSame(['Valley Etain 17-7', 'P&H Scorpio MV'], data_get($profile->settings, 'kayaks_owned'));
+        $this->assertSame(['Werner Cyprus', 'Gearlab Kalleq'], data_get($profile->settings, 'paddles_owned'));
         $this->assertSame('Cold-water paddler focused on sea state, route memory, and expedition notes.', data_get($profile->settings, 'bio'));
     }
 

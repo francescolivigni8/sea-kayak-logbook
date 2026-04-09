@@ -15,8 +15,8 @@ type Props = {
         settings: {
             paddlerName: string;
             kayakClub: string;
-            registeredKayaksCount: number;
-            registeredPaddlesCount: number;
+            kayaksOwnedText: string;
+            paddlesOwnedText: string;
             bio: string;
         };
     };
@@ -145,31 +145,33 @@ const user = computed(() => page.props.auth.user);
                             </article>
 
                             <article class="journal-soft-card">
-                                <label class="journal-field-label" for="registered_kayaks_count">Registered kayaks</label>
+                                <label class="journal-field-label" for="kayaks_owned_text">Kayaks owned</label>
                                 <input
-                                    id="registered_kayaks_count"
-                                    type="number"
-                                    min="0"
-                                    max="100"
+                                    id="kayaks_owned_text"
                                     class="journal-input"
-                                    name="registered_kayaks_count"
-                                    :value="props.profile.settings.registeredKayaksCount"
+                                    name="kayaks_owned_text"
+                                    :value="props.profile.settings.kayaksOwnedText"
+                                    placeholder="Valley Etain 17-7, P&H Scorpio MV"
                                 />
-                                <InputError class="mt-2" :message="page.props.errors?.registered_kayaks_count" />
+                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                                    Enter the models manually, separated by commas.
+                                </p>
+                                <InputError class="mt-2" :message="page.props.errors?.kayaks_owned_text" />
                             </article>
 
                             <article class="journal-soft-card">
-                                <label class="journal-field-label" for="registered_paddles_count">Registered paddles</label>
+                                <label class="journal-field-label" for="paddles_owned_text">Paddles owned</label>
                                 <input
-                                    id="registered_paddles_count"
-                                    type="number"
-                                    min="0"
-                                    max="100"
+                                    id="paddles_owned_text"
                                     class="journal-input"
-                                    name="registered_paddles_count"
-                                    :value="props.profile.settings.registeredPaddlesCount"
+                                    name="paddles_owned_text"
+                                    :value="props.profile.settings.paddlesOwnedText"
+                                    placeholder="Werner Cyprus, Gearlab Kalleq"
                                 />
-                                <InputError class="mt-2" :message="page.props.errors?.registered_paddles_count" />
+                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                                    Enter the models manually, separated by commas.
+                                </p>
+                                <InputError class="mt-2" :message="page.props.errors?.paddles_owned_text" />
                             </article>
 
                             <article class="journal-soft-card md:col-span-2">

@@ -43,8 +43,8 @@ class HandleInertiaRequests extends Middleware
             $currentYear = now($profile->timezone)->year;
             $baseSessions = $profile->sessions();
             $allSessions = (clone $baseSessions)->get(['distance_km', 'wind_beaufort', 'session_date']);
-            $registeredKayaks = data_get($profile->settings, 'registered_kayaks');
-            $registeredPaddles = data_get($profile->settings, 'registered_paddles');
+            $kayaksOwned = data_get($profile->settings, 'kayaks_owned', data_get($profile->settings, 'registered_kayaks', []));
+            $paddlesOwned = data_get($profile->settings, 'paddles_owned', data_get($profile->settings, 'registered_paddles', []));
 
             $journalNav = [
                 'homeWater' => $profile->home_water,
@@ -57,12 +57,8 @@ class HandleInertiaRequests extends Middleware
                 'paddlerCard' => [
                     'name' => data_get($profile->settings, 'paddler_name', $profile->name),
                     'club' => data_get($profile->settings, 'kayak_club', 'Independent'),
-                    'registeredKayaks' => is_array($registeredKayaks)
-                        ? count(array_filter($registeredKayaks))
-                        : (int) data_get($profile->settings, 'registered_kayaks_count', 0),
-                    'registeredPaddles' => is_array($registeredPaddles)
-                        ? count(array_filter($registeredPaddles))
-                        : (int) data_get($profile->settings, 'registered_paddles_count', 0),
+                    'kayaksOwned' => is_array($kayaksOwned) ? array_values(array_filter($kayaksOwned)) : [],
+                    'paddlesOwned' => is_array($paddlesOwned) ? array_values(array_filter($paddlesOwned)) : [],
                 ],
             ];
         }

@@ -27,6 +27,8 @@ class PaddleSession extends Model
         'landing_lng',
         'route_category',
         'body_of_water',
+        'kayak_used',
+        'paddle_used',
         'distance_km',
         'duration_minutes',
         'moving_minutes',

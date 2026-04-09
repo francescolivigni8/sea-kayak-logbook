@@ -272,6 +272,13 @@
         color: var(--journal-text);
     }
 
+    .journal-paddler-card__tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
     .journal-card {
         border: 1px solid var(--journal-line);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--journal-panel-soft));

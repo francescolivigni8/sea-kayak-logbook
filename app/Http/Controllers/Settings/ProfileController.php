@@ -32,8 +32,8 @@ class ProfileController extends Controller
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
-                    'registeredKayaksCount' => (int) data_get($settings, 'registered_kayaks_count', 0),
-                    'registeredPaddlesCount' => (int) data_get($settings, 'registered_paddles_count', 0),
+                    'kayaksOwnedText' => implode(', ', data_get($settings, 'kayaks_owned', [])),
+                    'paddlesOwnedText' => implode(', ', data_get($settings, 'paddles_owned', [])),
                     'bio' => (string) data_get($settings, 'bio', ''),
                 ],
             ],
@@ -58,8 +58,8 @@ class ProfileController extends Controller
         $settings = $profile->settings ?? [];
         $settings['paddler_name'] = $this->blankToNull($validated['paddler_name'] ?? null);
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
-        $settings['registered_kayaks_count'] = (int) ($validated['registered_kayaks_count'] ?? 0);
-        $settings['registered_paddles_count'] = (int) ($validated['registered_paddles_count'] ?? 0);
+        $settings['kayaks_owned'] = $this->explodeManualTags($validated['kayaks_owned_text'] ?? null);
+        $settings['paddles_owned'] = $this->explodeManualTags($validated['paddles_owned_text'] ?? null);
         $settings['bio'] = $this->blankToNull($validated['bio'] ?? null);
         $profile->settings = $settings;
         $profile->save();
@@ -76,6 +76,20 @@ class ProfileController extends Controller
         $trimmed = trim((string) $value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function explodeManualTags(?string $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        return collect(preg_split('/[\n,]+/', $value) ?: [])
+            ->map(fn (string $item) => trim($item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

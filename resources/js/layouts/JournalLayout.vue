@@ -21,8 +21,8 @@ type JournalNavShape = {
     paddlerCard?: {
         name?: string;
         club?: string | null;
-        registeredKayaks?: number;
-        registeredPaddles?: number;
+        kayaksOwned?: string[];
+        paddlesOwned?: string[];
     };
 };
 
@@ -54,8 +54,8 @@ const paddlerClubText = computed(() => {
 
     return value && value.trim() !== '' ? value : 'Independent';
 });
-const paddlerRegisteredKayaks = computed(() => paddlerCard.value?.registeredKayaks ?? 0);
-const paddlerRegisteredPaddles = computed(() => paddlerCard.value?.registeredPaddles ?? 0);
+const paddlerKayaksOwned = computed(() => paddlerCard.value?.kayaksOwned ?? []);
+const paddlerPaddlesOwned = computed(() => paddlerCard.value?.paddlesOwned ?? []);
 
 const metaPills = computed(() => {
     const pills = [];
@@ -182,22 +182,40 @@ function goBack() {
                                 </h2>
                             </div>
 
-                            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                            <div class="journal-paddler-card__item">
-                                <span class="journal-paddler-card__label">Name</span>
-                                <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
-                            </div>
-                            <div class="journal-paddler-card__item">
+                            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Name</span>
+                                    <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
                                 <span class="journal-paddler-card__label">Kayak club affiliated</span>
                                 <strong class="journal-paddler-card__value">{{ paddlerClubText }}</strong>
-                            </div>
-                            <div class="journal-paddler-card__item">
-                                <span class="journal-paddler-card__label">Registered kayaks</span>
-                                <strong class="journal-paddler-card__value">{{ paddlerRegisteredKayaks }}</strong>
-                            </div>
-                            <div class="journal-paddler-card__item">
-                                <span class="journal-paddler-card__label">Registered paddles</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerRegisteredPaddles }}</strong>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Kayaks owned</span>
+                                    <div class="journal-paddler-card__tags">
+                                        <span
+                                            v-for="kayak in paddlerKayaksOwned"
+                                            :key="kayak"
+                                            class="journal-chip"
+                                        >
+                                            {{ kayak }}
+                                        </span>
+                                        <strong v-if="!paddlerKayaksOwned.length" class="journal-paddler-card__value">Not set</strong>
+                                    </div>
+                                </div>
+                                <div class="journal-paddler-card__item">
+                                    <span class="journal-paddler-card__label">Paddles owned</span>
+                                    <div class="journal-paddler-card__tags">
+                                        <span
+                                            v-for="paddle in paddlerPaddlesOwned"
+                                            :key="paddle"
+                                            class="journal-chip"
+                                        >
+                                            {{ paddle }}
+                                        </span>
+                                        <strong v-if="!paddlerPaddlesOwned.length" class="journal-paddler-card__value">Not set</strong>
+                                    </div>
                                 </div>
                             </div>
                         </article>

@@ -125,6 +125,8 @@ class PaddleSessionController extends Controller
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
             'isPublic' => $profile->is_public,
+            'kayaksOwned' => data_get($profile->settings, 'kayaks_owned', []),
+            'paddlesOwned' => data_get($profile->settings, 'paddles_owned', []),
         ];
     }
 
@@ -168,6 +170,8 @@ class PaddleSessionController extends Controller
             'landingLng' => $session->landing_lng !== null ? (float) $session->landing_lng : null,
             'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
             'bodyOfWater' => $session->body_of_water,
+            'kayakUsed' => $session->kayak_used,
+            'paddleUsed' => $session->paddle_used,
             'distanceKm' => round((float) $session->distance_km, 1),
             'durationMinutes' => (int) $session->duration_minutes,
             'movingMinutes' => $session->moving_minutes,
@@ -235,6 +239,8 @@ class PaddleSessionController extends Controller
             'area_name' => $session?->area_name ?? '',
             'route_category' => $session?->route_category ?? 'journey',
             'body_of_water' => $session?->body_of_water ?? 'sea',
+            'kayak_used' => $session?->kayak_used ?? '',
+            'paddle_used' => $session?->paddle_used ?? '',
             'distance_km' => $session?->distance_km !== null ? (string) $session->distance_km : '',
             'duration_minutes' => $session?->duration_minutes ? (string) $session->duration_minutes : '',
             'moving_minutes' => $session?->moving_minutes ? (string) $session->moving_minutes : '',
@@ -303,6 +309,8 @@ class PaddleSessionController extends Controller
             'landing_lng' => $this->nullableFloat($validated['landing_lng'] ?? null),
             'route_category' => $validated['route_category'] ?? 'journey',
             'body_of_water' => $this->nullIfBlank($validated['body_of_water'] ?? null),
+            'kayak_used' => $this->nullIfBlank($validated['kayak_used'] ?? null),
+            'paddle_used' => $this->nullIfBlank($validated['paddle_used'] ?? null),
             'distance_km' => (float) ($validated['distance_km'] ?? 0),
             'duration_minutes' => (int) ($validated['duration_minutes'] ?? 0),
             'moving_minutes' => $this->nullableInt($validated['moving_minutes'] ?? null),

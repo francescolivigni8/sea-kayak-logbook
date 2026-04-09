@@ -51,6 +51,8 @@ class PaddleSessionTest extends TestCase
                 'session_date' => '2026-04-06',
                 'launch_name' => 'Reykjavik',
                 'route_category' => 'journey',
+                'kayak_used' => 'Valley Etain 17-7',
+                'paddle_used' => 'Werner Cyprus',
                 'distance_km' => '8.4',
                 'duration_minutes' => '94',
                 'is_public' => true,
@@ -64,6 +66,8 @@ class PaddleSessionTest extends TestCase
             'title' => 'Evening harbor loop',
             'launch_name' => 'Reykjavik',
             'route_category' => 'journey',
+            'kayak_used' => 'Valley Etain 17-7',
+            'paddle_used' => 'Werner Cyprus',
         ]);
     }
 
