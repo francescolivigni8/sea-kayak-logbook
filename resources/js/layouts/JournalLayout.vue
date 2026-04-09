@@ -17,16 +17,6 @@ type JournalNavShape = {
     sessionCount?: number;
     topForce?: number | null;
     thisYearDistanceKm?: number;
-    statusSummary?: string;
-    statusItems?: {
-        key: string;
-        label: string;
-        href: string;
-        count: number;
-        detail: string;
-        tone: string;
-        active: boolean;
-    }[];
 };
 
 const props = defineProps<{
@@ -42,7 +32,6 @@ const journalNav = computed(() => (page.props.journalNav as JournalNavShape | un
 const isDashboard = computed(() => currentPath.value === '/dashboard');
 
 const titleText = computed(() => activeProfile.value?.name || authUser.value?.name || 'Sea Kayak Logbook');
-const homeWaterText = computed(() => journalNav.value?.homeWater || activeProfile.value?.homeWater || 'Home water');
 const heroTitle = computed(() => (isDashboard.value ? 'Your kayaking journal' : titleText.value));
 const heroCopy = computed(() => {
     if (isDashboard.value) {
@@ -51,8 +40,6 @@ const heroCopy = computed(() => {
 
     return 'Distance, notes, sea state, expeditions, and route memory in one place.';
 });
-const journalStatusItems = computed(() => journalNav.value?.statusItems ?? []);
-const journalStatusSummary = computed(() => journalNav.value?.statusSummary || 'Catch-up points across sessions and expeditions.');
 
 const metaPills = computed(() => {
     const pills = [];
@@ -152,10 +139,10 @@ function isPrimaryCta(item: { href: string }) {
 
 <template>
     <div class="journal-page">
-        <header :class="['journal-panel overflow-hidden px-5 py-5 md:px-6 md:py-6', isDashboard ? 'journal-panel--hero' : '']">
-            <div class="flex flex-col gap-5">
+        <header :class="['journal-panel overflow-hidden px-5 py-4 md:px-6', isDashboard ? 'journal-panel--hero md:py-5' : 'md:py-6']">
+            <div :class="['flex flex-col', isDashboard ? 'gap-4' : 'gap-5']">
                 <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
-                    <div class="space-y-3">
+                    <div :class="[isDashboard ? 'space-y-2' : 'space-y-3']">
                         <p class="journal-kicker">Sea kayak logbook</p>
                         <div class="space-y-2">
                             <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
@@ -165,42 +152,6 @@ function isPrimaryCta(item: { href: string }) {
                                 {{ heroCopy }}
                             </p>
                         </div>
-
-                        <article v-if="isDashboard && journalStatusItems.length" class="journal-status-strip">
-                            <div class="space-y-1">
-                                <p class="journal-kicker">Journal status</p>
-                                <p class="journal-copy max-w-2xl text-sm md:text-[0.95rem]">
-                                    {{ journalStatusSummary }}
-                                </p>
-                            </div>
-
-                            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                <Link
-                                    v-for="item in journalStatusItems"
-                                    :key="item.key"
-                                    :href="item.href"
-                                    :class="[
-                                        'journal-status-card',
-                                        item.active ? `journal-status-card--${item.tone}` : 'journal-status-card--quiet',
-                                    ]"
-                                >
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="space-y-1">
-                                            <span class="journal-status-card__eyebrow">
-                                                {{ item.active ? 'Needs attention' : 'Up to date' }}
-                                            </span>
-                                            <strong class="journal-status-card__label">{{ item.label }}</strong>
-                                        </div>
-                                        <span class="journal-status-card__count">
-                                            {{ item.active ? item.count : 'OK' }}
-                                        </span>
-                                    </div>
-                                    <p class="journal-status-card__detail">
-                                        {{ item.detail }}
-                                    </p>
-                                </Link>
-                            </div>
-                        </article>
 
                         <div v-if="!isDashboard" class="flex flex-wrap gap-2">
                             <span
