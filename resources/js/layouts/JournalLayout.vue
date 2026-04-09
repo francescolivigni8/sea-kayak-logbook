@@ -156,6 +156,10 @@ function goBack() {
 
     router.visit(backFallback.value);
 }
+
+function isPrimaryCta(item: { href: string }) {
+    return item.href === '/sessions/create';
+}
 </script>
 
 <template>
@@ -274,7 +278,11 @@ function goBack() {
                             v-for="item in primaryNav"
                             :key="item.label"
                             :href="item.href"
-                            :class="['journal-tab', isActive(item) ? 'journal-tab--active' : '']"
+                            :class="[
+                                'journal-tab',
+                                isActive(item) ? 'journal-tab--active' : '',
+                                isPrimaryCta(item) ? 'journal-tab--cta' : '',
+                            ]"
                         >
                             {{ item.label }}
                         </Link>
