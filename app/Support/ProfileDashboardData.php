@@ -561,6 +561,9 @@ class ProfileDashboardData
             'distanceKm' => round((float) $expeditionSessions->sum('distance_km'), 1),
             'daysOut' => (int) $expeditionSessions->sum('expedition_days'),
             'tripCount' => $expeditionSessions->count(),
+            'missingMapPointCount' => $expeditionSessions
+                ->filter(fn (PaddleSession $session) => $this->expeditionReferencePoint($session) === null)
+                ->count(),
         ];
     }
 

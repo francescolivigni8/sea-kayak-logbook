@@ -16,6 +16,7 @@ interface ExpeditionSummary {
     distanceKm: number;
     daysOut: number;
     tripCount: number;
+    missingMapPointCount: number;
 }
 
 interface ExpeditionPlace {
@@ -72,6 +73,18 @@ const cards = computed(() => [
         detail: `${props.expeditionPlaces.length} named places`,
     },
 ]);
+
+const expeditionMapWarning = computed(() => {
+    const count = props.expeditionSummary.missingMapPointCount;
+
+    if (!count) {
+        return null;
+    }
+
+    return count === 1
+        ? '1 expedition session is still missing a track or saved coordinates, so it cannot appear on this world map yet.'
+        : `${count} expedition sessions are still missing a track or saved coordinates, so they cannot appear on this world map yet.`;
+});
 </script>
 
 <template>
@@ -149,6 +162,10 @@ const cards = computed(() => [
                     empty-message="No expedition locations yet."
                 />
             </div>
+
+            <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger mt-5">
+                {{ expeditionMapWarning }}
+            </section>
 
             <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
                 The map shows one pin per expedition session. The cards below group those pins back into named places.

@@ -58,12 +58,24 @@ class PublicProfileTest extends TestCase
             'is_public' => true,
         ]);
 
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-09',
+            'title' => 'Public expedition without map point',
+            'launch_name' => 'Loose note only',
+            'route_category' => 'expedition',
+            'distance_km' => 4.5,
+            'is_expedition' => true,
+            'is_public' => true,
+        ]);
+
         $this->get(route('profiles.public.show', $profile))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profiles/PublicShow')
                 ->where('profile.slug', 'francesco-public-logbook')
-                ->where('expeditionSummary.tripCount', 2)
+                ->where('expeditionSummary.tripCount', 3)
+                ->where('expeditionSummary.missingMapPointCount', 1)
                 ->has('expeditionMapData.pins', 2)
                 ->has('expeditionPlaces', 1));
     }

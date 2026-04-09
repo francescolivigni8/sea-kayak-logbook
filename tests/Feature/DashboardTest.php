@@ -59,14 +59,26 @@ class DashboardTest extends TestCase
             'is_public' => true,
         ]);
 
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-09',
+            'title' => 'Unmapped expedition note',
+            'launch_name' => 'Unknown cove',
+            'route_category' => 'expedition',
+            'distance_km' => 6.0,
+            'is_expedition' => true,
+            'is_public' => true,
+        ]);
+
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('expeditionSummary.distanceKm', 60.5)
+                ->where('expeditionSummary.distanceKm', 66.5)
                 ->where('expeditionSummary.daysOut', 5)
-                ->where('expeditionSummary.tripCount', 2)
+                ->where('expeditionSummary.tripCount', 3)
+                ->where('expeditionSummary.missingMapPointCount', 1)
                 ->has('expeditionMapData.pins', 2)
                 ->has('expeditionPlaces', 1));
     }

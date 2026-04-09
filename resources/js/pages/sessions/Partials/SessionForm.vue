@@ -257,6 +257,20 @@ const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(f
 const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
 const landingLatNumber = computed(() => (form.landing_lat === '' ? null : Number(form.landing_lat)));
 const landingLngNumber = computed(() => (form.landing_lng === '' ? null : Number(form.landing_lng)));
+const hasExpeditionMapPointSource = computed(() => {
+    const hasLaunchPoint = launchLatNumber.value !== null && launchLngNumber.value !== null;
+    const hasLandingPoint = landingLatNumber.value !== null && landingLngNumber.value !== null;
+    const hasRouteFile = Boolean(form.gpx_file || form.fit_file || props.existingAssets.gpxName || props.existingAssets.fitName);
+
+    return hasLaunchPoint || hasLandingPoint || hasRouteFile;
+});
+const expeditionMapWarning = computed(() => {
+    if (!form.is_expedition || hasExpeditionMapPointSource.value) {
+        return null;
+    }
+
+    return 'This expedition will count in your totals, but it will not appear on the world map until you attach a GPX/FIT file or save launch or landing coordinates.';
+});
 
 function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event) {
     const target = event.target as HTMLInputElement;
@@ -778,6 +792,10 @@ function submit() {
                         <input id="expedition_days" v-model="form.expedition_days" type="number" min="2" max="100" class="journal-input" />
                         <InputError :message="form.errors.expedition_days" />
                     </div>
+
+                    <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger">
+                        {{ expeditionMapWarning }}
+                    </section>
 
                     <div class="grid gap-4 xl:grid-cols-3">
                         <div>

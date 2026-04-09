@@ -83,6 +83,7 @@ interface ExpeditionSummary {
     distanceKm: number;
     daysOut: number;
     tripCount: number;
+    missingMapPointCount: number;
 }
 
 interface ExpeditionPlace {
@@ -158,6 +159,17 @@ const expeditionCards = computed(() => [
 ]);
 
 const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
+const expeditionMapWarning = computed(() => {
+    const count = props.expeditionSummary.missingMapPointCount;
+
+    if (!count) {
+        return null;
+    }
+
+    return count === 1
+        ? '1 expedition session is still missing a track or saved coordinates, so it cannot appear on the world map yet.'
+        : `${count} expedition sessions are still missing a track or saved coordinates, so they cannot appear on the world map yet.`;
+});
 </script>
 
 <template>
@@ -246,6 +258,10 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
                     </p>
                 </article>
             </div>
+
+            <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger mt-6">
+                {{ expeditionMapWarning }}
+            </section>
 
             <div class="mt-6">
                 <div class="mb-4 flex flex-wrap items-start justify-between gap-3">

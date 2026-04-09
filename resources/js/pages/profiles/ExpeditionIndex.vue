@@ -18,6 +18,7 @@ interface ExpeditionSummary {
     distanceKm: number;
     daysOut: number;
     tripCount: number;
+    missingMapPointCount: number;
 }
 
 interface ExpeditionPlace {
@@ -74,6 +75,18 @@ const cards = computed(() => [
         detail: `${props.expeditionPlaces.length} public expedition places`,
     },
 ]);
+
+const expeditionMapWarning = computed(() => {
+    const count = props.expeditionSummary.missingMapPointCount;
+
+    if (!count) {
+        return null;
+    }
+
+    return count === 1
+        ? '1 public expedition session is still missing a track or saved coordinates, so it does not appear on this world map yet.'
+        : `${count} public expedition sessions are still missing a track or saved coordinates, so they do not appear on this world map yet.`;
+});
 </script>
 
 <template>
@@ -148,6 +161,10 @@ const cards = computed(() => [
                         empty-message="No public expedition locations yet."
                     />
                 </div>
+
+                <section v-if="expeditionMapWarning" class="mt-5 rounded-[1.35rem] border border-rose-200 bg-rose-50/90 px-4 py-4 text-sm leading-6 text-rose-700">
+                    {{ expeditionMapWarning }}
+                </section>
 
                 <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-slate-500">
                     The map shows one pin per public expedition session. The cards below group repeated places together.
