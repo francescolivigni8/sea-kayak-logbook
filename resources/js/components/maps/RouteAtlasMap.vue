@@ -466,6 +466,14 @@ function goToPinnedView() {
     map.setView([pinnedView.value.lat, pinnedView.value.lng], pinnedView.value.zoom);
 }
 
+function openPath(path?: string | null) {
+    if (!path || typeof window === 'undefined') {
+        return;
+    }
+
+    window.location.assign(path);
+}
+
 async function initializeMap() {
     await nextTick();
 
@@ -646,14 +654,17 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="props.showLegend && legendRoutes.length" class="flex flex-wrap gap-2">
-            <span
+            <button
                 v-for="route in legendRoutes"
                 :key="route.id"
-                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1 text-xs text-[color:var(--journal-muted)]"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1 text-xs text-[color:var(--journal-muted)] transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-[color:var(--journal-line)] disabled:hover:text-[color:var(--journal-muted)]"
+                :disabled="!route.path"
+                @click="openPath(route.path)"
             >
                 <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: route.color }" />
                 {{ route.label }}
-            </span>
+            </button>
         </div>
     </div>
 </template>

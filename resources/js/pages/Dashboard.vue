@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface ProfileSummary {
@@ -87,18 +87,6 @@ interface ExpeditionSummary {
     missingMapPointCount: number;
 }
 
-interface ExpeditionPlace {
-    slug: string;
-    label: string;
-    tripCount: number;
-    distanceKm: number;
-    daysOut: number;
-    latestDate: string | null;
-    photoUrl: string | null;
-    path: string;
-    publicPath: string;
-}
-
 const props = defineProps<{
     profile: ProfileSummary;
     headline: HeadlineStats;
@@ -107,7 +95,7 @@ const props = defineProps<{
     seaState: SeaState;
     mapData: MapData;
     expeditionSummary: ExpeditionSummary;
-    expeditionPlaces: ExpeditionPlace[];
+    expeditionPlaces: Array<unknown>;
     expeditionMapData: MapData;
 }>();
 
@@ -159,7 +147,11 @@ const expeditionCards = computed(() => [
     },
 ]);
 
-const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
+const expeditionSessionChips = computed(() =>
+    props.expeditionMapData.pins
+        .filter((pin) => Boolean(pin.path))
+        .slice(0, 8),
+);
 const expeditionMapWarning = computed(() => {
     const count = props.expeditionSummary.missingMapPointCount;
 
@@ -289,21 +281,18 @@ const expeditionMapWarning = computed(() => {
                 />
             </div>
 
-            <div v-if="expeditionPlaceChips.length" class="mt-5 flex flex-wrap gap-2">
+            <div v-if="expeditionSessionChips.length" class="mt-5 flex flex-wrap gap-2">
                 <Link
-                    v-for="place in expeditionPlaceChips"
-                    :key="place.slug"
-                    :href="place.path"
+                    v-for="pin in expeditionSessionChips"
+                    :key="pin.id"
+                    :href="pin.path ?? '#'"
                     class="journal-chip transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
                 >
-                    {{ place.label }}
-                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgba(103,114,255,0.12)] px-1.5 text-[11px] font-semibold text-[color:var(--journal-text)]">
-                        {{ place.tripCount }}
-                    </span>
+                    {{ pin.label }}
                 </Link>
             </div>
-            <p v-if="expeditionPlaceChips.length" class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
-                Place chips below still group repeated expeditions by area for quick browsing.
+            <p v-if="expeditionSessionChips.length" class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+                Session chips below jump straight into the expedition log entry.
             </p>
         </section>
     </div>
