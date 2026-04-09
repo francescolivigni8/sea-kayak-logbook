@@ -126,6 +126,12 @@ const metricCards = computed(() => [
         style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
+        label: 'Average air temperature',
+        value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
+        detail: 'Logged air readings',
+        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
+    },
+    {
         label: 'Average sea temperature',
         value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
         detail: 'Logged sea readings',
@@ -162,7 +168,7 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
             {{ successMessage }}
         </section>
 
-        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article
                 v-for="card in metricCards"
                 :key="card.label"
