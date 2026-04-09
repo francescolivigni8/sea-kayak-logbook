@@ -134,7 +134,6 @@ const cards = computed(() => [
                         <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
                         <span class="journal-chip">{{ place.tripCount }} trips</span>
                         <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
-                        <Link v-if="profile.isPublic" :href="place.publicPath" class="journal-utility-link">Open public view</Link>
                     </div>
 
                     <img

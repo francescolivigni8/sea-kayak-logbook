@@ -6,15 +6,12 @@ interface ProfileSummary {
     slug: string;
     homeWater: string;
     timezone: string;
-    isPublic: boolean;
-    publicPath: string;
 }
 
 interface NoteCard {
     id: number;
     title: string;
     date: string | null;
-    visibility: string;
     category: string;
     beaufort: number | null;
     launchName: string | null;
@@ -71,15 +68,12 @@ defineProps<{
                 :style="{
                     background: item.photoUrl
                         ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
-                        : item.visibility === 'Public'
-                          ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))'
-                          : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(148,141,255,0.08))',
+                        : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
                 }"
             >
                 <div class="flex flex-col gap-4">
                     <div class="flex flex-wrap gap-2 text-xs font-medium">
                         <span class="journal-kicker">{{ item.date ?? 'No date' }}</span>
-                        <span class="journal-chip">{{ item.visibility }}</span>
                         <span class="journal-chip">{{ item.category }}</span>
                         <span v-if="item.beaufort !== null" class="journal-chip">F{{ item.beaufort }}</span>
                     </div>

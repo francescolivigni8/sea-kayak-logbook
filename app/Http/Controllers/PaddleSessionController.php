@@ -143,7 +143,6 @@ class PaddleSessionController extends Controller
             'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
-            'isPublic' => (bool) $session->is_public,
             'hasTrack' => $this->hasTrackData($session),
             'photoUrl' => $this->media->url($session->session_photo_path),
         ];
@@ -207,7 +206,6 @@ class PaddleSessionController extends Controller
             'developmentLogged' => (bool) $session->development_logged,
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
-            'isPublic' => (bool) $session->is_public,
             'photoUrl' => $this->media->url($session->session_photo_path),
             'photoName' => $session->session_photo_name,
             'gpxUrl' => $this->media->url($session->gpx_path),
@@ -280,7 +278,7 @@ class PaddleSessionController extends Controller
             'is_expedition' => (bool) ($session?->is_expedition ?? false),
             'expedition_days' => $session?->expedition_days !== null ? (string) $session->expedition_days : '',
             'expedition_notes' => $session?->expedition_notes ?? '',
-            'is_public' => $session ? (bool) $session->is_public : true,
+            'is_public' => false,
         ];
     }
 
@@ -355,7 +353,7 @@ class PaddleSessionController extends Controller
             'development_logged' => $this->hasDevelopmentData($validated),
             'is_expedition' => $isExpedition,
             'expedition_days' => $isExpedition ? $this->nullableInt($validated['expedition_days'] ?? null) : null,
-            'is_public' => (bool) ($validated['is_public'] ?? false),
+            'is_public' => false,
         ];
     }
 

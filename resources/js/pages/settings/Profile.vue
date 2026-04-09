@@ -181,7 +181,7 @@ const user = computed(() => page.props.auth.user);
                                     class="journal-textarea min-h-[140px]"
                                     name="bio"
                                     :value="props.profile.settings.bio"
-                                    placeholder="Short paddler bio for the dashboard and public profile."
+                                    placeholder="Short paddler bio for the dashboard and the rest of your journal."
                                 />
                                 <InputError class="mt-2" :message="page.props.errors?.bio" />
                             </article>

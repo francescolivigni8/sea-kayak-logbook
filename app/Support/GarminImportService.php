@@ -142,7 +142,7 @@ class GarminImportService
             'route_tags' => $this->inferTags($location['area_name'], $dateText, $distanceKm),
             'route_summary' => 'Imported from Garmin CSV. Attach route details or expand the session notes when needed.',
             'notes_private' => 'Imported from Garmin history.',
-            'is_public' => true,
+            'is_public' => false,
             'conditions_logged' => false,
             'development_logged' => false,
             'successful_rolls_count' => 0,

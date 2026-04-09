@@ -62,8 +62,6 @@ class JournalNotesController extends Controller
             'slug' => $profile->slug,
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
-            'isPublic' => $profile->is_public,
-            'publicPath' => '/p/'.$profile->slug,
         ];
     }
 
@@ -77,7 +75,6 @@ class JournalNotesController extends Controller
             'id' => $session->id,
             'title' => $session->title,
             'date' => $session->session_date?->format('l, j F Y'),
-            'visibility' => $session->is_public ? 'Public' : 'Private',
             'category' => $this->routeCategoryLabel($session->route_category),
             'beaufort' => $session->wind_beaufort,
             'launchName' => $session->launch_name,

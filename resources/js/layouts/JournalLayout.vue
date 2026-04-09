@@ -14,7 +14,6 @@ type ProfileShape = {
 
 type JournalNavShape = {
     homeWater?: string;
-    publicPath?: string;
     sessionCount?: number;
     topForce?: number | null;
     thisYearDistanceKm?: number;
@@ -82,20 +81,11 @@ const primaryNav = [
 ] as const;
 
 const utilityLinks = computed(() => {
-    const links = [
+    return [
         { label: 'Library', href: '/sessions' },
         { label: 'Import', href: '/imports/garmin' },
         { label: 'Account', href: '/settings/profile' },
     ];
-
-    if (activeProfile.value?.isPublic && activeProfile.value.publicPath) {
-        links.unshift({
-            label: 'Public profile',
-            href: activeProfile.value.publicPath,
-        });
-    }
-
-    return links;
 });
 
 const showBackButton = computed(() => currentPath.value !== '/dashboard');
@@ -299,7 +289,7 @@ function isPrimaryCta(item: { href: string }) {
                         </button>
 
                         <Link
-                            v-for="link in utilityLinks.slice(activeProfile?.isPublic && activeProfile?.publicPath ? 1 : 0)"
+                            v-for="link in utilityLinks"
                             :key="link.label"
                             :href="link.href"
                             class="journal-utility-link"

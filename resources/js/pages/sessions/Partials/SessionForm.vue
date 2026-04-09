@@ -570,7 +570,7 @@ function submit() {
                             Clear landing point
                         </button>
                         <p class="text-sm text-[color:var(--journal-muted)]">
-                            Manual coordinates are enough to add a pin on the homepage and public maps.
+                            Manual coordinates are enough to add a pin on your maps, even without a Garmin file.
                         </p>
                     </div>
                 </div>
@@ -777,11 +777,6 @@ function submit() {
                 <div v-show="currentStep === 3" class="space-y-5">
                     <div class="grid gap-4 xl:grid-cols-2">
                         <label class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]">
-                            <input v-model="form.is_public" type="checkbox" class="size-4 rounded border-[color:var(--journal-line)]" />
-                            Visible on public profile
-                        </label>
-
-                        <label class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]">
                             <input v-model="form.is_expedition" type="checkbox" class="size-4 rounded border-[color:var(--journal-line)]" />
                             Tag as expedition / multiday
                         </label>
@@ -804,17 +799,17 @@ function submit() {
                                 id="notes_public"
                                 v-model="form.notes_public"
                                 class="journal-textarea"
-                                placeholder="Wildlife, route notes, or public-facing observations."
+                                placeholder="Wildlife, route notes, standout moments, or observations from the paddle."
                             />
                             <InputError :message="form.errors.notes_public" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="notes_private">Private notes</label>
+                            <label class="journal-field-label" for="notes_private">Session notes</label>
                             <textarea
                                 id="notes_private"
                                 v-model="form.notes_private"
                                 class="journal-textarea"
-                                placeholder="Personal reflections or lessons for yourself."
+                                placeholder="Reflections, reminders, or lessons you want to keep with this session."
                             />
                             <InputError :message="form.errors.notes_private" />
                         </div>

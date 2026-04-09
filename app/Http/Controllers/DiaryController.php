@@ -65,7 +65,6 @@ class DiaryController extends Controller
             'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
-            'isPublic' => (bool) $session->is_public,
             'hasTrack' => $this->hasTrackData($session),
             'photoUrl' => $this->media->url($session->session_photo_path),
             'notesPreview' => $session->expedition_notes ?: $session->notes_public ?: $session->notes_private,

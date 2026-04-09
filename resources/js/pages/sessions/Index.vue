@@ -25,7 +25,6 @@ interface SessionListItem {
     routeCategoryLabel: string;
     isExpedition: boolean;
     expeditionDays: number | null;
-    isPublic: boolean;
     hasTrack: boolean;
     photoUrl: string | null;
 }
@@ -124,7 +123,6 @@ const statCards = computed(() => [
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex flex-wrap gap-2 text-xs font-medium">
                             <span class="journal-kicker">{{ session.date ?? 'No date' }}</span>
-                            <span class="journal-chip">{{ session.isPublic ? 'Public' : 'Private' }}</span>
                             <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
                             <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
                         </div>

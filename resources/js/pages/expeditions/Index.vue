@@ -107,7 +107,6 @@ const expeditionMapWarning = computed(() => {
 
                 <div class="flex flex-wrap gap-2">
                     <span class="journal-chip journal-chip--primary">Checklist tagged</span>
-                    <Link v-if="profile.isPublic" :href="`${profile.publicPath}/expeditions`" class="journal-utility-link">Open public expedition atlas</Link>
                     <Link href="/sessions/create" class="journal-primary-link">Add expedition session</Link>
                 </div>
             </div>

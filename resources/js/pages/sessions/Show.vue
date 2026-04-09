@@ -93,7 +93,6 @@ interface SessionDetail {
     developmentLogged: boolean;
     isExpedition: boolean;
     expeditionDays: number | null;
-    isPublic: boolean;
     photoUrl: string | null;
     photoName: string | null;
     gpxUrl: string | null;
@@ -199,7 +198,7 @@ const reflectionCards = computed(() =>
         { label: 'What went well', value: props.session.whatWentWell },
         { label: 'Improve next', value: props.session.improveNext },
         { label: 'Observations', value: props.session.notesPublic },
-        { label: 'Private notes', value: props.session.notesPrivate },
+        { label: 'Session notes', value: props.session.notesPrivate },
         { label: 'Expedition notes', value: props.session.expeditionNotes },
     ].filter((item) => item.value),
 );
@@ -326,9 +325,6 @@ const routeMapData = computed(() => {
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <span class="journal-chip" :class="session.isPublic ? '' : 'journal-chip--primary'">
-                        {{ session.isPublic ? 'Public' : 'Private' }}
-                    </span>
                     <Link href="/sessions" class="journal-utility-link">Library</Link>
                     <Link :href="`/sessions/${session.id}/edit`" class="journal-primary-link">Edit session</Link>
                 </div>

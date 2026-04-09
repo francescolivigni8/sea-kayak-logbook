@@ -36,7 +36,7 @@ defineOptions({
 
                 <div class="mt-6 space-y-4">
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        This only changes how the private workspace feels for you. Public profile pages keep their own presentation.
+                        This only changes how your private workspace feels while you work in the journal.
                     </div>
 
                     <AppearanceTabs />

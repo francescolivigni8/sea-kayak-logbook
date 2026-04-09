@@ -28,7 +28,6 @@ interface DiaryEntry {
     routeCategoryLabel: string;
     isExpedition: boolean;
     expeditionDays: number | null;
-    isPublic: boolean;
     hasTrack: boolean;
     photoUrl: string | null;
     notesPreview: string | null;
@@ -265,7 +264,7 @@ function stepMonth(direction: -1 | 1) {
                                 <span
                                     v-if="day.entries.length"
                                     class="h-2 w-2 rounded-full"
-                                    :style="{ background: day.entries.some((entry) => !entry.isPublic) ? '#948dff' : '#ff9c6b' }"
+                                    :style="{ background: day.entries.some((entry) => entry.isExpedition) ? '#948dff' : '#ff9c6b' }"
                                 />
                             </div>
                         </button>
@@ -287,8 +286,8 @@ function stepMonth(direction: -1 | 1) {
                                 </div>
                             </div>
 
-                            <span class="journal-chip" :class="selectedPrimaryEntry.isPublic ? '' : 'journal-chip--primary'">
-                                {{ selectedPrimaryEntry.isPublic ? 'Public' : 'Private' }}
+                            <span v-if="selectedPrimaryEntry.isExpedition" class="journal-chip journal-chip--primary">
+                                Expedition
                             </span>
                         </div>
 
@@ -354,8 +353,8 @@ function stepMonth(direction: -1 | 1) {
                                         <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.routeCategoryLabel }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Visibility</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.isPublic ? 'Public' : 'Private' }}</p>
+                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Session type</p>
+                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.isExpedition ? 'Expedition' : 'Day session' }}</p>
                                     </div>
                                     <div v-if="selectedPrimaryEntry.isExpedition && selectedPrimaryEntry.expeditionDays">
                                         <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Days out</p>
