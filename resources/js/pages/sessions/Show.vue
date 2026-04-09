@@ -124,6 +124,7 @@ const sessionSubtitle = computed(() =>
 const heroChips = computed(() => [
     props.session.routeCategoryLabel,
     props.session.launchName,
+    props.session.bodyOfWater,
     props.session.beaufort !== null ? `F${props.session.beaufort}` : null,
     props.session.isExpedition ? 'Expedition' : null,
     props.session.routeProfile.length ? 'Track attached' : null,
@@ -328,10 +329,14 @@ const routeMapData = computed(() => {
                     <span class="journal-chip" :class="session.isPublic ? '' : 'journal-chip--primary'">
                         {{ session.isPublic ? 'Public' : 'Private' }}
                     </span>
-                    <Link href="/sessions" class="journal-utility-link">Back to sessions</Link>
+                    <Link href="/sessions" class="journal-utility-link">Library</Link>
                     <Link :href="`/sessions/${session.id}/edit`" class="journal-primary-link">Edit session</Link>
                 </div>
             </div>
+        </section>
+
+        <section class="journal-banner journal-banner--soft">
+            This page stays session-first: summary on top, then route, charts, and notes without overloading the screen.
         </section>
 
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -373,7 +378,7 @@ const routeMapData = computed(() => {
                     </button>
                 </nav>
 
-                <span class="journal-chip">
+                <span class="text-sm font-medium text-[color:var(--journal-muted)]">
                     {{ activeTab === 'map' ? 'Route view' : activeTab === 'charts' ? 'Track profile' : 'Session facts' }}
                 </span>
             </div>

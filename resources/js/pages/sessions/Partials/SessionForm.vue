@@ -224,8 +224,8 @@ onBeforeUnmount(() => {
 const pageTitle = computed(() => (props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session'));
 const pageDescription = computed(() =>
     props.mode === 'create'
-        ? 'Capture the paddle, mark the sea state, log rescue events, and attach the files.'
-        : 'Refine the paddle and update its notes, files, and expedition fields.',
+        ? 'Capture the paddle, mark the sea state, and attach the files.'
+        : 'Refine the paddle, notes, files, and expedition fields.',
 );
 
 const submitLabel = computed(() => (props.mode === 'create' ? 'Save session' : 'Update session'));
@@ -307,13 +307,17 @@ function submit() {
             </div>
         </section>
 
+        <section class="journal-banner journal-banner--soft">
+            Keep this flow lightweight: journey first, sea next, then rescue and notes once the core paddle is captured.
+        </section>
+
         <form class="space-y-5" @submit.prevent="submit">
             <section class="journal-panel px-5 py-5 md:px-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p class="text-sm font-medium text-[color:var(--journal-muted)]">
                         {{ stepProgressLabel }}
                     </p>
-                    <span class="journal-chip">Required: title, date, launch, distance or route file</span>
+                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">Required: title, date, launch, distance or route file</span>
                 </div>
 
                 <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -341,7 +345,7 @@ function submit() {
                         </p>
                     </div>
 
-                    <span class="journal-chip">
+                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">
                         {{ currentStep === steps.length - 1 ? 'Ready to save' : 'Keep going' }}
                     </span>
                 </div>
