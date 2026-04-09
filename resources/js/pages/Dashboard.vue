@@ -7,6 +7,7 @@ import { computed } from 'vue';
 interface ProfileSummary {
     name: string;
     slug: string;
+    bio: string;
     homeWater: string;
     timezone: string;
     isPublic: boolean;
@@ -125,12 +126,6 @@ const metricCards = computed(() => [
         style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
     },
     {
-        label: 'Average air temperature',
-        value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
-        detail: 'Logged air readings',
-        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
-    },
-    {
         label: 'Average sea temperature',
         value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
         detail: 'Logged sea readings',
@@ -167,25 +162,24 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
             {{ successMessage }}
         </section>
 
-        <section class="journal-panel journal-panel--dashboard-intro px-5 py-5 md:px-6 md:py-6">
+        <section class="journal-panel journal-panel--profile-bio px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div class="space-y-3">
-                    <p class="journal-kicker">Dashboard</p>
+                    <p class="journal-kicker">Profile</p>
                     <div class="space-y-2">
                         <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
-                            All sessions
+                            About the paddler
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Distance, exposure, rescue, routes, and expedition footprint at a glance.
+                            {{ profile.bio }}
                         </p>
                     </div>
                 </div>
 
                 <div class="flex flex-col items-start gap-3 xl:items-end">
-                    <div class="flex flex-wrap gap-2">
-                        <span class="journal-chip">{{ headline.paddledMonths }} active months</span>
-                        <span class="journal-chip">{{ headline.trackSessions }} tracked sessions</span>
-                    </div>
+                    <p class="text-sm font-medium text-white/88">
+                        {{ profile.homeWater }} · {{ headline.sessionCount }} paddles logged
+                    </p>
                     <div class="flex flex-wrap gap-2">
                         <Link href="/sessions/create" class="journal-primary-link">
                             Add a session
@@ -195,7 +189,7 @@ const expeditionPlaceChips = computed(() => props.expeditionPlaces.slice(0, 6));
             </div>
         </section>
 
-        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <article
                 v-for="card in metricCards"
                 :key="card.label"

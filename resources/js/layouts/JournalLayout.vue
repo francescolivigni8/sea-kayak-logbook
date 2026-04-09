@@ -5,6 +5,7 @@ import { computed } from 'vue';
 type ProfileShape = {
     name?: string;
     slug?: string;
+    bio?: string;
     homeWater?: string;
     timezone?: string;
     isPublic?: boolean;
@@ -165,7 +166,7 @@ function goBack() {
                             </p>
                         </div>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div v-if="!isDashboard" class="flex flex-wrap gap-2">
                             <span
                                 v-for="pill in metaPills"
                                 :key="pill.label"

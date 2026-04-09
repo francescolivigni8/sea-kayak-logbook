@@ -38,6 +38,7 @@ class ProfileDashboardData
             'profile' => [
                 'name' => $profile->name,
                 'slug' => $profile->slug,
+                'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
                 'isPublic' => $profile->is_public,
@@ -82,6 +83,7 @@ class ProfileDashboardData
             'profile' => [
                 'name' => $profile->name,
                 'slug' => $profile->slug,
+                'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
                 'isPublic' => $profile->is_public,
@@ -203,6 +205,7 @@ class ProfileDashboardData
             'profile' => [
                 'name' => $profile->name,
                 'slug' => $profile->slug,
+                'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
                 'isPublic' => $profile->is_public,
@@ -281,6 +284,20 @@ class ProfileDashboardData
                 'detail' => (int) $sessions->filter(fn (PaddleSession $session) => $session->is_expedition)->sum('expedition_days').' days out',
             ],
         ];
+    }
+
+    private function profileBio(Profile $profile): string
+    {
+        $bio = trim((string) data_get($profile->settings, 'bio', ''));
+
+        if ($bio !== '') {
+            return $bio;
+        }
+
+        return sprintf(
+            'Sea kayaker based around %s, keeping a running journal of routes, conditions, rescues, and expedition learnings.',
+            $profile->home_water
+        );
     }
 
     private function buildMonthlyDistance(Collection $sessions, CarbonInterface $now): array
