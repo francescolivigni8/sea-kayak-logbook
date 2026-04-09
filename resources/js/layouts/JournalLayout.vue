@@ -20,7 +20,6 @@ type JournalNavShape = {
     thisYearDistanceKm?: number;
     paddlerCard?: {
         name?: string;
-        age?: number | string | null;
         club?: string | null;
         registeredKayaks?: number;
         registeredPaddles?: number;
@@ -50,15 +49,6 @@ const heroCopy = computed(() => {
     return 'Distance, notes, sea state, expeditions, and route memory in one place.';
 });
 const paddlerCard = computed(() => journalNav.value?.paddlerCard ?? null);
-const paddlerAgeText = computed(() => {
-    const value = paddlerCard.value?.age;
-
-    if (value === null || value === undefined || value === '') {
-        return '—';
-    }
-
-    return String(value);
-});
 const paddlerClubText = computed(() => {
     const value = paddlerCard.value?.club;
 
@@ -193,24 +183,20 @@ function goBack() {
                             </div>
 
                             <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Name</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Age</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerAgeText }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Kayak club</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerClubText }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Registered kayaks</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerRegisteredKayaks }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Registered paddles</span>
+                            <div class="journal-paddler-card__item">
+                                <span class="journal-paddler-card__label">Name</span>
+                                <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
+                            </div>
+                            <div class="journal-paddler-card__item">
+                                <span class="journal-paddler-card__label">Kayak club affiliated</span>
+                                <strong class="journal-paddler-card__value">{{ paddlerClubText }}</strong>
+                            </div>
+                            <div class="journal-paddler-card__item">
+                                <span class="journal-paddler-card__label">Registered kayaks</span>
+                                <strong class="journal-paddler-card__value">{{ paddlerRegisteredKayaks }}</strong>
+                            </div>
+                            <div class="journal-paddler-card__item">
+                                <span class="journal-paddler-card__label">Registered paddles</span>
                                     <strong class="journal-paddler-card__value">{{ paddlerRegisteredPaddles }}</strong>
                                 </div>
                             </div>

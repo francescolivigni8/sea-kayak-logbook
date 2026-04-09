@@ -17,6 +17,13 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->profileRules($this->user()->id);
+        return [
+            ...$this->profileRules($this->user()->id),
+            'paddler_name' => ['nullable', 'string', 'max:255'],
+            'kayak_club' => ['nullable', 'string', 'max:255'],
+            'registered_kayaks_count' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'registered_paddles_count' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'bio' => ['nullable', 'string', 'max:4000'],
+        ];
     }
 }

@@ -55,8 +55,7 @@ class HandleInertiaRequests extends Middleware
                     ->filter(fn (PaddleSession $session) => $session->session_date?->year === $currentYear)
                     ->sum('distance_km'), 1),
                 'paddlerCard' => [
-                    'name' => $profile->name,
-                    'age' => data_get($profile->settings, 'paddler_age'),
+                    'name' => data_get($profile->settings, 'paddler_name', $profile->name),
                     'club' => data_get($profile->settings, 'kayak_club', 'Independent'),
                     'registeredKayaks' => is_array($registeredKayaks)
                         ? count(array_filter($registeredKayaks))

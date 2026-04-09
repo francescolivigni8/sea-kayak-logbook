@@ -30,6 +30,11 @@ class ProfileUpdateTest extends TestCase
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'paddler_name' => 'Francesco Li Vigni',
+                'kayak_club' => 'Brokey Kayak Club',
+                'registered_kayaks_count' => 2,
+                'registered_paddles_count' => 3,
+                'bio' => 'Cold-water paddler focused on sea state, route memory, and expedition notes.',
             ]);
 
         $response
@@ -37,10 +42,16 @@ class ProfileUpdateTest extends TestCase
             ->assertRedirect(route('profile.edit'));
 
         $user->refresh();
+        $profile = $user->resolveActiveProfile()->fresh();
 
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+        $this->assertSame('Francesco Li Vigni', data_get($profile->settings, 'paddler_name'));
+        $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
+        $this->assertSame(2, data_get($profile->settings, 'registered_kayaks_count'));
+        $this->assertSame(3, data_get($profile->settings, 'registered_paddles_count'));
+        $this->assertSame('Cold-water paddler focused on sea state, route memory, and expedition notes.', data_get($profile->settings, 'bio'));
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
