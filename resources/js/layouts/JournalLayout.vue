@@ -17,12 +17,16 @@ type JournalNavShape = {
     sessionCount?: number;
     topForce?: number | null;
     thisYearDistanceKm?: number;
-    paddlerCard?: {
-        name?: string;
-        club?: string | null;
-        kayaksOwned?: string[];
-        paddlesOwned?: string[];
-    };
+    statusSummary?: string;
+    statusItems?: {
+        key: string;
+        label: string;
+        href: string;
+        count: number;
+        detail: string;
+        tone: string;
+        active: boolean;
+    }[];
 };
 
 const props = defineProps<{
@@ -47,14 +51,8 @@ const heroCopy = computed(() => {
 
     return 'Distance, notes, sea state, expeditions, and route memory in one place.';
 });
-const paddlerCard = computed(() => journalNav.value?.paddlerCard ?? null);
-const paddlerClubText = computed(() => {
-    const value = paddlerCard.value?.club;
-
-    return value && value.trim() !== '' ? value : 'Independent';
-});
-const paddlerKayaksOwned = computed(() => paddlerCard.value?.kayaksOwned ?? []);
-const paddlerPaddlesOwned = computed(() => paddlerCard.value?.paddlesOwned ?? []);
+const journalStatusItems = computed(() => journalNav.value?.statusItems ?? []);
+const journalStatusSummary = computed(() => journalNav.value?.statusSummary || 'Catch-up points across sessions and expeditions.');
 
 const metaPills = computed(() => {
     const pills = [];
@@ -168,49 +166,39 @@ function isPrimaryCta(item: { href: string }) {
                             </p>
                         </div>
 
-                        <article v-if="isDashboard && paddlerCard" class="journal-paddler-card">
+                        <article v-if="isDashboard && journalStatusItems.length" class="journal-status-strip">
                             <div class="space-y-1">
-                                <p class="journal-kicker">Paddler profile</p>
-                                <h2 class="text-[1.15rem] font-semibold leading-none text-[color:var(--journal-text)]">
-                                    {{ paddlerCard.name || titleText }}
-                                </h2>
+                                <p class="journal-kicker">Journal status</p>
+                                <p class="journal-copy max-w-2xl text-sm md:text-[0.95rem]">
+                                    {{ journalStatusSummary }}
+                                </p>
                             </div>
 
                             <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Name</span>
-                                    <strong class="journal-paddler-card__value">{{ paddlerCard.name || titleText }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                <span class="journal-paddler-card__label">Kayak club affiliated</span>
-                                <strong class="journal-paddler-card__value">{{ paddlerClubText }}</strong>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Kayaks owned</span>
-                                    <div class="journal-paddler-card__tags">
-                                        <span
-                                            v-for="kayak in paddlerKayaksOwned"
-                                            :key="kayak"
-                                            class="journal-chip"
-                                        >
-                                            {{ kayak }}
+                                <Link
+                                    v-for="item in journalStatusItems"
+                                    :key="item.key"
+                                    :href="item.href"
+                                    :class="[
+                                        'journal-status-card',
+                                        item.active ? `journal-status-card--${item.tone}` : 'journal-status-card--quiet',
+                                    ]"
+                                >
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="space-y-1">
+                                            <span class="journal-status-card__eyebrow">
+                                                {{ item.active ? 'Needs attention' : 'Up to date' }}
+                                            </span>
+                                            <strong class="journal-status-card__label">{{ item.label }}</strong>
+                                        </div>
+                                        <span class="journal-status-card__count">
+                                            {{ item.active ? item.count : 'OK' }}
                                         </span>
-                                        <strong v-if="!paddlerKayaksOwned.length" class="journal-paddler-card__value">Not set</strong>
                                     </div>
-                                </div>
-                                <div class="journal-paddler-card__item">
-                                    <span class="journal-paddler-card__label">Paddles owned</span>
-                                    <div class="journal-paddler-card__tags">
-                                        <span
-                                            v-for="paddle in paddlerPaddlesOwned"
-                                            :key="paddle"
-                                            class="journal-chip"
-                                        >
-                                            {{ paddle }}
-                                        </span>
-                                        <strong v-if="!paddlerPaddlesOwned.length" class="journal-paddler-card__value">Not set</strong>
-                                    </div>
-                                </div>
+                                    <p class="journal-status-card__detail">
+                                        {{ item.detail }}
+                                    </p>
+                                </Link>
                             </div>
                         </article>
 
