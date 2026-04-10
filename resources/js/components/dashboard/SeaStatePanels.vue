@@ -232,8 +232,8 @@ function tidePercent(count: number) {
             <article class="journal-card px-5 py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="journal-kicker">Compare</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / year / 12m</h3>
+                        <p class="journal-kicker">Distance windows</p>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / this year / last 12 months</h3>
                     </div>
                     <span class="journal-chip">{{ compareChip }}</span>
                 </div>
