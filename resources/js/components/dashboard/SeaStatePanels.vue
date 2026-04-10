@@ -225,7 +225,7 @@ function tidePercent(count: number) {
                         <div class="grid h-[58px] w-[58px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
                             <div>
                                 <p class="text-[18px] font-semibold text-[color:var(--journal-text)]">{{ averageBeaufortLabel }}</p>
-                                <p class="text-[9px] font-medium uppercase tracking-[0.16em] text-[color:var(--journal-faint)]">
+                                <p class="text-[7px] font-medium uppercase tracking-[0.1em] leading-none text-[color:var(--journal-faint)]">
                                     average
                                 </p>
                             </div>
