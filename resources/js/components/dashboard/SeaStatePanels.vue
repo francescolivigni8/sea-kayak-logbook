@@ -82,6 +82,12 @@ const severityRgb: Record<string, string> = {
     extreme: '255, 138, 128',
 };
 const severityOrder = ['low', 'moderate', 'high', 'extreme'];
+const severityLabels: Record<string, string> = {
+    low: 'Low',
+    moderate: 'Moderate',
+    high: 'High',
+    extreme: 'Extreme',
+};
 const comparisonGradients = [
     'linear-gradient(90deg, #6772ff, #9c80ff 52%, #ff9c6b)',
     'linear-gradient(90deg, #7aa2ff, #6772ff)',
@@ -193,44 +199,44 @@ function tidePercent(count: number) {
 
 <template>
     <div class="space-y-4">
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,1fr)_minmax(0,1fr)]">
-            <article class="journal-card px-5 py-5 md:px-6">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]">
+            <article class="journal-card h-full px-4 py-4 md:px-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Wind</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Beaufort distribution</h3>
+                        <h3 class="mt-2 text-[1.45rem] leading-none">Beaufort distribution</h3>
                     </div>
                     <span class="journal-chip">{{ loggedForceCount }} logged</span>
                 </div>
 
-                <div class="mt-6 flex items-center gap-6">
-                    <div class="relative grid h-32 w-32 place-items-center rounded-full" :style="forceDonutStyle">
-                        <div class="grid h-[78px] w-[78px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                <div class="mt-5 flex items-center gap-4">
+                    <div class="relative grid h-24 w-24 place-items-center rounded-full" :style="forceDonutStyle">
+                        <div class="grid h-[58px] w-[58px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
                             <div>
-                                <p class="text-2xl font-semibold text-[color:var(--journal-text)]">{{ loggedForceCount }}</p>
-                                <p class="text-[11px] font-medium uppercase tracking-[0.22em] text-[color:var(--journal-faint)]">
+                                <p class="text-xl font-semibold text-[color:var(--journal-text)]">{{ loggedForceCount }}</p>
+                                <p class="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">
                                     logged
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid flex-1 gap-3">
+                    <div class="grid flex-1 gap-2">
                         <div
                             v-for="band in forceBreakdown"
                             :key="band.label"
-                            class="grid grid-cols-[36px_minmax(0,1fr)_34px] items-center gap-3"
+                            class="grid grid-cols-[34px_minmax(0,1fr)_30px] items-center gap-2"
                         >
-                            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">
                                 {{ band.label }}
                             </span>
-                            <div class="h-2.5 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                            <div class="h-2 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                                 <div
                                     class="h-full rounded-full"
                                     :style="{ width: `${band.percent}%`, background: band.color }"
                                 />
                             </div>
-                            <span class="text-right text-xs font-medium text-[color:var(--journal-muted)]">
+                            <span class="text-right text-[11px] font-medium text-[color:var(--journal-muted)]">
                                 {{ band.percent }}%
                             </span>
                         </div>
@@ -238,25 +244,25 @@ function tidePercent(count: number) {
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6">
+            <article class="journal-card h-full px-4 py-4 md:px-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Wind counts</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">F2-F6</h3>
+                        <h3 class="mt-2 text-[1.45rem] leading-none">F2-F6</h3>
                     </div>
                     <span class="journal-chip">Counts</span>
                 </div>
 
-                <div class="mt-6 grid gap-3">
+                <div class="mt-5 grid gap-2.5">
                     <div
                         v-for="band in displayedForceBands"
                         :key="band.label"
-                        class="grid grid-cols-[42px_minmax(0,1fr)_24px] items-center gap-3"
+                        class="grid grid-cols-[36px_minmax(0,1fr)_22px] items-center gap-2"
                     >
-                        <span class="text-sm font-medium text-[color:var(--journal-muted)]">
+                        <span class="text-[13px] font-medium text-[color:var(--journal-muted)]">
                             {{ band.label }}
                         </span>
-                        <div class="h-3 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                        <div class="h-2.5 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                             <div
                                 class="h-full rounded-full"
                                 :style="{
@@ -265,77 +271,64 @@ function tidePercent(count: number) {
                                 }"
                             />
                         </div>
-                        <span class="text-right text-sm font-medium text-[color:var(--journal-muted)]">
+                        <span class="text-right text-[13px] font-medium text-[color:var(--journal-muted)]">
                             {{ band.count }}
                         </span>
                     </div>
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6">
+            <article
+                class="journal-card h-full px-4 py-4 md:px-5"
+                style="background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,156,107,0.06));"
+            >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="journal-kicker">Distance windows</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / this year / last 12 months</h3>
+                        <p class="journal-kicker">Development</p>
+                        <h3 class="mt-2 text-[1.45rem] leading-none">Rescue events</h3>
                     </div>
-                    <span class="journal-chip">{{ compareChip }}</span>
+                    <span class="journal-chip">Session totals</span>
                 </div>
 
-                <div class="mt-6 grid gap-4">
+                <div class="mt-5 grid gap-3">
                     <article
-                        v-for="snapshot in comparisonSnapshots"
-                        :key="snapshot.label"
-                        class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
+                        v-for="item in seaState.rescueTotals"
+                        :key="item.label"
+                        class="grid gap-2"
                     >
-                        <div class="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
-                                    {{ snapshot.label }}
-                                </p>
-                                <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                    {{ snapshot.value.toFixed(1) }}
-                                    <span class="text-base text-[color:var(--journal-muted)]">{{ snapshot.unit }}</span>
-                                </p>
-                            </div>
-                            <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
-                                {{ snapshot.detail }}
-                            </p>
+                        <div class="flex items-center justify-between gap-3 text-[13px]">
+                            <p class="font-medium text-[color:var(--journal-muted)]">{{ item.label }}</p>
+                            <p class="font-semibold text-[color:var(--journal-text)]">{{ item.count }}</p>
                         </div>
-
-                        <div class="mt-4 grid gap-2">
-                            <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">
-                                <span>0 {{ snapshot.unit }}</span>
-                                <span>{{ snapshot.label }}</span>
-                            </div>
-                            <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
-                                <div
-                                    class="relative h-full rounded-full"
-                                    :style="{ width: `${snapshot.percent}%`, background: snapshot.gradient }"
-                                >
-                                    <span class="absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-white/90 bg-white/92 shadow-[0_6px_16px_rgba(37,43,82,0.14)]" />
-                                </div>
-                            </div>
+                        <div class="h-2.5 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                            <div
+                                class="h-full rounded-full"
+                                :style="{
+                                    width: `${Math.max((item.count / rescueMax) * 100, item.count > 0 ? 12 : 0)}%`,
+                                    background: item.label.toLowerCase().includes('successful') ? 'linear-gradient(90deg, #6772ff, #7aa2ff)' : item.label.toLowerCase().includes('wet') ? 'linear-gradient(90deg, #ff8a80, #ff9c6b)' : 'linear-gradient(90deg, #7aa2ff, #6772ff)',
+                                }"
+                            />
                         </div>
                     </article>
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6">
+            <article class="journal-card h-full px-4 py-4 md:px-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Tide + current</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Sea profile</h3>
+                        <h3 class="mt-2 text-[1.45rem] leading-none">Sea profile</h3>
                     </div>
                     <span class="journal-chip">Exposure</span>
                 </div>
 
-                <div class="mt-6 grid gap-3">
+                <div class="mt-5 grid gap-2.5">
                     <div
                         v-for="state in seaState.tideStates"
                         :key="state.label"
-                        class="grid grid-cols-[54px_minmax(0,1fr)_36px] items-center gap-3"
+                        class="grid grid-cols-[48px_minmax(0,1fr)_34px] items-center gap-2"
                     >
-                        <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ state.label }}</span>
+                        <span class="text-[13px] font-medium text-[color:var(--journal-muted)]">{{ state.label }}</span>
                         <div class="h-2.5 overflow-hidden rounded-full bg-[rgba(122,215,208,0.12)]">
                             <div
                                 class="h-full rounded-full"
@@ -345,7 +338,7 @@ function tidePercent(count: number) {
                                 }"
                             />
                         </div>
-                        <span class="text-right text-xs font-medium text-[color:var(--journal-muted)]">
+                        <span class="text-right text-[11px] font-medium text-[color:var(--journal-muted)]">
                             {{ tidePercent(state.count) }}%
                         </span>
                     </div>
@@ -353,7 +346,7 @@ function tidePercent(count: number) {
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.45fr)_minmax(0,0.9fr)]">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]">
             <article class="journal-card px-5 py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -364,22 +357,22 @@ function tidePercent(count: number) {
                 </div>
 
                 <div v-if="hasConditionData" class="mt-6 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/78">
-                    <div class="grid grid-cols-[minmax(112px,0.92fr)_repeat(4,minmax(54px,1fr))]">
+                    <div class="grid grid-cols-[minmax(128px,1.05fr)_repeat(4,minmax(62px,1fr))]">
                         <div class="border-b border-[color:var(--journal-line)] px-4 py-3" />
                         <div
                             v-for="severity in severityOrder"
                             :key="severity"
-                            class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]"
+                            class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[10px] font-semibold leading-tight text-[color:var(--journal-faint)]"
                         >
-                            {{ severity }}
+                            {{ severityLabels[severity] }}
                         </div>
 
                         <template v-for="item in conditionHeatmapRows" :key="item.label">
                             <div class="border-b border-[color:var(--journal-line)] px-4 py-3">
-                                <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                <p class="text-sm font-semibold leading-5 text-[color:var(--journal-text)]">
                                     {{ item.label }}
                                 </p>
-                                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">
+                                <p class="mt-1 text-[11px] uppercase tracking-[0.12em] text-[color:var(--journal-faint)]">
                                     {{ item.total }} logged
                                 </p>
                             </div>
@@ -446,33 +439,49 @@ function tidePercent(count: number) {
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6" style="background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,156,107,0.06));">
+            <article class="journal-card px-5 py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="journal-kicker">Development</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Rescue events</h3>
+                        <p class="journal-kicker">Distance windows</p>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / this year / last 12 months</h3>
                     </div>
-                    <span class="journal-chip">Session totals</span>
+                    <span class="journal-chip">{{ compareChip }}</span>
                 </div>
 
                 <div class="mt-6 grid gap-4">
                     <article
-                        v-for="item in seaState.rescueTotals"
-                        :key="item.label"
-                        class="grid gap-2"
+                        v-for="snapshot in comparisonSnapshots"
+                        :key="snapshot.label"
+                        class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                     >
-                        <div class="flex items-center justify-between gap-3 text-sm">
-                            <p class="font-medium text-[color:var(--journal-muted)]">{{ item.label }}</p>
-                            <p class="font-semibold text-[color:var(--journal-text)]">{{ item.count }}</p>
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
+                                    {{ snapshot.label }}
+                                </p>
+                                <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">
+                                    {{ snapshot.value.toFixed(1) }}
+                                    <span class="text-base text-[color:var(--journal-muted)]">{{ snapshot.unit }}</span>
+                                </p>
+                            </div>
+                            <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
+                                {{ snapshot.detail }}
+                            </p>
                         </div>
-                        <div class="h-3 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
-                            <div
-                                class="h-full rounded-full"
-                                :style="{
-                                    width: `${Math.max((item.count / rescueMax) * 100, item.count > 0 ? 12 : 0)}%`,
-                                    background: item.label.toLowerCase().includes('successful') ? 'linear-gradient(90deg, #6772ff, #7aa2ff)' : item.label.toLowerCase().includes('wet') ? 'linear-gradient(90deg, #ff8a80, #ff9c6b)' : 'linear-gradient(90deg, #7aa2ff, #6772ff)',
-                                }"
-                            />
+
+                        <div class="mt-4 grid gap-2">
+                            <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">
+                                <span>0 {{ snapshot.unit }}</span>
+                                <span>{{ snapshot.label }}</span>
+                            </div>
+                            <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                                <div
+                                    class="relative h-full rounded-full"
+                                    :style="{ width: `${snapshot.percent}%`, background: snapshot.gradient }"
+                                >
+                                    <span class="absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-white/90 bg-white/92 shadow-[0_6px_16px_rgba(37,43,82,0.14)]" />
+                                </div>
+                            </div>
                         </div>
                     </article>
                 </div>
