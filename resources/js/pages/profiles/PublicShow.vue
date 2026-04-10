@@ -20,6 +20,8 @@ interface HeadlineStats {
     durationHours: number;
     longestDistanceKm: number;
     averageDistanceKm: number;
+    averageSpeedKnots: number | null;
+    averageSpeedSamples: number;
     trackSessions: number;
     paddledMonths: number;
 }

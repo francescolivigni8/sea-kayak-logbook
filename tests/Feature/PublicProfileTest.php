@@ -27,6 +27,7 @@ class PublicProfileTest extends TestCase
             'launch_name' => 'Reykjavik',
             'route_category' => 'journey',
             'distance_km' => 8.4,
+            'duration_minutes' => 120,
             'is_public' => true,
         ]);
 
@@ -39,6 +40,8 @@ class PublicProfileTest extends TestCase
             'launch_lng' => -23.1267,
             'route_category' => 'expedition',
             'distance_km' => 32.2,
+            'moving_minutes' => 300,
+            'duration_minutes' => 320,
             'expedition_days' => 2,
             'is_expedition' => true,
             'is_public' => true,
@@ -53,6 +56,7 @@ class PublicProfileTest extends TestCase
             'launch_lng' => -23.1267,
             'route_category' => 'expedition',
             'distance_km' => 14.3,
+            'duration_minutes' => 120,
             'expedition_days' => 1,
             'is_expedition' => true,
             'is_public' => true,
@@ -65,6 +69,7 @@ class PublicProfileTest extends TestCase
             'launch_name' => 'Loose note only',
             'route_category' => 'expedition',
             'distance_km' => 4.5,
+            'duration_minutes' => 60,
             'is_expedition' => true,
             'is_public' => true,
         ]);
@@ -74,6 +79,8 @@ class PublicProfileTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profiles/PublicShow')
                 ->where('profile.slug', 'francesco-public-logbook')
+                ->where('headline.averageSpeedKnots', 3)
+                ->where('headline.averageSpeedSamples', 4)
                 ->where('expeditionSummary.tripCount', 3)
                 ->where('expeditionSummary.missingMapPointCount', 1)
                 ->has('expeditionMapData.pins', 2)

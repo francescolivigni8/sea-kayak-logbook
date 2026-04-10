@@ -7,6 +7,8 @@ interface HeadlineStats {
     durationHours: number;
     longestDistanceKm: number;
     averageDistanceKm: number;
+    averageSpeedKnots: number | null;
+    averageSpeedSamples: number;
     trackSessions: number;
     paddledMonths: number;
 }
@@ -51,15 +53,25 @@ interface ThermometerVisual {
     fill: string;
 }
 
+interface SpeedVisual {
+    percent: number;
+    hasValue: boolean;
+    fill: string;
+    status: string;
+    minLabel: string;
+    maxLabel: string;
+}
+
 interface MetricCard {
     label: string;
     value: string;
     detail: string;
     style: string;
-    type: 'sparkline' | 'bands' | 'temperature';
+    type: 'sparkline' | 'bands' | 'temperature' | 'speed';
     sparkline?: SparklineVisual;
     bands?: BandVisual[];
     thermometer?: ThermometerVisual;
+    speed?: SpeedVisual;
 }
 
 const props = withDefaults(defineProps<{
@@ -132,6 +144,30 @@ function describeTemperature(value: number | null, min: number, max: number, col
         status: value >= pivot ? warmLabel : coldLabel,
         hasValue: true,
         fill: 'linear-gradient(90deg, rgba(122,215,208,0.88), rgba(122,162,255,0.88) 52%, rgba(255,156,107,0.92))',
+    };
+}
+
+function describeSpeed(value: number | null) {
+    if (value === null) {
+        return {
+            percent: 0,
+            hasValue: false,
+            fill: 'linear-gradient(90deg, rgba(122,162,255,0.3), rgba(122,215,208,0.3), rgba(255,156,107,0.3))',
+            status: 'No timed sessions',
+            minLabel: '0 kn',
+            maxLabel: '7 kn',
+        };
+    }
+
+    const percent = clamp((value / 7) * 100, 0, 100);
+
+    return {
+        percent,
+        hasValue: true,
+        fill: 'linear-gradient(90deg, #7aa2ff, #6772ff 38%, #7ad7d0 68%, #ff9c6b)',
+        status: value >= 5.5 ? 'Fast cruising' : value >= 4 ? 'Cruising' : 'Easy pace',
+        minLabel: '0 kn',
+        maxLabel: '7 kn',
     };
 }
 
@@ -215,13 +251,23 @@ const cards = computed<MetricCard[]>(() => [
         type: 'temperature',
         thermometer: describeTemperature(props.seaState.temperatureAverages.sea, 0, 15, 'Cold sea', 'Milder sea'),
     },
+    {
+        label: 'Average speed',
+        value: props.headline.averageSpeedKnots !== null ? `${props.headline.averageSpeedKnots.toFixed(1)} kn` : '—',
+        detail: props.headline.averageSpeedSamples > 0
+            ? `Across ${props.headline.averageSpeedSamples} ${props.headline.averageSpeedSamples === 1 ? 'session' : 'sessions'} with distance + time`
+            : 'Add distance and time to calculate knots',
+        style: 'linear-gradient(135deg, rgba(122,162,255,0.18), rgba(255,255,255,0.92))',
+        type: 'speed',
+        speed: describeSpeed(props.headline.averageSpeedKnots),
+    },
 ]);
 </script>
 
 <template>
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <article
-            v-for="(card, index) in cards"
+            v-for="card in cards"
             :key="card.label"
             class="journal-metric-card"
             :style="{ background: card.style }"
@@ -306,6 +352,30 @@ const cards = computed<MetricCard[]>(() => [
                 <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--journal-faint)]">
                     <span>{{ card.thermometer.minLabel }}</span>
                     <span>{{ card.thermometer.maxLabel }}</span>
+                </div>
+            </div>
+
+            <div v-else-if="card.type === 'speed' && card.speed" class="mt-4 grid gap-2">
+                <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">
+                    <span>{{ card.speed.status }}</span>
+                    <span v-if="card.speed.hasValue">{{ card.value }}</span>
+                </div>
+
+                <div class="relative h-3 overflow-hidden rounded-full bg-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                    <div
+                        class="absolute inset-0 rounded-full"
+                        :style="{ background: card.speed.fill }"
+                    />
+                    <div
+                        v-if="card.speed.hasValue"
+                        class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/90 bg-white shadow-[0_8px_18px_rgba(37,43,82,0.14)]"
+                        :style="{ left: `calc(${card.speed.percent}% - 0.5rem)` }"
+                    />
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--journal-faint)]">
+                    <span>{{ card.speed.minLabel }}</span>
+                    <span>{{ card.speed.maxLabel }}</span>
                 </div>
             </div>
 

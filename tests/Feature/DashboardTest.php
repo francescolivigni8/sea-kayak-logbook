@@ -40,6 +40,8 @@ class DashboardTest extends TestCase
             'launch_lng' => -23.1267,
             'route_category' => 'expedition',
             'distance_km' => 42.5,
+            'moving_minutes' => 180,
+            'duration_minutes' => 210,
             'expedition_days' => 3,
             'is_expedition' => true,
             'is_public' => true,
@@ -54,6 +56,8 @@ class DashboardTest extends TestCase
             'launch_lng' => -23.1267,
             'route_category' => 'expedition',
             'distance_km' => 18.0,
+            'moving_minutes' => 120,
+            'duration_minutes' => 130,
             'expedition_days' => 2,
             'is_expedition' => true,
             'is_public' => true,
@@ -66,6 +70,7 @@ class DashboardTest extends TestCase
             'launch_name' => 'Unknown cove',
             'route_category' => 'expedition',
             'distance_km' => 6.0,
+            'duration_minutes' => 120,
             'is_expedition' => true,
             'is_public' => true,
         ]);
@@ -75,6 +80,8 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
+                ->where('headline.averageSpeedKnots', 4.7)
+                ->where('headline.averageSpeedSamples', 3)
                 ->where('expeditionSummary.distanceKm', 66.5)
                 ->where('expeditionSummary.daysOut', 5)
                 ->where('expeditionSummary.tripCount', 3)

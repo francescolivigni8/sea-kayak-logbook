@@ -23,6 +23,10 @@ class ProfileDashboardData
         $sessionCount = $sessions->count();
         $longestDistance = round((float) $sessions->max('distance_km'), 1);
         $trackSessions = (int) $sessions->filter(fn (PaddleSession $session) => $this->hasTrackData($session))->count();
+        $averageSpeedSessions = $sessions
+            ->map(fn (PaddleSession $session) => $this->sessionAverageSpeedKnots($session))
+            ->filter(fn (?float $speed) => $speed !== null)
+            ->values();
         $paddledMonths = (int) $sessions
             ->filter(fn (PaddleSession $session) => $session->session_date !== null)
             ->map(fn (PaddleSession $session) => $session->session_date->format('Y-m'))
@@ -50,6 +54,8 @@ class ProfileDashboardData
                 'durationHours' => round($totalMinutes / 60, 1),
                 'longestDistanceKm' => $longestDistance,
                 'averageDistanceKm' => $sessionCount > 0 ? round($totalDistance / $sessionCount, 1) : 0.0,
+                'averageSpeedKnots' => $averageSpeedSessions->isNotEmpty() ? round((float) $averageSpeedSessions->avg(), 1) : null,
+                'averageSpeedSamples' => $averageSpeedSessions->count(),
                 'trackSessions' => $trackSessions,
                 'paddledMonths' => $paddledMonths,
             ],
@@ -730,6 +736,20 @@ class ProfileDashboardData
             'hasTrack' => $this->hasTrackData($session),
             'isExpedition' => (bool) $session->is_expedition,
         ];
+    }
+
+    private function sessionAverageSpeedKnots(PaddleSession $session): ?float
+    {
+        $distanceKm = (float) $session->distance_km;
+        $minutes = (int) ($session->moving_minutes ?: $session->duration_minutes);
+
+        if ($distanceKm <= 0 || $minutes <= 0) {
+            return null;
+        }
+
+        $speedKmh = $distanceKm / ($minutes / 60);
+
+        return $speedKmh / 1.852;
     }
 
     private function routeCategoryLabel(?string $category): string
