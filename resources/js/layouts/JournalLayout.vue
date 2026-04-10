@@ -67,9 +67,9 @@ const primaryNav = [
 
 const utilityLinks = computed(() => {
     return [
-        { label: 'Library', href: '/sessions' },
-        { label: 'Import', href: '/imports/garmin' },
-        { label: 'Account', href: '/settings/profile' },
+        { label: 'Library', href: '/sessions', match: ['/sessions'] },
+        { label: 'Import', href: '/imports/garmin', match: ['/imports/garmin'] },
+        { label: 'Account', href: '/settings/profile', match: ['/settings'] },
     ];
 });
 
@@ -135,6 +135,10 @@ function goBack() {
 function isPrimaryCta(item: { href: string }) {
     return item.href === '/sessions/create';
 }
+
+function isUtilityActive(item: { href: string; match: string[] }) {
+    return item.match.some((prefix) => currentPath.value.startsWith(prefix));
+}
 </script>
 
 <template>
@@ -165,21 +169,6 @@ function isPrimaryCta(item: { href: string }) {
                     </div>
 
                     <div class="space-y-4 xl:text-right">
-                        <div class="flex flex-wrap justify-start gap-2 xl:justify-end">
-                            <Link
-                                v-for="link in utilityLinks.slice(0, 1)"
-                                :key="link.label"
-                                :href="link.href"
-                                class="journal-utility-link"
-                            >
-                                {{ link.label }}
-                            </Link>
-
-                            <Link href="/logout" method="post" as="button" class="journal-utility-link">
-                                Sign out
-                            </Link>
-                        </div>
-
                         <div class="flex flex-wrap justify-start gap-3 xl:justify-end">
                             <div class="journal-stat-pill">
                                 <span class="journal-stat-pill__label">Sessions</span>
@@ -231,9 +220,16 @@ function isPrimaryCta(item: { href: string }) {
                             v-for="link in utilityLinks"
                             :key="link.label"
                             :href="link.href"
-                            class="journal-utility-link"
+                            :class="[
+                                'journal-utility-link',
+                                isUtilityActive(link) ? 'journal-utility-link--active' : '',
+                            ]"
                         >
                             {{ link.label }}
+                        </Link>
+
+                        <Link href="/logout" method="post" as="button" class="journal-utility-link">
+                            Sign out
                         </Link>
                     </div>
                 </div>
