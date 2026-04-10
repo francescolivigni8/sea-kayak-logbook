@@ -2,16 +2,6 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-type ProfileShape = {
-    name?: string;
-    slug?: string;
-    bio?: string;
-    homeWater?: string;
-    timezone?: string;
-    isPublic?: boolean;
-    publicPath?: string;
-};
-
 type JournalNavShape = {
     homeWater?: string;
     sessionCount?: number;
@@ -19,43 +9,11 @@ type JournalNavShape = {
     thisYearDistanceKm?: number;
 };
 
-const props = defineProps<{
-    profile?: ProfileShape;
-}>();
-
 const page = usePage();
 
 const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
-const authUser = computed(() => page.props.auth?.user as { name?: string } | undefined);
-const activeProfile = computed(() => (props.profile ?? (page.props.profile as ProfileShape | undefined)) ?? null);
 const journalNav = computed(() => (page.props.journalNav as JournalNavShape | undefined) ?? null);
-const isDashboard = computed(() => currentPath.value === '/dashboard');
-
-const titleText = computed(() => activeProfile.value?.name || authUser.value?.name || 'Sea Kayak Logbook');
-const heroTitle = computed(() => (isDashboard.value ? 'Your kayaking journal' : titleText.value));
-const heroCopy = computed(() => {
-    if (isDashboard.value) {
-        return '';
-    }
-
-    return 'Distance, notes, sea state, expeditions, and route memory in one place.';
-});
-
-const metaPills = computed(() => {
-    const pills = [];
-
-    if (journalNav.value?.homeWater || activeProfile.value?.homeWater) {
-        pills.push({ label: journalNav.value?.homeWater || activeProfile.value?.homeWater || '', primary: true });
-    }
-
-    if (activeProfile.value?.timezone) {
-        pills.push({ label: activeProfile.value.timezone, primary: false });
-    }
-
-    pills.push({ label: 'GPX / FIT', primary: false });
-
-    return pills;
-});
+const heroTitle = 'Your kayaking journal';
 
 const primaryNav = [
     { label: 'Dashboard', href: '/dashboard', match: ['/dashboard'] },
@@ -143,29 +101,14 @@ function isUtilityActive(item: { href: string; match: string[] }) {
 
 <template>
     <div class="journal-page">
-        <header :class="['journal-panel overflow-hidden px-5 py-4 md:px-6', isDashboard ? 'journal-panel--hero md:py-5' : 'md:py-6']">
-            <div :class="['flex flex-col', isDashboard ? 'gap-4' : 'gap-5']">
+        <header class="journal-panel journal-panel--hero overflow-hidden px-5 py-4 md:px-6 md:py-5">
+            <div class="flex flex-col gap-4">
                 <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
-                    <div :class="[isDashboard ? 'space-y-2' : 'space-y-3']">
+                    <div class="space-y-2">
                         <p class="journal-kicker">Sea kayak logbook</p>
-                        <div class="space-y-2">
-                            <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
-                                {{ heroTitle }}
-                            </h1>
-                            <p v-if="heroCopy" class="journal-copy max-w-2xl text-sm md:text-base">
-                                {{ heroCopy }}
-                            </p>
-                        </div>
-
-                        <div v-if="!isDashboard" class="flex flex-wrap gap-2">
-                            <span
-                                v-for="pill in metaPills"
-                                :key="pill.label"
-                                :class="['journal-chip', pill.primary ? 'journal-chip--primary' : '']"
-                            >
-                                {{ pill.label }}
-                            </span>
-                        </div>
+                        <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
+                            {{ heroTitle }}
+                        </h1>
                     </div>
 
                     <div class="space-y-4 xl:text-right">
