@@ -589,11 +589,22 @@
     }
 
     .journal-metric-card {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        gap: 0.15rem;
         border: 1px solid var(--journal-line);
         border-radius: 26px;
         background: rgba(255, 255, 255, 0.86);
         box-shadow: var(--journal-shadow);
         padding: 1.35rem;
+    }
+
+    .journal-mini-sparkline {
+        border: 1px solid rgba(103, 114, 255, 0.08);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 247, 255, 0.94));
+        padding: 0.45rem 0.55rem 0.35rem;
     }
 
     .journal-stat-pill {

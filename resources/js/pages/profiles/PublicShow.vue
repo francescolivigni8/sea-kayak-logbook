@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { Head, Link } from '@inertiajs/vue3';
@@ -125,33 +126,6 @@ const props = defineProps<{
     recentSessions: RecentSession[];
 }>();
 
-const metricCards = computed(() => [
-    {
-        label: 'Total distance',
-        value: `${props.headline.distanceKm.toFixed(1)} km`,
-        detail: `${props.headline.sessionCount} public paddles`,
-        style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))',
-    },
-    {
-        label: 'Total duration',
-        value: `${props.headline.durationHours.toFixed(1)} h`,
-        detail: `${props.headline.paddledMonths} months paddled`,
-        style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
-    },
-    {
-        label: 'Average air',
-        value: props.seaState.temperatureAverages.air !== null ? `${props.seaState.temperatureAverages.air.toFixed(1)} C` : '—',
-        detail: 'Across public sessions with air logged',
-        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
-    },
-    {
-        label: 'Average sea',
-        value: props.seaState.temperatureAverages.sea !== null ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C` : '—',
-        detail: 'Across public sessions with sea logged',
-        style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
-    },
-]);
-
 const expeditionCards = computed(() => [
     { label: 'Expedition distance', value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`, detail: 'Public expedition distance' },
     { label: 'Days out', value: String(props.expeditionSummary.daysOut), detail: 'Public multiday days logged' },
@@ -208,22 +182,12 @@ const expeditionMapWarning = computed(() => {
             This public view stays lighter on purpose: only shared sessions, public expedition places, and public route stories.
         </section>
 
-        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <article
-                v-for="card in metricCards"
-                :key="card.label"
-                class="journal-metric-card"
-                :style="{ background: card.style }"
-            >
-                <p class="journal-kicker">{{ card.label }}</p>
-                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)] md:text-[2.2rem]">
-                    {{ card.value }}
-                </p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    {{ card.detail }}
-                </p>
-            </article>
-        </section>
+        <HeadlineMetricCards
+            :headline="headline"
+            :sea-state="seaState"
+            :monthly-distance="monthlyDistance"
+            context="public"
+        />
 
         <SeaStatePanels
             :sea-state="seaState"

@@ -75,10 +75,29 @@ const severityStyles: Record<string, { bg: string; text: string }> = {
     high: { bg: 'rgba(255, 156, 107, 0.18)', text: '#9f5d34' },
     extreme: { bg: 'rgba(255, 138, 128, 0.18)', text: '#a3544d' },
 };
+const severityRgb: Record<string, string> = {
+    low: '122, 215, 208',
+    moderate: '122, 162, 255',
+    high: '255, 156, 107',
+    extreme: '255, 138, 128',
+};
+const severityOrder = ['low', 'moderate', 'high', 'extreme'];
+const comparisonGradients = [
+    'linear-gradient(90deg, #6772ff, #9c80ff 52%, #ff9c6b)',
+    'linear-gradient(90deg, #7aa2ff, #6772ff)',
+    'linear-gradient(90deg, #7ad7d0, #7aa2ff)',
+];
 
 const monthlyMax = computed(() => Math.max(...props.monthlyDistance.map((item) => item.distanceKm), 1));
 const rescueMax = computed(() => Math.max(...props.seaState.rescueTotals.map((item) => item.count), 1));
 const tideTotal = computed(() => props.seaState.tideStates.reduce((total, item) => total + item.count, 0));
+const comparisonMax = computed(() => Math.max(...props.yearSnapshots.map((item) => item.value), 1));
+const conditionCellMax = computed(() =>
+    Math.max(
+        ...props.seaState.conditionMatrix.flatMap((row) => row.values.map((value) => value.count)),
+        1,
+    ),
+);
 
 const loggedForceCount = computed(() => props.seaState.beaufortBands.reduce((total, item) => total + item.count, 0));
 
@@ -123,21 +142,45 @@ const forceDonutStyle = computed(() => {
     };
 });
 
-const conditionSummaries = computed(() =>
+const conditionHeatmapRows = computed(() =>
     props.seaState.conditionMatrix.map((row) => {
         const total = row.values.reduce((sum, value) => sum + value.count, 0);
-        const dominant = row.values.reduce((winner, value) => (value.count > winner.count ? value : winner), row.values[0]);
+        const values = severityOrder.map((severity) => {
+            const current = row.values.find((value) => value.key === severity) ?? { key: severity, count: 0 };
+            const alpha = current.count > 0
+                ? 0.14 + ((current.count / conditionCellMax.value) * 0.56)
+                : 0.05;
+
+            return {
+                ...current,
+                label: severity,
+                style: {
+                    background: `rgba(${severityRgb[severity] ?? '103, 114, 255'}, ${alpha.toFixed(2)})`,
+                    color: current.count > 0
+                        ? (severityStyles[severity]?.text ?? 'var(--journal-text)')
+                        : 'var(--journal-faint)',
+                    borderColor: `rgba(${severityRgb[severity] ?? '103, 114, 255'}, ${Math.max(alpha - 0.08, 0.08).toFixed(2)})`,
+                },
+            };
+        });
 
         return {
             label: row.label,
             total,
-            dominant: total > 0 ? dominant.key : 'not set',
-            dominantStyle: total > 0 ? (severityStyles[dominant.key] ?? severityStyles.low) : null,
+            values,
         };
     }),
 );
 
-const hasConditionData = computed(() => conditionSummaries.value.some((item) => item.total > 0));
+const hasConditionData = computed(() => conditionHeatmapRows.value.some((item) => item.total > 0));
+
+const comparisonSnapshots = computed(() =>
+    props.yearSnapshots.map((snapshot, index) => ({
+        ...snapshot,
+        percent: Math.max((snapshot.value / comparisonMax.value) * 100, snapshot.value > 0 ? 10 : 0),
+        gradient: comparisonGradients[index % comparisonGradients.length],
+    })),
+);
 
 function tidePercent(count: number) {
     if (!tideTotal.value) {
@@ -238,13 +281,13 @@ function tidePercent(count: number) {
                     <span class="journal-chip">{{ compareChip }}</span>
                 </div>
 
-                <div class="mt-6 grid gap-3">
+                <div class="mt-6 grid gap-4">
                     <article
-                        v-for="snapshot in yearSnapshots"
+                        v-for="snapshot in comparisonSnapshots"
                         :key="snapshot.label"
                         class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                     >
-                        <div class="flex items-start justify-between gap-3">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
                                     {{ snapshot.label }}
@@ -257,6 +300,21 @@ function tidePercent(count: number) {
                             <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
                                 {{ snapshot.detail }}
                             </p>
+                        </div>
+
+                        <div class="mt-4 grid gap-2">
+                            <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">
+                                <span>0 {{ snapshot.unit }}</span>
+                                <span>{{ snapshot.label }}</span>
+                            </div>
+                            <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                                <div
+                                    class="relative h-full rounded-full"
+                                    :style="{ width: `${snapshot.percent}%`, background: snapshot.gradient }"
+                                >
+                                    <span class="absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-white/90 bg-white/92 shadow-[0_6px_16px_rgba(37,43,82,0.14)]" />
+                                </div>
+                            </div>
                         </div>
                     </article>
                 </div>
@@ -305,27 +363,45 @@ function tidePercent(count: number) {
                     <span class="journal-chip">Session checklist</span>
                 </div>
 
-                <div v-if="hasConditionData" class="mt-6 grid gap-3">
-                    <article
-                        v-for="item in conditionSummaries"
-                        :key="item.label"
-                        class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
-                    >
-                        <div class="flex items-center justify-between gap-3">
-                            <h4 class="text-base font-semibold text-[color:var(--journal-text)]">
-                                {{ item.label }}
-                            </h4>
-                            <span
-                                class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                                :style="item.dominantStyle ? { background: item.dominantStyle.bg, color: item.dominantStyle.text } : { background: 'rgba(103,114,255,0.1)', color: 'var(--journal-muted)' }"
-                            >
-                                {{ item.dominant }}
-                            </span>
+                <div v-if="hasConditionData" class="mt-6 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/78">
+                    <div class="grid grid-cols-[minmax(112px,0.92fr)_repeat(4,minmax(54px,1fr))]">
+                        <div class="border-b border-[color:var(--journal-line)] px-4 py-3" />
+                        <div
+                            v-for="severity in severityOrder"
+                            :key="severity"
+                            class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]"
+                        >
+                            {{ severity }}
                         </div>
-                        <p class="mt-2 text-sm text-[color:var(--journal-muted)]">
-                            {{ item.total }} sessions
-                        </p>
-                    </article>
+
+                        <template v-for="item in conditionHeatmapRows" :key="item.label">
+                            <div class="border-b border-[color:var(--journal-line)] px-4 py-3">
+                                <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                    {{ item.label }}
+                                </p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">
+                                    {{ item.total }} logged
+                                </p>
+                            </div>
+
+                            <div
+                                v-for="value in item.values"
+                                :key="`${item.label}-${value.key}`"
+                                class="border-b border-l border-[color:var(--journal-line)] p-2"
+                            >
+                                <div
+                                    class="grid min-h-[62px] place-items-center rounded-[16px] border text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+                                    :style="value.style"
+                                >
+                                    <span class="text-lg font-semibold">{{ value.count || '—' }}</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="border-t border-[color:var(--journal-line)] px-4 py-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+                        Darker cells mean those conditions recur more often in your saved checklist ratings.
+                    </div>
                 </div>
 
                 <div
