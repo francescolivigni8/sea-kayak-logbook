@@ -43,7 +43,7 @@ interface DefaultView {
 type MapStyle = 'chart' | 'clean' | 'activity';
 type SessionKind = 'all' | 'day' | 'expedition';
 type GeometryKind = 'all' | 'routes' | 'pins';
-type PinPresentation = 'dot' | 'pin';
+type PinPresentation = 'dot' | 'pin' | 'expedition';
 
 const props = withDefaults(defineProps<{
     routes?: AtlasRouteItem[];
@@ -396,14 +396,18 @@ function renderGeometry() {
 
     filteredPins.value.forEach((pin) => {
         const count = Math.max(pinCountForSelection(pin), 1);
-        const marker = props.pinPresentation === 'pin'
+        const marker = props.pinPresentation === 'pin' || props.pinPresentation === 'expedition'
             ? L.marker([pin.lat, pin.lng], {
                 icon: L.divIcon({
                     className: 'journal-map-pin-wrapper',
                     html: `
-                        <div class="journal-map-pin journal-map-pin--minimal" style="--pin-color: ${pin.color}">
+                        <div class="journal-map-pin journal-map-pin--minimal ${props.pinPresentation === 'expedition' ? 'journal-map-pin--expedition' : ''}" style="--pin-color: ${pin.color}">
                             <span class="journal-map-pin__core">
-                                ${count > 1 ? `<span class="journal-map-pin__count">${count}</span>` : '<span class="journal-map-pin__dot"></span>'}
+                                ${count > 1
+                                    ? `<span class="journal-map-pin__count">${count}</span>`
+                                    : props.pinPresentation === 'expedition'
+                                        ? '<span class="journal-map-pin__glyph">✦</span>'
+                                        : '<span class="journal-map-pin__dot"></span>'}
                             </span>
                         </div>
                     `,

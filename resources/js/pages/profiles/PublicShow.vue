@@ -306,7 +306,7 @@ const expeditionMapWarning = computed(() => {
                     :pins="expeditionMapData.pins"
                     :default-view="expeditionMapData.defaultView"
                     :storage-key="`${profile.slug}-public-expedition-atlas`"
-                    pin-presentation="pin"
+                    pin-presentation="expedition"
                     :auto-fit-to-geometry="false"
                     :show-legend="false"
                     :show-filters="false"
