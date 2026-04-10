@@ -15,13 +15,21 @@ const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
 const journalNav = computed(() => (page.props.journalNav as JournalNavShape | undefined) ?? null);
 const heroTitle = 'Your kayaking journal';
 
+type PrimaryNavItem = {
+    label: string;
+    href: string;
+    match: readonly string[];
+    placeholder?: boolean;
+};
+
 const primaryNav = [
     { label: 'Dashboard', href: '/dashboard', match: ['/dashboard'] },
     { label: 'Diary', href: '/diary', match: ['/diary'] },
     { label: 'Observations', href: '/observations', match: ['/observations'] },
     { label: 'Expedition notes', href: '/expedition-notes', match: ['/expedition-notes', '/expeditions'] },
+    { label: 'Courses', href: '/courses', match: ['/courses'], placeholder: true },
     { label: 'Add session', href: '/sessions/create', match: ['/sessions/create', '/sessions/', '/imports/garmin'] },
-] as const;
+] satisfies readonly PrimaryNavItem[];
 
 const utilityLinks = computed(() => {
     return [
@@ -65,7 +73,11 @@ const backFallback = computed(() => {
     return '/dashboard';
 });
 
-function isActive(item: { href: string; match: readonly string[] }) {
+function isActive(item: { href: string; match: readonly string[]; placeholder?: boolean }) {
+    if (item.placeholder) {
+        return false;
+    }
+
     if (item.match.includes(currentPath.value)) {
         return true;
     }
@@ -92,6 +104,10 @@ function goBack() {
 
 function isPrimaryCta(item: { href: string }) {
     return item.href === '/sessions/create';
+}
+
+function isPlaceholder(item: { placeholder?: boolean }) {
+    return Boolean(item.placeholder);
 }
 
 function isUtilityActive(item: { href: string; match: string[] }) {
@@ -135,18 +151,20 @@ function isUtilityActive(item: { href: string; match: string[] }) {
 
                 <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                     <nav class="inline-flex flex-wrap items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/74 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                        <Link
+                        <component
                             v-for="item in primaryNav"
                             :key="item.label"
-                            :href="item.href"
+                            :is="isPlaceholder(item) ? 'span' : Link"
+                            :href="isPlaceholder(item) ? undefined : item.href"
                             :class="[
                                 'journal-tab',
                                 isActive(item) ? 'journal-tab--active' : '',
                                 isPrimaryCta(item) ? 'journal-tab--cta' : '',
+                                isPlaceholder(item) ? 'journal-tab--placeholder' : '',
                             ]"
                         >
                             {{ item.label }}
-                        </Link>
+                        </component>
                     </nav>
 
                     <div class="flex flex-wrap items-center gap-2">
