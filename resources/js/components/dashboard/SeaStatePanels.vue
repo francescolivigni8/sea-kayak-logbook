@@ -214,7 +214,7 @@ function tidePercent(count: number) {
                         <div class="grid h-[58px] w-[58px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
                             <div>
                                 <p class="text-xl font-semibold text-[color:var(--journal-text)]">{{ loggedForceCount }}</p>
-                                <p class="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">
+                                <p class="text-[9px] font-medium uppercase tracking-[0.16em] text-[color:var(--journal-faint)]">
                                     logged
                                 </p>
                             </div>
@@ -443,7 +443,7 @@ function tidePercent(count: number) {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Distance windows</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">All time / this year / last 12 months</h3>
+                        <h3 class="mt-2 text-[1.7rem] leading-none">Timeframe comparison</h3>
                     </div>
                     <span class="journal-chip">{{ compareChip }}</span>
                 </div>
