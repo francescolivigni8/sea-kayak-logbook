@@ -359,14 +359,34 @@ function renderGeometry() {
         }
 
         const latLngs = route.points.map((point) => [point.lat, point.lng] as [number, number]);
+        const baseWeight = route.isExpedition ? 5 : 4;
+        const hoverWeight = route.isExpedition ? 8 : 7;
+        const baseOpacity = 0.9;
+        const hoverOpacity = 1;
 
         const polyline = L.polyline(latLngs, {
+            className: route.path ? 'journal-map-route journal-map-route--interactive' : 'journal-map-route',
             color: route.color,
-            weight: route.isExpedition ? 5 : 4,
-            opacity: 0.9,
+            weight: baseWeight,
+            opacity: baseOpacity,
         })
             .bindTooltip(route.label)
             .addTo(routeLayerGroup);
+
+        polyline.on('mouseover', () => {
+            polyline.setStyle({
+                weight: hoverWeight,
+                opacity: hoverOpacity,
+            });
+            polyline.bringToFront();
+        });
+
+        polyline.on('mouseout', () => {
+            polyline.setStyle({
+                weight: baseWeight,
+                opacity: baseOpacity,
+            });
+        });
 
         if (route.path && typeof window !== 'undefined') {
             polyline.on('click', () => {

@@ -442,6 +442,17 @@
         display: none;
     }
 
+    .journal-map-route {
+        transition:
+            stroke-width 160ms ease,
+            stroke-opacity 160ms ease,
+            filter 160ms ease;
+    }
+
+    .journal-map-route--interactive {
+        cursor: pointer;
+    }
+
     .journal-primary-link {
         display: inline-flex;
         align-items: center;
