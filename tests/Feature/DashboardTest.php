@@ -42,6 +42,7 @@ class DashboardTest extends TestCase
             'distance_km' => 42.5,
             'moving_minutes' => 180,
             'duration_minutes' => 210,
+            'wind_beaufort' => 4,
             'expedition_days' => 3,
             'is_expedition' => true,
             'is_public' => true,
@@ -58,6 +59,7 @@ class DashboardTest extends TestCase
             'distance_km' => 18.0,
             'moving_minutes' => 120,
             'duration_minutes' => 130,
+            'wind_beaufort' => 5,
             'expedition_days' => 2,
             'is_expedition' => true,
             'is_public' => true,
@@ -82,6 +84,7 @@ class DashboardTest extends TestCase
                 ->component('Dashboard')
                 ->where('headline.averageSpeedKnots', 4.7)
                 ->where('headline.averageSpeedSamples', 3)
+                ->where('seaState.averageBeaufort', 4.5)
                 ->where('expeditionSummary.distanceKm', 66.5)
                 ->where('expeditionSummary.daysOut', 5)
                 ->where('expeditionSummary.tripCount', 3)

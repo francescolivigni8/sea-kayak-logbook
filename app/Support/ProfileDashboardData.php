@@ -449,11 +449,16 @@ class ProfileDashboardData
             ];
         })->values()->all();
 
+        $beaufortValues = $sessions
+            ->pluck('wind_beaufort')
+            ->filter(fn ($value) => $value !== null)
+            ->map(fn ($value) => (float) $value);
         $airTemps = $sessions->pluck('air_temp_c')->filter(fn ($value) => $value !== null)->map(fn ($value) => (float) $value);
         $seaTemps = $sessions->pluck('sea_temp_c')->filter(fn ($value) => $value !== null)->map(fn ($value) => (float) $value);
 
         return [
             'beaufortBands' => $beaufortBase->values()->all(),
+            'averageBeaufort' => $beaufortValues->count() ? round((float) $beaufortValues->avg(), 1) : null,
             'tideStates' => $tideStates,
             'conditionMatrix' => $conditionMatrix,
             'rescueTotals' => [

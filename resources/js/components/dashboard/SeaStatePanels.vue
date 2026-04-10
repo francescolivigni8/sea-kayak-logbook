@@ -41,6 +41,7 @@ interface MonthlyDistanceRow {
 
 interface SeaStateSummary {
     beaufortBands: ForceBand[];
+    averageBeaufort: number | null;
     tideStates: TideState[];
     conditionMatrix: ConditionRow[];
     rescueTotals: RescueTotal[];
@@ -148,6 +149,16 @@ const forceDonutStyle = computed(() => {
     };
 });
 
+const averageBeaufortLabel = computed(() => {
+    if (props.seaState.averageBeaufort === null) {
+        return '—';
+    }
+
+    return Number.isInteger(props.seaState.averageBeaufort)
+        ? `F${props.seaState.averageBeaufort.toFixed(0)}`
+        : `F${props.seaState.averageBeaufort.toFixed(1)}`;
+});
+
 const conditionHeatmapRows = computed(() =>
     props.seaState.conditionMatrix.map((row) => {
         const total = row.values.reduce((sum, value) => sum + value.count, 0);
@@ -213,9 +224,9 @@ function tidePercent(count: number) {
                     <div class="relative grid h-24 w-24 place-items-center rounded-full" :style="forceDonutStyle">
                         <div class="grid h-[58px] w-[58px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
                             <div>
-                                <p class="text-xl font-semibold text-[color:var(--journal-text)]">{{ loggedForceCount }}</p>
+                                <p class="text-[18px] font-semibold text-[color:var(--journal-text)]">{{ averageBeaufortLabel }}</p>
                                 <p class="text-[9px] font-medium uppercase tracking-[0.16em] text-[color:var(--journal-faint)]">
-                                    logged
+                                    average
                                 </p>
                             </div>
                         </div>
