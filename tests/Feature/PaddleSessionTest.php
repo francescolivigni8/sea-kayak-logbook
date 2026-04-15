@@ -58,7 +58,7 @@ class PaddleSessionTest extends TestCase
                 'duration_minutes' => '94',
                 'is_public' => true,
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('dashboard'));
 
         $profile = $user->resolveActiveProfile();
 

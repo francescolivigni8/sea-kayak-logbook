@@ -126,7 +126,7 @@ class PaddleSessionController extends Controller
         }
 
         return redirect()
-            ->route('sessions.edit', $session)
+            ->route('dashboard')
             ->with('success', $successMessage);
     }
 
