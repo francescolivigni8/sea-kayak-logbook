@@ -2,7 +2,7 @@
 import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
 import InputError from '@/components/InputError.vue';
 import { useForm } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -82,6 +82,7 @@ const props = defineProps<{
     formDefaults: SessionFormDefaults;
     existingAssets: ExistingAssets;
     sessionId?: number;
+    initialStep?: number;
 }>();
 
 const form = useForm({
@@ -114,8 +115,9 @@ const steps = [
     },
 ] as const;
 
-const currentStep = ref(0);
+const currentStep = ref(Math.max(0, Math.min(props.initialStep ?? 0, steps.length - 1)));
 const currentStepMeta = computed(() => steps[currentStep.value]);
+const notesTextarea = ref<HTMLTextAreaElement | null>(null);
 
 const routeCategoryOptions = ['journey', 'training', 'benchmark', 'navigation', 'rescue-practice', 'expedition'];
 const bodyOfWaterOptions = ['sea', 'ocean', 'fjord', 'lake', 'river', 'canal', 'other'];
@@ -356,6 +358,15 @@ function submit() {
         preserveScroll: true,
     });
 }
+
+onMounted(async () => {
+    if (currentStep.value !== 3) {
+        return;
+    }
+
+    await nextTick();
+    notesTextarea.value?.focus();
+});
 </script>
 
 <template>
@@ -822,6 +833,7 @@ function submit() {
                             <label class="journal-field-label" for="notes_public">Observations</label>
                             <textarea
                                 id="notes_public"
+                                ref="notesTextarea"
                                 v-model="form.notes_public"
                                 class="journal-textarea"
                                 placeholder="What should improve next time, what went wrong, and any mistakes or lessons from the paddle."

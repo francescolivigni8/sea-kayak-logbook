@@ -31,7 +31,9 @@ defineProps<{
     sessionMeta: {
         id: number;
         title: string;
+        hasObservation: boolean;
     };
+    initialStep: number;
     formDefaults: Record<string, string | boolean>;
     existingAssets: {
         gpxName: string | null;
@@ -52,6 +54,7 @@ defineProps<{
             :form-defaults="formDefaults"
             :existing-assets="existingAssets"
             :session-id="sessionMeta.id"
+            :initial-step="initialStep"
         />
     </div>
 </template>

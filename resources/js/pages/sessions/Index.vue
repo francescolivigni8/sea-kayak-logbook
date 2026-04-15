@@ -26,6 +26,7 @@ interface SessionListItem {
     isExpedition: boolean;
     expeditionDays: number | null;
     hasTrack: boolean;
+    hasObservation: boolean;
     photoUrl: string | null;
 }
 
@@ -127,8 +128,11 @@ const statCards = computed(() => [
                             <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
                         </div>
 
-                        <Link :href="`/sessions/${session.id}/edit`" class="journal-utility-link">
-                            Edit
+                        <Link
+                            :href="session.hasObservation ? `/sessions/${session.id}/edit` : `/sessions/${session.id}/edit?step=notes`"
+                            class="journal-utility-link"
+                        >
+                            {{ session.hasObservation ? 'Edit' : 'Add observation' }}
                         </Link>
                     </div>
 

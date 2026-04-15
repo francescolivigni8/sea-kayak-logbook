@@ -326,7 +326,12 @@ const routeMapData = computed(() => {
 
                 <div class="flex flex-wrap gap-2">
                     <Link href="/sessions" class="journal-utility-link">Library</Link>
-                    <Link :href="`/sessions/${session.id}/edit`" class="journal-primary-link">Edit session</Link>
+                    <Link
+                        :href="session.notesPublic ? `/sessions/${session.id}/edit` : `/sessions/${session.id}/edit?step=notes`"
+                        class="journal-primary-link"
+                    >
+                        {{ session.notesPublic ? 'Edit session' : 'Add observation' }}
+                    </Link>
                 </div>
             </div>
         </section>

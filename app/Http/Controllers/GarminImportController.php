@@ -66,9 +66,9 @@ class GarminImportController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
+            ->route('sessions.index')
             ->with('success', sprintf(
-                'Garmin import finished: %d sessions, %s km, %d GPX matched, %d FIT matched.',
+                'Garmin import finished: %d sessions, %s km, %d GPX matched, %d FIT matched. Review imported sessions and add observations where useful.',
                 $summary['imported'],
                 number_format($summary['distanceKm'], 1),
                 $summary['gpxMatched'],

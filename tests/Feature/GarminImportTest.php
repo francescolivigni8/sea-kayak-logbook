@@ -36,7 +36,7 @@ class GarminImportTest extends TestCase
             ->post(route('imports.garmin.store'), [
                 'csv_file' => $csv,
             ])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('sessions.index'));
 
         $profile = $user->resolveActiveProfile();
 
@@ -65,7 +65,7 @@ class GarminImportTest extends TestCase
                 'csv_file' => $csv,
                 'fit_files' => [$fit],
             ])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('sessions.index'));
 
         $profile = $user->resolveActiveProfile();
         $session = PaddleSession::query()

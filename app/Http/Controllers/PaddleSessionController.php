@@ -94,6 +94,7 @@ class PaddleSessionController extends Controller
         return Inertia::render('sessions/Edit', [
             'profile' => $this->mapProfile($profile),
             'sessionMeta' => $this->mapSessionListItem($session),
+            'initialStep' => $this->resolveInitialStep($request),
             'formDefaults' => $this->formDefaults($profile, $session),
             'existingAssets' => [
                 'gpxName' => $session->garmin_gpx_name,
@@ -144,6 +145,7 @@ class PaddleSessionController extends Controller
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
             'hasTrack' => $this->hasTrackData($session),
+            'hasObservation' => filled($session->notes_public),
             'photoUrl' => $this->media->url($session->session_photo_path),
         ];
     }
@@ -600,6 +602,17 @@ class PaddleSessionController extends Controller
             $windAvgMs < 28.5 => 10,
             $windAvgMs < 32.7 => 11,
             default => 12,
+        };
+    }
+
+    private function resolveInitialStep(Request $request): int
+    {
+        return match ($request->query('step')) {
+            'journey', '1', 1 => 0,
+            'sea', '2', 2 => 1,
+            'development', '3', 3 => 2,
+            'notes', '4', 4 => 3,
+            default => 0,
         };
     }
 }
