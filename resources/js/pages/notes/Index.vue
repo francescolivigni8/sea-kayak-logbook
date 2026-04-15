@@ -69,12 +69,12 @@ defineProps<{
                     </div>
 
                     <div class="space-y-2">
-                        <h3 class="text-[1.4rem] leading-none text-[color:var(--journal-text)]">
-                            {{ item.title }}
-                        </h3>
-                        <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
+                        <p class="text-[1.28rem] leading-[1.3] text-[color:var(--journal-text)] md:text-[1.38rem]">
                             {{ item.summary }}
                         </p>
+                        <h3 class="text-sm font-medium leading-6 text-[color:var(--journal-muted)]">
+                            {{ item.title }}
+                        </h3>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
