@@ -109,4 +109,17 @@ class User extends Authenticatable
             ->unique('id')
             ->values();
     }
+
+    public function canViewOwnerTools(): bool
+    {
+        $ownerEmails = collect(config('kayak.owner_emails', []))
+            ->map(fn (string $email) => trim(strtolower($email)))
+            ->filter();
+
+        if ($ownerEmails->isEmpty()) {
+            return app()->environment(['local', 'testing']);
+        }
+
+        return $ownerEmails->contains(strtolower($this->email));
+    }
 }

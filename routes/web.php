@@ -7,6 +7,7 @@ use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PublicProfileController;
+use App\Http\Controllers\UserInsightsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
     Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])->name('sessions.weather-preview');
+    Route::get('insights/users', UserInsightsController::class)
+        ->middleware('journal.owner')
+        ->name('insights.users');
 
     Route::resource('sessions', PaddleSessionController::class)
         ->except(['destroy']);

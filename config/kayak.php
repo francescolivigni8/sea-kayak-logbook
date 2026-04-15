@@ -2,6 +2,11 @@
 
 return [
     'media_disk' => env('KAYAK_MEDIA_DISK', 'public'),
+    'owner_emails' => collect(explode(',', (string) env('KAYAK_OWNER_EMAILS', '')))
+        ->map(fn (string $email) => trim(strtolower($email)))
+        ->filter()
+        ->values()
+        ->all(),
     'weather' => [
         'providers' => [
             'stormglass' => [

@@ -9,10 +9,15 @@ type JournalNavShape = {
     thisYearDistanceKm?: number;
 };
 
+type OwnerToolsShape = {
+    canViewUsers?: boolean;
+};
+
 const page = usePage();
 
 const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
 const journalNav = computed(() => (page.props.journalNav as JournalNavShape | undefined) ?? null);
+const ownerTools = computed(() => (page.props.ownerTools as OwnerToolsShape | undefined) ?? null);
 const heroTitle = 'Your kayaking journal';
 
 type PrimaryNavItem = {
@@ -35,6 +40,7 @@ const utilityLinks = computed(() => {
     return [
         { label: 'Library', href: '/sessions', match: ['/sessions'] },
         { label: 'Import', href: '/imports/garmin', match: ['/imports/garmin'] },
+        ...(ownerTools.value?.canViewUsers ? [{ label: 'Users', href: '/insights/users', match: ['/insights'] }] : []),
         { label: 'Account', href: '/settings/profile', match: ['/settings'] },
     ];
 });
@@ -55,6 +61,10 @@ const backFallback = computed(() => {
     }
 
     if (currentPath.value.startsWith('/settings/')) {
+        return '/dashboard';
+    }
+
+    if (currentPath.value.startsWith('/insights/')) {
         return '/dashboard';
     }
 

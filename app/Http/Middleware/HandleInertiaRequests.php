@@ -63,6 +63,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'journalNav' => $journalNav,
+            'ownerTools' => [
+                'canViewUsers' => $request->user()?->canViewOwnerTools() ?? false,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
             ],
