@@ -37,6 +37,43 @@ class JournalNotesTest extends TestCase
                 ->has('items', 1));
     }
 
+    public function test_observations_hide_sessions_without_observation_text(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Has observation',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'benchmark',
+            'distance_km' => 7.1,
+            'notes_public' => 'Good lesson from this paddle.',
+            'is_public' => true,
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-07',
+            'title' => 'No observation text',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'journey',
+            'distance_km' => 5.4,
+            'is_public' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('observations'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('notes/Index')
+                ->where('count', 1)
+                ->has('items', 1)
+                ->where('items.0.title', 'Has observation')
+                ->where('items.0.summary', 'Good lesson from this paddle.'));
+    }
+
     public function test_authenticated_users_can_open_expedition_notes(): void
     {
         $user = User::factory()->create();

@@ -22,7 +22,7 @@ class JournalNotesController extends Controller
             ->latest('session_date')
             ->latest('id')
             ->get()
-            ->filter(fn (PaddleSession $session) => filled($session->notes_public) || filled($session->notes_private))
+            ->filter(fn (PaddleSession $session) => filled($session->notes_public))
             ->values();
 
         return Inertia::render('notes/Index', [
@@ -69,7 +69,7 @@ class JournalNotesController extends Controller
     {
         $primaryNote = $expeditionMode
             ? ($session->expedition_notes ?: $session->notes_public ?: $session->notes_private)
-            : ($session->notes_public ?: $session->notes_private ?: $session->expedition_notes);
+            : $session->notes_public;
 
         return [
             'id' => $session->id,
