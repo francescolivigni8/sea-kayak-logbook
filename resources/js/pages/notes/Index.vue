@@ -36,28 +36,18 @@ defineProps<{
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-3">
-                    <p class="journal-kicker">{{ mode === 'observations' ? 'Observations' : 'Expedition notes' }}</p>
-                    <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96] text-[color:var(--journal-text)]">
-                            {{ title }}
-                        </h2>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            {{ description }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex flex-col items-start gap-2 xl:items-end">
-                    <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ count }} notes</span>
+            <div class="space-y-3">
+                <p class="journal-kicker">{{ mode === 'observations' ? 'Observations' : 'Expedition notes' }}</p>
+                <div class="space-y-2">
+                    <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96] text-[color:var(--journal-text)]">
+                        {{ title }}
+                    </h2>
+                    <p class="journal-copy max-w-3xl text-sm md:text-base">
+                        {{ description }}
+                    </p>
+                    <p class="text-sm font-medium text-[color:var(--journal-muted)]">{{ count }} notes</p>
                 </div>
             </div>
-        </section>
-
-        <section class="journal-banner journal-banner--soft">
-            These note surfaces stay deliberately simple: short cards, a few tags, and a direct link back to the session that generated them.
         </section>
 
         <section class="grid gap-4 md:grid-cols-2">
