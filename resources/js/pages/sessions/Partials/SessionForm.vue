@@ -824,7 +824,7 @@ function submit() {
                                 id="notes_public"
                                 v-model="form.notes_public"
                                 class="journal-textarea"
-                                placeholder="Wildlife, route notes, standout moments, or observations from the paddle."
+                                placeholder="What should improve next time, what went wrong, and any mistakes or lessons from the paddle."
                             />
                             <InputError :message="form.errors.notes_public" />
                         </div>
