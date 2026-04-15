@@ -28,6 +28,7 @@ defineProps<{
         homeWater: string;
         timezone: string;
     };
+    weatherAutofillAvailable: boolean;
     formDefaults: Record<string, string | boolean>;
     existingAssets: {
         gpxName: string | null;
@@ -42,6 +43,12 @@ defineProps<{
     <Head title="Add session" />
 
     <div class="flex flex-col gap-5">
-        <SessionForm mode="create" :profile="profile" :form-defaults="formDefaults" :existing-assets="existingAssets" />
+        <SessionForm
+            mode="create"
+            :profile="profile"
+            :weather-autofill-available="weatherAutofillAvailable"
+            :form-defaults="formDefaults"
+            :existing-assets="existingAssets"
+        />
     </div>
 </template>

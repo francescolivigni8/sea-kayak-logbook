@@ -28,6 +28,7 @@ defineProps<{
         homeWater: string;
         timezone: string;
     };
+    weatherAutofillAvailable: boolean;
     sessionMeta: {
         id: number;
         title: string;
@@ -51,6 +52,7 @@ defineProps<{
         <SessionForm
             mode="edit"
             :profile="profile"
+            :weather-autofill-available="weatherAutofillAvailable"
             :form-defaults="formDefaults"
             :existing-assets="existingAssets"
             :session-id="sessionMeta.id"

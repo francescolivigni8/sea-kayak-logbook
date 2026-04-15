@@ -11,6 +11,7 @@ class UpsertPaddleSessionRequest extends FormRequest
         $this->merge([
             'is_expedition' => $this->boolean('is_expedition'),
             'is_public' => $this->boolean('is_public'),
+            'autofill_weather' => $this->boolean('autofill_weather'),
         ]);
     }
 
@@ -76,6 +77,7 @@ class UpsertPaddleSessionRequest extends FormRequest
             'expedition_days' => ['nullable', 'integer', 'min:2', 'max:100'],
             'expedition_notes' => ['nullable', 'string'],
             'is_public' => ['sometimes', 'boolean'],
+            'autofill_weather' => ['sometimes', 'boolean'],
             'gpx_file' => ['nullable', 'file', 'mimes:gpx,xml', 'max:20480'],
             'fit_file' => ['nullable', 'file', 'extensions:fit', 'max:20480'],
             'session_photo' => ['nullable', 'image', 'max:8192'],

@@ -13,9 +13,10 @@ class GarminImportService
         private readonly GpxTrackService $gpxTrackService,
         private readonly FitTrackService $fitTrackService,
         private readonly SessionMediaService $media,
+        private readonly StormglassWeatherService $stormglassWeather,
     ) {}
 
-    public function import(Profile $profile, string $csvPath, ?string $gpxDirectory = null, ?string $fitDirectory = null): array
+    public function import(Profile $profile, string $csvPath, ?string $gpxDirectory = null, ?string $fitDirectory = null, bool $autofillWeather = false): array
     {
         $rows = collect($this->parseCsvFile($csvPath))
             ->filter(fn (array $row) => strtolower(trim((string) ($row['Activity Type'] ?? ''))) === 'kayaking')
@@ -62,6 +63,16 @@ class GarminImportService
                 ->get();
         }
 
+        $weatherSummary = [
+            'filled' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+        ];
+
+        if ($autofillWeather) {
+            $weatherSummary = $this->stormglassWeather->enrichSessions($sessions);
+        }
+
         return [
             'imported' => $sessions->count(),
             'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
@@ -70,6 +81,9 @@ class GarminImportService
             'gpxUnmatched' => $gpxSummary['unmatched'],
             'fitMatched' => $fitSummary['matched'],
             'fitUnmatched' => $fitSummary['unmatched'],
+            'weatherFilled' => $weatherSummary['filled'],
+            'weatherSkipped' => $weatherSummary['skipped'],
+            'weatherFailed' => $weatherSummary['failed'],
         ];
     }
 

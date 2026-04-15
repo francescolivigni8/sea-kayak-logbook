@@ -73,12 +73,14 @@ interface SessionFormDefaults {
     is_expedition: boolean;
     expedition_days: string;
     expedition_notes: string;
+    autofill_weather: boolean;
     is_public: boolean;
 }
 
 const props = defineProps<{
     mode: 'create' | 'edit';
     profile: ProfileSummary;
+    weatherAutofillAvailable: boolean;
     formDefaults: SessionFormDefaults;
     existingAssets: ExistingAssets;
     sessionId?: number;
@@ -613,6 +615,25 @@ onMounted(async () => {
 
                 <div v-show="currentStep === 1" class="space-y-5">
                     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <label
+                            class="md:col-span-2 xl:col-span-4 flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)]"
+                            :class="!weatherAutofillAvailable ? 'opacity-70' : ''"
+                        >
+                            <input
+                                v-model="form.autofill_weather"
+                                type="checkbox"
+                                class="mt-1 size-4 rounded border-[color:var(--journal-line)]"
+                                :disabled="!weatherAutofillAvailable"
+                            />
+                            <span class="space-y-1">
+                                <strong class="block font-medium">Fill weather from Stormglass on save</strong>
+                                <span class="block text-[color:var(--journal-muted)]">
+                                    Uses the saved session point and time to fill wind, swell, current, temperatures, and derive Beaufort automatically.
+                                    <template v-if="!weatherAutofillAvailable"> Add your Stormglass API key first to enable this.</template>
+                                </span>
+                            </span>
+                        </label>
+
                         <div>
                             <label class="journal-field-label" for="wind_avg_ms">Wind avg (m/s)</label>
                             <input id="wind_avg_ms" v-model="form.wind_avg_ms" type="number" step="0.1" min="0" class="journal-input" />

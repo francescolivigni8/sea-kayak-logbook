@@ -6,6 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ImportGarminHistoryRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'autofill_weather' => $this->boolean('autofill_weather'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -19,6 +26,7 @@ class ImportGarminHistoryRequest extends FormRequest
             'gpx_files.*' => ['file', 'mimes:gpx,xml', 'max:20480'],
             'fit_files' => ['nullable', 'array'],
             'fit_files.*' => ['file', 'extensions:fit', 'max:20480'],
+            'autofill_weather' => ['sometimes', 'boolean'],
         ];
     }
 }

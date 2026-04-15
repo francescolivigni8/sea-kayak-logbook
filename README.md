@@ -78,6 +78,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 
 - Local media defaults to the `public` disk. Run `php artisan storage:link` locally.
 - For production object storage, set `FILESYSTEM_DISK=s3` and `KAYAK_MEDIA_DISK=s3`.
+- To enable Stormglass weather autofill on manual sessions and Garmin imports, set `STORMGLASS_API_KEY` in the environment. The app derives Beaufort from returned wind speed automatically.
 - Password reset, email verification, and login all use Laravel Fortify, so production mail delivery matters before launch.
 - Deployment/auth/storage steps are documented in [DEPLOY.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/DEPLOY.md).
 

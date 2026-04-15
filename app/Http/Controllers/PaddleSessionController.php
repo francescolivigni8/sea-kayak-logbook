@@ -8,6 +8,7 @@ use App\Models\Profile;
 use App\Support\FitTrackService;
 use App\Support\GpxTrackService;
 use App\Support\SessionMediaService;
+use App\Support\StormglassWeatherService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class PaddleSessionController extends Controller
         private readonly GpxTrackService $gpxTrackService,
         private readonly FitTrackService $fitTrackService,
         private readonly SessionMediaService $media,
+        private readonly StormglassWeatherService $stormglassWeather,
     ) {}
 
     public function index(Request $request): Response
@@ -51,6 +53,7 @@ class PaddleSessionController extends Controller
 
         return Inertia::render('sessions/Create', [
             'profile' => $this->mapProfile($profile),
+            'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
             'formDefaults' => $this->formDefaults($profile),
             'existingAssets' => [
                 'gpxName' => null,
@@ -80,10 +83,16 @@ class PaddleSessionController extends Controller
         $session = $profile->sessions()->create($payload);
 
         $this->storeFiles($request, $session);
+        $successMessage = 'Session saved. You can keep refining the notes, files, and expedition details.';
+
+        if ($request->boolean('autofill_weather')) {
+            $weatherResult = $this->stormglassWeather->enrichSession($session->fresh());
+            $successMessage = $this->appendWeatherMessage($successMessage, $weatherResult);
+        }
 
         return redirect()
             ->route('sessions.edit', $session)
-            ->with('success', 'Session saved. You can keep refining the notes, files, and expedition details.');
+            ->with('success', $successMessage);
     }
 
     public function edit(Request $request, PaddleSession $session): Response
@@ -95,6 +104,7 @@ class PaddleSessionController extends Controller
             'profile' => $this->mapProfile($profile),
             'sessionMeta' => $this->mapSessionListItem($session),
             'initialStep' => $this->resolveInitialStep($request),
+            'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
             'formDefaults' => $this->formDefaults($profile, $session),
             'existingAssets' => [
                 'gpxName' => $session->garmin_gpx_name,
@@ -114,8 +124,14 @@ class PaddleSessionController extends Controller
         $session->save();
 
         $this->storeFiles($request, $session);
+        $successMessage = 'Session updated.';
 
-        return back()->with('success', 'Session updated.');
+        if ($request->boolean('autofill_weather')) {
+            $weatherResult = $this->stormglassWeather->enrichSession($session->fresh());
+            $successMessage = $this->appendWeatherMessage($successMessage, $weatherResult);
+        }
+
+        return back()->with('success', $successMessage);
     }
 
     private function mapProfile(Profile $profile): array
@@ -280,6 +296,7 @@ class PaddleSessionController extends Controller
             'is_expedition' => (bool) ($session?->is_expedition ?? false),
             'expedition_days' => $session?->expedition_days !== null ? (string) $session->expedition_days : '',
             'expedition_notes' => $session?->expedition_notes ?? '',
+            'autofill_weather' => false,
             'is_public' => false,
         ];
     }
@@ -602,6 +619,15 @@ class PaddleSessionController extends Controller
             $windAvgMs < 28.5 => 10,
             $windAvgMs < 32.7 => 11,
             default => 12,
+        };
+    }
+
+    private function appendWeatherMessage(string $baseMessage, array $weatherResult): string
+    {
+        return match ($weatherResult['status'] ?? 'skipped') {
+            'filled' => $baseMessage.' Stormglass filled weather details and derived Beaufort from the saved session point.',
+            'failed' => $baseMessage.' Stormglass weather autofill failed this time.',
+            default => $baseMessage.' Stormglass weather autofill was skipped: '.($weatherResult['reason'] ?? 'not enough session data.'),
         };
     }
 

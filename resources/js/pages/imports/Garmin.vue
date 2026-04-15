@@ -10,6 +10,7 @@ const props = defineProps<{
         homeWater: string;
         timezone: string;
     };
+    weatherAutofillAvailable: boolean;
     stats: {
         sessionCount: number;
         distanceKm: number;
@@ -22,6 +23,7 @@ const form = useForm({
     csv_file: null as File | null,
     gpx_files: [] as File[],
     fit_files: [] as File[],
+    autofill_weather: false,
 });
 
 const selectedGpxCount = computed(() => form.gpx_files.length);
@@ -98,6 +100,25 @@ function submit() {
                             Repeated imports stay safer than one-off scripts because existing paddles are updated by external reference where possible.
                         </p>
                     </div>
+
+                    <label
+                        class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5 flex items-start gap-3 text-sm text-[color:var(--journal-text)]"
+                        :class="!weatherAutofillAvailable ? 'opacity-70' : ''"
+                    >
+                        <input
+                            v-model="form.autofill_weather"
+                            type="checkbox"
+                            class="mt-1 size-4 rounded border-[color:var(--journal-line)]"
+                            :disabled="!weatherAutofillAvailable"
+                        />
+                        <span class="space-y-1">
+                            <strong class="block font-medium">Fill weather from Stormglass after import</strong>
+                            <span class="block text-[color:var(--journal-muted)]">
+                                Tries to enrich imported sessions once they have a timestamp and a saved point from GPX or FIT data. Beaufort is derived from Stormglass wind speed.
+                                <template v-if="!weatherAutofillAvailable"> Add your Stormglass API key first to enable this.</template>
+                            </span>
+                        </span>
+                    </label>
 
                     <div class="grid gap-5">
                         <article class="journal-soft-card grid gap-2">

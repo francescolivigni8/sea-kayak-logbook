@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ImportGarminHistoryRequest;
 use App\Models\Profile;
 use App\Support\GarminImportService;
+use App\Support\StormglassWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,12 +15,17 @@ use Inertia\Response;
 
 class GarminImportController extends Controller
 {
+    public function __construct(
+        private readonly StormglassWeatherService $stormglassWeather,
+    ) {}
+
     public function create(Request $request): Response
     {
         $profile = $request->user()->resolveActiveProfile();
 
         return Inertia::render('imports/Garmin', [
             'profile' => $this->mapProfile($profile),
+            'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
             'stats' => [
                 'sessionCount' => $profile->sessions()->count(),
                 'distanceKm' => round((float) $profile->sessions()->sum('distance_km'), 1),
@@ -60,6 +66,7 @@ class GarminImportController extends Controller
                 $disk->path($csvPath),
                 $gpxDirectory ? $disk->path($gpxDirectory) : null,
                 $fitDirectory ? $disk->path($fitDirectory) : null,
+                $request->boolean('autofill_weather'),
             );
         } finally {
             $disk->deleteDirectory($baseDirectory);
@@ -68,11 +75,14 @@ class GarminImportController extends Controller
         return redirect()
             ->route('sessions.index')
             ->with('success', sprintf(
-                'Garmin import finished: %d sessions, %s km, %d GPX matched, %d FIT matched. Review imported sessions and add observations where useful.',
+                'Garmin import finished: %d sessions, %s km, %d GPX matched, %d FIT matched.%s Review imported sessions and add observations where useful.',
                 $summary['imported'],
                 number_format($summary['distanceKm'], 1),
                 $summary['gpxMatched'],
                 $summary['fitMatched'],
+                $request->boolean('autofill_weather')
+                    ? sprintf(' Stormglass weather filled %d sessions, skipped %d, failed %d.', $summary['weatherFilled'], $summary['weatherSkipped'], $summary['weatherFailed'])
+                    : ''
             ));
     }
 

@@ -6,6 +6,7 @@ use App\Models\PaddleSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -179,5 +180,58 @@ GPX);
         $this->assertGreaterThan(0, (int) $session->duration_minutes);
         $this->assertNotNull($session->launch_lat);
         $this->assertNotNull($session->launch_lng);
+    }
+
+    public function test_manual_sessions_can_autofill_weather_from_stormglass(): void
+    {
+        config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+
+        Http::fake([
+            'api.stormglass.io/*' => Http::response([
+                'hours' => [[
+                    'time' => '2026-04-06T18:00:00+00:00',
+                    'windSpeed' => ['sg' => 7.2],
+                    'gust' => ['sg' => 10.4],
+                    'windDirection' => ['sg' => 215],
+                    'airTemperature' => ['sg' => 8.5],
+                    'waterTemperature' => ['sg' => 6.1],
+                    'visibility' => ['sg' => 12000],
+                    'currentSpeed' => ['sg' => 0.4],
+                    'currentDirection' => ['sg' => 155],
+                    'waveHeight' => ['sg' => 0.7],
+                    'swellHeight' => ['sg' => 0.9],
+                    'swellPeriod' => ['sg' => 5.5],
+                    'swellDirection' => ['sg' => 235],
+                ]],
+            ]),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Stormglass-backed paddle',
+                'session_date' => '2026-04-06',
+                'start_time_local' => '18:00',
+                'launch_name' => 'Reykjavik',
+                'launch_lat' => '64.146600',
+                'launch_lng' => '-21.942600',
+                'route_category' => 'journey',
+                'distance_km' => '8.4',
+                'autofill_weather' => true,
+            ])
+            ->assertRedirect();
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Stormglass-backed paddle')
+            ->firstOrFail();
+
+        $this->assertSame(4, $session->wind_beaufort);
+        $this->assertSame(7.2, (float) $session->wind_avg_ms);
+        $this->assertSame(0.8, (float) $session->current_knots);
+        $this->assertSame('clear', $session->visibility_code);
+        $this->assertNotNull($session->weather_summary);
     }
 }
