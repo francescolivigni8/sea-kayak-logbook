@@ -187,7 +187,7 @@ GPX);
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
 
         Http::fake([
-            'api.stormglass.io/*' => Http::response([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
                 'hours' => [[
                     'time' => '2026-04-06T18:00:00+00:00',
                     'windSpeed' => ['sg' => 7.2],
@@ -203,6 +203,12 @@ GPX);
                     'swellPeriod' => ['sg' => 5.5],
                     'swellDirection' => ['sg' => 235],
                 ]],
+            ]),
+            'api.stormglass.io/v2/tide/extremes/point*' => Http::response([
+                'data' => [
+                    ['time' => '2026-04-06T15:45:00+00:00', 'type' => 'low', 'height' => 0.4],
+                    ['time' => '2026-04-06T21:55:00+00:00', 'type' => 'high', 'height' => 2.9],
+                ],
             ]),
         ]);
 
@@ -232,6 +238,7 @@ GPX);
         $this->assertSame(7.2, (float) $session->wind_avg_ms);
         $this->assertSame(0.8, (float) $session->current_knots);
         $this->assertSame('clear', $session->visibility_code);
+        $this->assertSame('flooding', $session->tide_state);
         $this->assertNotNull($session->weather_summary);
     }
 }

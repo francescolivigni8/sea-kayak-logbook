@@ -142,9 +142,36 @@ class StormglassWeatherService
             ->first();
     }
 
+    private function fetchTideExtremes(float $lat, float $lng, CarbonInterface $targetTime): array
+    {
+        $start = Carbon::instance($targetTime)->copy()->subHours(12)->utc()->toIso8601String();
+        $end = Carbon::instance($targetTime)->copy()->addHours(12)->utc()->toIso8601String();
+
+        $response = Http::timeout($this->timeout())
+            ->withHeaders([
+                $this->authHeader() => $this->apiKey(),
+            ])
+            ->get($this->tideExtremesUrl(), [
+                'lat' => $lat,
+                'lng' => $lng,
+                'start' => $start,
+                'end' => $end,
+            ]);
+
+        if (! $response->successful()) {
+            return [];
+        }
+
+        $data = $response->json('data');
+
+        return is_array($data) ? $data : [];
+    }
+
     private function applyForecast(PaddleSession $session, array $hour): int
     {
         $filled = 0;
+        [$lat, $lng] = $this->coordinatesFor($session);
+        $targetTime = $this->targetTime($session);
 
         $windSpeed = $this->extractNumericValue($hour, 'windSpeed');
         $windGust = $this->extractNumericValue($hour, 'gust');
@@ -177,6 +204,14 @@ class StormglassWeatherService
             $filled++;
         }
 
+        $tideState = ($lat !== null && $lng !== null)
+            ? $this->resolveTideState($targetTime, $this->fetchTideExtremes($lat, $lng, $targetTime))
+            : null;
+        if ($tideState !== null) {
+            $session->tide_state = $tideState;
+            $filled++;
+        }
+
         $beaufort = $this->resolveBeaufort($windSpeed);
         if ($beaufort !== null) {
             $session->wind_beaufort = $beaufort;
@@ -197,6 +232,7 @@ class StormglassWeatherService
         $parts = array_filter([
             $session->wind_beaufort !== null ? sprintf('F%d / %.1f m/s wind', $session->wind_beaufort, (float) $session->wind_avg_ms) : null,
             $session->wind_gust_ms !== null ? sprintf('gust %.1f m/s', (float) $session->wind_gust_ms) : null,
+            $session->tide_state ? sprintf('tide %s', $session->tide_state) : null,
             $session->swell_height_m !== null
                 ? sprintf('swell %.1f m @ %.1f s', (float) $session->swell_height_m, (float) ($session->swell_period_s ?? 0))
                 : ($session->wave_height_m !== null ? sprintf('wave %.1f m', (float) $session->wave_height_m) : null),
@@ -317,6 +353,58 @@ class StormglassWeatherService
         };
     }
 
+    private function resolveTideState(CarbonInterface $targetTime, array $extremes): ?string
+    {
+        $events = collect($extremes)
+            ->map(function ($item) {
+                if (! is_array($item) || empty($item['time']) || empty($item['type'])) {
+                    return null;
+                }
+
+                return [
+                    'time' => Carbon::parse((string) $item['time']),
+                    'type' => strtolower((string) $item['type']),
+                ];
+            })
+            ->filter()
+            ->sortBy(fn (array $item) => $item['time']->timestamp)
+            ->values();
+
+        if ($events->isEmpty()) {
+            return null;
+        }
+
+        $targetTimestamp = Carbon::instance($targetTime)->utc()->timestamp;
+
+        $nearest = $events
+            ->map(fn (array $item) => [
+                'time' => $item['time'],
+                'type' => $item['type'],
+                'distance' => abs($item['time']->timestamp - $targetTimestamp),
+            ])
+            ->sortBy('distance')
+            ->first();
+
+        if ($nearest && $nearest['distance'] <= 45 * 60) {
+            return $nearest['type'] === 'high' ? 'high' : 'low';
+        }
+
+        $previous = $events->filter(fn (array $item) => $item['time']->timestamp <= $targetTimestamp)->last();
+        $next = $events->first(fn (array $item) => $item['time']->timestamp > $targetTimestamp);
+
+        if ($previous && $next) {
+            if ($previous['type'] === 'low' && $next['type'] === 'high') {
+                return 'flooding';
+            }
+
+            if ($previous['type'] === 'high' && $next['type'] === 'low') {
+                return 'ebbing';
+            }
+        }
+
+        return 'slack';
+    }
+
     private function coordinatesFor(PaddleSession $session): array
     {
         if ($session->launch_lat !== null && $session->launch_lng !== null) {
@@ -349,6 +437,11 @@ class StormglassWeatherService
     private function baseUrl(): string
     {
         return config('kayak.weather.providers.stormglass.base_url');
+    }
+
+    private function tideExtremesUrl(): string
+    {
+        return config('kayak.weather.providers.stormglass.tide_extremes_url');
     }
 
     private function authHeader(): string

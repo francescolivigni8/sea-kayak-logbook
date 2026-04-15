@@ -85,7 +85,7 @@ class GarminImportTest extends TestCase
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
 
         Http::fake([
-            'api.stormglass.io/*' => Http::response([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
                 'hours' => [[
                     'time' => '2015-07-16T05:00:00+00:00',
                     'windSpeed' => ['sg' => 8.2],
@@ -101,6 +101,12 @@ class GarminImportTest extends TestCase
                     'swellPeriod' => ['sg' => 4.8],
                     'swellDirection' => ['sg' => 220],
                 ]],
+            ]),
+            'api.stormglass.io/v2/tide/extremes/point*' => Http::response([
+                'data' => [
+                    ['time' => '2015-07-16T04:40:00+00:00', 'type' => 'high', 'height' => 2.8],
+                    ['time' => '2015-07-16T10:50:00+00:00', 'type' => 'low', 'height' => 0.6],
+                ],
             ]),
         ]);
 
@@ -131,6 +137,7 @@ class GarminImportTest extends TestCase
 
         $this->assertSame(5, $session->wind_beaufort);
         $this->assertSame(8.2, (float) $session->wind_avg_ms);
+        $this->assertSame('ebbing', $session->tide_state);
         $this->assertNotNull($session->weather_summary);
     }
 }
