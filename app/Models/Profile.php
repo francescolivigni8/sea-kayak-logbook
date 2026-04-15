@@ -52,4 +52,9 @@ class Profile extends Model
     {
         return $this->hasMany(PaddleSession::class);
     }
+
+    public function requiresSetup(): bool
+    {
+        return blank(data_get($this->settings ?? [], 'setup_completed_at'));
+    }
 }

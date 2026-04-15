@@ -1,63 +1,21 @@
-<script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
-import { edit as editProfile } from '@/routes/profile';
-import { edit as editSecurity } from '@/routes/security';
-import type { NavItem } from '@/types';
-
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: editProfile(),
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-    },
-];
-
-const { isCurrentOrParentUrl } = useCurrentUrl();
-</script>
-
 <template>
     <div class="flex flex-col gap-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                <div class="space-y-3">
-                    <p class="journal-kicker">Settings</p>
-                    <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.35rem)] leading-[0.96] text-[color:var(--journal-text)]">
-                            Account and appearance
-                        </h2>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Identity, password, and appearance kept in the same calm journal language.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap gap-2">
-                    <Link
-                        v-for="item in sidebarNavItems"
-                        :key="`hero-${toUrl(item.href)}`"
-                        :href="item.href"
-                        :class="['journal-tab', isCurrentOrParentUrl(item.href) ? 'journal-tab--active' : '']"
-                    >
-                        {{ item.title }}
-                    </Link>
+            <div class="space-y-3">
+                <p class="journal-kicker">Settings</p>
+                <div class="space-y-2">
+                    <h2 class="text-[clamp(1.9rem,3vw,2.35rem)] leading-[0.96] text-[color:var(--journal-text)]">
+                        Account
+                    </h2>
+                    <p class="journal-copy max-w-3xl text-sm md:text-base">
+                        Keep your paddler details, password, appearance, and recovery options together in one place.
+                    </p>
                 </div>
             </div>
         </section>
 
-        <div class="max-w-4xl">
-            <section class="space-y-5">
-                <slot />
-            </section>
-        </div>
+        <section class="space-y-5">
+            <slot />
+        </section>
     </div>
 </template>

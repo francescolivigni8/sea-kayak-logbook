@@ -25,7 +25,25 @@ class AuthenticationTest extends TestCase
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,
-            'password' => 'password',
+            'password' => 'JournalPass123!',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('profile.edit', ['setup' => 1], false));
+    }
+
+    public function test_users_with_completed_profile_setup_are_sent_to_the_dashboard()
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $settings = $profile->settings ?? [];
+        $settings['setup_completed_at'] = now()->toIso8601String();
+        $profile->settings = $settings;
+        $profile->save();
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'JournalPass123!',
         ]);
 
         $this->assertAuthenticated();
@@ -51,7 +69,7 @@ class AuthenticationTest extends TestCase
 
         $response = $this->post(route('login'), [
             'email' => $user->email,
-            'password' => 'password',
+            'password' => 'JournalPass123!',
         ]);
 
         $response->assertRedirect(route('two-factor.login'));

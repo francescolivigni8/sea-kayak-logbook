@@ -43,7 +43,7 @@ class TwoFactorChallengeTest extends TestCase
 
         $this->post(route('login'), [
             'email' => $user->email,
-            'password' => 'password',
+            'password' => 'JournalPass123!',
         ]);
 
         $this->get(route('two-factor.login'))

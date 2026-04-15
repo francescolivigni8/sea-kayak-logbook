@@ -120,7 +120,7 @@
             <div class="chips">
                 <div class="chip">Email + password</div>
                 <div class="chip">Private workspace</div>
-                <div class="chip">Route uploads later</div>
+                <div class="chip">Profile setup first</div>
             </div>
 
             @if ($status)

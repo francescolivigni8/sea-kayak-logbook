@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
-use Illuminate\Support\Arr;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Fortify\Features;
 
 class ProfileController extends Controller
 {
@@ -24,17 +24,25 @@ class ProfileController extends Controller
         $settings = $profile->settings ?? [];
 
         return Inertia::render('settings/Profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'requiresSetup' => $profile->requiresSetup(),
+            'setupMode' => $request->boolean('setup') || $profile->requiresSetup(),
+            'security' => [
+                'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
+                'twoFactorEnabled' => Features::canManageTwoFactorAuthentication()
+                    ? $request->user()->hasEnabledTwoFactorAuthentication()
+                    : false,
+                'requiresConfirmation' => Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm'),
+            ],
             'profile' => [
                 'name' => $profile->name,
+                'email' => $request->user()->email,
                 'homeWater' => $profile->home_water,
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
                     'kayaksOwnedText' => implode(', ', data_get($settings, 'kayaks_owned', [])),
                     'paddlesOwnedText' => implode(', ', data_get($settings, 'paddles_owned', [])),
-                    'bio' => (string) data_get($settings, 'bio', ''),
                 ],
             ],
         ]);
@@ -60,11 +68,15 @@ class ProfileController extends Controller
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
         $settings['kayaks_owned'] = $this->explodeManualTags($validated['kayaks_owned_text'] ?? null);
         $settings['paddles_owned'] = $this->explodeManualTags($validated['paddles_owned_text'] ?? null);
-        $settings['bio'] = $this->blankToNull($validated['bio'] ?? null);
+        $settings['setup_completed_at'] = now()->toIso8601String();
         $profile->settings = $settings;
         $profile->save();
 
-        return to_route('profile.edit');
+        if ($request->boolean('finish_setup') || $profile->requiresSetup()) {
+            return to_route('dashboard')->with('success', 'Profile setup complete.');
+        }
+
+        return to_route('profile.edit')->with('status', 'Profile saved.');
     }
 
     private function blankToNull(mixed $value): ?string

@@ -72,6 +72,11 @@
         }
         .field { margin-top: 18px; display: grid; gap: 8px; }
         label { font-size: 14px; font-weight: 600; color: var(--text); }
+        .hint {
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--muted);
+        }
         input {
             width: 100%;
             box-sizing: border-box;
@@ -105,7 +110,7 @@
         <section class="card">
             <div class="eyebrow">New workspace</div>
             <h1>Create your kayak account</h1>
-            <p>Create the account first, then go straight into the journal dashboard.</p>
+            <p>Create the account first, then go straight into your paddler profile setup before you start logging sessions.</p>
 
             <div class="chips">
                 <div class="chip">Private journal</div>
@@ -131,6 +136,9 @@
                 <div class="field">
                     <label for="password">Password</label>
                     <input id="password" type="password" name="password" required autocomplete="new-password" placeholder="Password">
+                    <div class="hint">
+                        Use at least 12 characters with uppercase, lowercase, a number, and a symbol.
+                    </div>
                     @error('password') <div class="error">{{ $message }}</div> @enderror
                 </div>
 

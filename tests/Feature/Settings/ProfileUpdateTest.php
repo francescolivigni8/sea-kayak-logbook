@@ -34,7 +34,6 @@ class ProfileUpdateTest extends TestCase
                 'kayak_club' => 'Brokey Kayak Club',
                 'kayaks_owned_text' => 'Valley Etain 17-7, P&H Scorpio MV',
                 'paddles_owned_text' => 'Werner Cyprus, Gearlab Kalleq',
-                'bio' => 'Cold-water paddler focused on sea state, route memory, and expedition notes.',
             ]);
 
         $response
@@ -51,7 +50,7 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
         $this->assertSame(['Valley Etain 17-7', 'P&H Scorpio MV'], data_get($profile->settings, 'kayaks_owned'));
         $this->assertSame(['Werner Cyprus', 'Gearlab Kalleq'], data_get($profile->settings, 'paddles_owned'));
-        $this->assertSame('Cold-water paddler focused on sea state, route memory, and expedition notes.', data_get($profile->settings, 'bio'));
+        $this->assertNotNull(data_get($profile->settings, 'setup_completed_at'));
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
@@ -79,7 +78,7 @@ class ProfileUpdateTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->delete(route('profile.destroy'), [
-                'password' => 'password',
+                'password' => 'JournalPass123!',
             ]);
 
         $response

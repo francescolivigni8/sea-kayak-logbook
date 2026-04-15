@@ -23,7 +23,6 @@ class ProfileUpdateRequest extends FormRequest
             'kayak_club' => ['nullable', 'string', 'max:255'],
             'kayaks_owned_text' => ['nullable', 'string', 'max:2000'],
             'paddles_owned_text' => ['nullable', 'string', 'max:2000'],
-            'bio' => ['nullable', 'string', 'max:4000'],
         ];
     }
 }

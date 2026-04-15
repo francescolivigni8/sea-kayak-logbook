@@ -7,6 +7,16 @@ use Illuminate\Validation\Rules\Password;
 
 trait PasswordValidationRules
 {
+    protected function passwordRule(): Password
+    {
+        return Password::min(12)
+            ->letters()
+            ->mixedCase()
+            ->numbers()
+            ->symbols()
+            ->uncompromised();
+    }
+
     /**
      * Get the validation rules used to validate passwords.
      *
@@ -14,7 +24,7 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
-        return ['required', 'string', Password::default(), 'confirmed'];
+        return ['required', 'string', $this->passwordRule(), 'confirmed'];
     }
 
     /**

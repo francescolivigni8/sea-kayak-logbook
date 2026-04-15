@@ -89,7 +89,8 @@
     }
 }
 
-:root {
+:root,
+html[data-theme='journal'] {
     --journal-bg: #eef1ff;
     --journal-bg-soft: #f8f8ff;
     --journal-panel: rgba(255, 255, 255, 0.9);
@@ -110,6 +111,26 @@
     --journal-success: #89dfab;
     --journal-shadow: 0 24px 54px rgba(96, 112, 186, 0.14);
     --journal-shadow-float: 0 20px 44px rgba(99, 116, 197, 0.18);
+    --journal-body-overlay-one: linear-gradient(90deg, rgba(103, 114, 255, 0.14), rgba(255, 156, 107, 0.08) 24%, transparent 58%);
+    --journal-body-overlay-two: radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.14), transparent 26%);
+    --journal-body-base: linear-gradient(180deg, #f5f6ff 0%, #edf0ff 100%);
+    --journal-panel-top: rgba(255, 255, 255, 0.96);
+    --journal-card-top: rgba(255, 255, 255, 0.96);
+    --journal-chip-bg: rgba(255, 255, 255, 0.78);
+    --journal-utility-bg: rgba(255, 255, 255, 0.72);
+    --journal-placeholder-bg: rgba(255, 255, 255, 0.56);
+    --journal-banner-soft-bg: rgba(242, 244, 255, 0.92);
+    --journal-input-bg: rgba(255, 255, 255, 0.78);
+    --journal-input-focus-bg: rgba(255, 255, 255, 0.96);
+    --journal-step-bg: rgba(255, 255, 255, 0.72);
+    --journal-step-active-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(103, 114, 255, 0.08));
+    --journal-metric-bg: rgba(255, 255, 255, 0.86);
+    --journal-stat-bg: rgba(255, 255, 255, 0.78);
+    --journal-sparkline-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 247, 255, 0.94));
+    --journal-soft-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 255, 0.84));
+    --journal-hero-accent-one: radial-gradient(circle at 88% 12%, rgba(122, 215, 208, 0.24), transparent 26%);
+    --journal-hero-accent-two: radial-gradient(circle at 12% 0%, rgba(255, 156, 107, 0.12), transparent 22%);
+    --journal-hero-base: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 247, 255, 0.94));
 
     --background: #edf0ff;
     --foreground: #252b52;
@@ -147,40 +168,270 @@
     --sidebar: rgba(255, 255, 255, 0.9);
 }
 
-.dark {
-    --background: #edf0ff;
-    --foreground: #252b52;
+html[data-theme='sea-glass'] {
+    --journal-bg: #e7f6f6;
+    --journal-bg-soft: #f3fbfb;
+    --journal-panel: rgba(255, 255, 255, 0.88);
+    --journal-panel-solid: #ffffff;
+    --journal-panel-soft: rgba(244, 252, 251, 0.94);
+    --journal-line: rgba(42, 141, 166, 0.16);
+    --journal-line-strong: rgba(42, 141, 166, 0.3);
+    --journal-text: #214655;
+    --journal-muted: rgba(33, 70, 85, 0.74);
+    --journal-faint: rgba(33, 70, 85, 0.48);
+    --journal-sea: #2a8da6;
+    --journal-sea-strong: #58b9ca;
+    --journal-sand: #f3a06c;
+    --journal-sand-soft: rgba(243, 160, 108, 0.18);
+    --journal-mint: #7bd8ce;
+    --journal-private: #6d86d6;
+    --journal-rose: #f18d89;
+    --journal-success: #7fd1ab;
+    --journal-shadow: 0 24px 54px rgba(61, 124, 143, 0.14);
+    --journal-shadow-float: 0 20px 44px rgba(61, 124, 143, 0.18);
+    --journal-body-overlay-one: linear-gradient(90deg, rgba(42, 141, 166, 0.12), rgba(123, 216, 206, 0.12) 30%, transparent 62%);
+    --journal-body-overlay-two: radial-gradient(circle at 12% 0%, rgba(123, 216, 206, 0.18), transparent 28%);
+    --journal-body-base: linear-gradient(180deg, #f5fbfb 0%, #e7f6f6 100%);
+    --journal-hero-accent-one: radial-gradient(circle at 88% 12%, rgba(123, 216, 206, 0.28), transparent 26%);
+    --journal-hero-accent-two: radial-gradient(circle at 12% 0%, rgba(243, 160, 108, 0.12), transparent 22%);
+    --journal-hero-base: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 250, 248, 0.94));
+
+    --background: #e7f6f6;
+    --foreground: #214655;
     --card: rgba(255, 255, 255, 0.9);
-    --card-foreground: #252b52;
+    --card-foreground: #214655;
     --popover: #ffffff;
-    --popover-foreground: #252b52;
-    --primary: #252b52;
+    --popover-foreground: #214655;
+    --primary: #214655;
     --primary-foreground: #ffffff;
-    --secondary: #f5f6ff;
-    --secondary-foreground: #252b52;
-    --muted: #f4f5ff;
-    --muted-foreground: rgba(37, 43, 82, 0.66);
-    --accent: rgba(103, 114, 255, 0.12);
-    --accent-foreground: #252b52;
-    --destructive: #ff8a80;
+    --secondary: #eff9f9;
+    --secondary-foreground: #214655;
+    --muted: #eff9f9;
+    --muted-foreground: rgba(33, 70, 85, 0.66);
+    --accent: rgba(42, 141, 166, 0.12);
+    --accent-foreground: #214655;
+    --destructive: #f18d89;
     --destructive-foreground: #ffffff;
-    --border: rgba(103, 114, 255, 0.14);
-    --input: rgba(103, 114, 255, 0.2);
-    --ring: rgba(103, 114, 255, 0.26);
-    --chart-1: #6772ff;
-    --chart-2: #7ad7d0;
-    --chart-3: #ff9c6b;
-    --chart-4: #948dff;
-    --chart-5: #ff8a80;
+    --border: rgba(42, 141, 166, 0.14);
+    --input: rgba(42, 141, 166, 0.18);
+    --ring: rgba(42, 141, 166, 0.24);
+    --chart-1: #2a8da6;
+    --chart-2: #7bd8ce;
+    --chart-3: #f3a06c;
+    --chart-4: #6d86d6;
+    --chart-5: #f18d89;
     --sidebar-background: rgba(255, 255, 255, 0.9);
-    --sidebar-foreground: #252b52;
-    --sidebar-primary: #252b52;
+    --sidebar-foreground: #214655;
+    --sidebar-primary: #214655;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: rgba(103, 114, 255, 0.12);
-    --sidebar-accent-foreground: #252b52;
-    --sidebar-border: rgba(103, 114, 255, 0.14);
-    --sidebar-ring: rgba(103, 114, 255, 0.26);
+    --sidebar-accent: rgba(42, 141, 166, 0.12);
+    --sidebar-accent-foreground: #214655;
+    --sidebar-border: rgba(42, 141, 166, 0.14);
+    --sidebar-ring: rgba(42, 141, 166, 0.24);
     --sidebar: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme='sand-dusk'] {
+    --journal-bg: #fbf2e7;
+    --journal-bg-soft: #fff8f2;
+    --journal-panel: rgba(255, 250, 244, 0.9);
+    --journal-panel-solid: #fff9f4;
+    --journal-panel-soft: rgba(255, 247, 239, 0.95);
+    --journal-line: rgba(210, 113, 76, 0.16);
+    --journal-line-strong: rgba(210, 113, 76, 0.28);
+    --journal-text: #5a362f;
+    --journal-muted: rgba(90, 54, 47, 0.74);
+    --journal-faint: rgba(90, 54, 47, 0.48);
+    --journal-sea: #cd7b55;
+    --journal-sea-strong: #f2c27c;
+    --journal-sand: #e08f4f;
+    --journal-sand-soft: rgba(224, 143, 79, 0.16);
+    --journal-mint: #a8ceb4;
+    --journal-private: #aa89d4;
+    --journal-rose: #ec9889;
+    --journal-success: #91c99d;
+    --journal-shadow: 0 24px 54px rgba(165, 112, 78, 0.14);
+    --journal-shadow-float: 0 20px 44px rgba(165, 112, 78, 0.18);
+    --journal-body-overlay-one: linear-gradient(90deg, rgba(210, 113, 76, 0.12), rgba(242, 194, 124, 0.12) 26%, transparent 58%);
+    --journal-body-overlay-two: radial-gradient(circle at 12% 0%, rgba(168, 206, 180, 0.18), transparent 26%);
+    --journal-body-base: linear-gradient(180deg, #fff8f2 0%, #fbf2e7 100%);
+    --journal-hero-accent-one: radial-gradient(circle at 88% 12%, rgba(242, 194, 124, 0.24), transparent 26%);
+    --journal-hero-accent-two: radial-gradient(circle at 12% 0%, rgba(210, 113, 76, 0.12), transparent 22%);
+    --journal-hero-base: linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(255, 244, 233, 0.94));
+
+    --background: #fbf2e7;
+    --foreground: #5a362f;
+    --card: rgba(255, 250, 244, 0.92);
+    --card-foreground: #5a362f;
+    --popover: #fff9f4;
+    --popover-foreground: #5a362f;
+    --primary: #5a362f;
+    --primary-foreground: #ffffff;
+    --secondary: #fff6ef;
+    --secondary-foreground: #5a362f;
+    --muted: #fff6ef;
+    --muted-foreground: rgba(90, 54, 47, 0.66);
+    --accent: rgba(210, 113, 76, 0.12);
+    --accent-foreground: #5a362f;
+    --destructive: #ec9889;
+    --destructive-foreground: #ffffff;
+    --border: rgba(210, 113, 76, 0.14);
+    --input: rgba(210, 113, 76, 0.18);
+    --ring: rgba(210, 113, 76, 0.24);
+    --chart-1: #cd7b55;
+    --chart-2: #a8ceb4;
+    --chart-3: #f2c27c;
+    --chart-4: #aa89d4;
+    --chart-5: #ec9889;
+    --sidebar-background: rgba(255, 250, 244, 0.92);
+    --sidebar-foreground: #5a362f;
+    --sidebar-primary: #5a362f;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(210, 113, 76, 0.12);
+    --sidebar-accent-foreground: #5a362f;
+    --sidebar-border: rgba(210, 113, 76, 0.14);
+    --sidebar-ring: rgba(210, 113, 76, 0.24);
+    --sidebar: rgba(255, 250, 244, 0.92);
+}
+
+html[data-theme='fjord-mist'] {
+    --journal-bg: #f2f6fb;
+    --journal-bg-soft: #fbfdff;
+    --journal-panel: rgba(255, 255, 255, 0.88);
+    --journal-panel-solid: #ffffff;
+    --journal-panel-soft: rgba(247, 250, 255, 0.96);
+    --journal-line: rgba(95, 120, 181, 0.15);
+    --journal-line-strong: rgba(95, 120, 181, 0.28);
+    --journal-text: #2b4367;
+    --journal-muted: rgba(43, 67, 103, 0.72);
+    --journal-faint: rgba(43, 67, 103, 0.48);
+    --journal-sea: #5f78b5;
+    --journal-sea-strong: #8aa4d4;
+    --journal-sand: #f2af7c;
+    --journal-sand-soft: rgba(242, 175, 124, 0.16);
+    --journal-mint: #b8d4e8;
+    --journal-private: #8590d8;
+    --journal-rose: #e69ba0;
+    --journal-success: #8cc7b6;
+    --journal-shadow: 0 24px 54px rgba(88, 112, 160, 0.14);
+    --journal-shadow-float: 0 20px 44px rgba(88, 112, 160, 0.18);
+    --journal-body-overlay-one: linear-gradient(90deg, rgba(95, 120, 181, 0.11), rgba(184, 212, 232, 0.14) 28%, transparent 60%);
+    --journal-body-overlay-two: radial-gradient(circle at 12% 0%, rgba(184, 212, 232, 0.2), transparent 28%);
+    --journal-body-base: linear-gradient(180deg, #fbfdff 0%, #f2f6fb 100%);
+    --journal-hero-accent-one: radial-gradient(circle at 88% 12%, rgba(184, 212, 232, 0.28), transparent 28%);
+    --journal-hero-accent-two: radial-gradient(circle at 12% 0%, rgba(242, 175, 124, 0.1), transparent 20%);
+    --journal-hero-base: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 253, 0.94));
+
+    --background: #f2f6fb;
+    --foreground: #2b4367;
+    --card: rgba(255, 255, 255, 0.9);
+    --card-foreground: #2b4367;
+    --popover: #ffffff;
+    --popover-foreground: #2b4367;
+    --primary: #2b4367;
+    --primary-foreground: #ffffff;
+    --secondary: #f6f9fd;
+    --secondary-foreground: #2b4367;
+    --muted: #f6f9fd;
+    --muted-foreground: rgba(43, 67, 103, 0.66);
+    --accent: rgba(95, 120, 181, 0.12);
+    --accent-foreground: #2b4367;
+    --destructive: #e69ba0;
+    --destructive-foreground: #ffffff;
+    --border: rgba(95, 120, 181, 0.14);
+    --input: rgba(95, 120, 181, 0.18);
+    --ring: rgba(95, 120, 181, 0.24);
+    --chart-1: #5f78b5;
+    --chart-2: #8aa4d4;
+    --chart-3: #f2af7c;
+    --chart-4: #8590d8;
+    --chart-5: #e69ba0;
+    --sidebar-background: rgba(255, 255, 255, 0.9);
+    --sidebar-foreground: #2b4367;
+    --sidebar-primary: #2b4367;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(95, 120, 181, 0.12);
+    --sidebar-accent-foreground: #2b4367;
+    --sidebar-border: rgba(95, 120, 181, 0.14);
+    --sidebar-ring: rgba(95, 120, 181, 0.24);
+    --sidebar: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme='midnight-chart'] {
+    --journal-bg: #0c1430;
+    --journal-bg-soft: #111a3d;
+    --journal-panel: rgba(16, 24, 55, 0.92);
+    --journal-panel-solid: #121a39;
+    --journal-panel-soft: rgba(20, 29, 65, 0.96);
+    --journal-line: rgba(122, 162, 255, 0.18);
+    --journal-line-strong: rgba(122, 162, 255, 0.32);
+    --journal-text: #ecf2ff;
+    --journal-muted: rgba(226, 234, 255, 0.76);
+    --journal-faint: rgba(226, 234, 255, 0.5);
+    --journal-sea: #7aa2ff;
+    --journal-sea-strong: #90b6ff;
+    --journal-sand: #f0b37c;
+    --journal-sand-soft: rgba(240, 179, 124, 0.14);
+    --journal-mint: #7ad7d0;
+    --journal-private: #a89bff;
+    --journal-rose: #ff9ea0;
+    --journal-success: #6fd4a4;
+    --journal-shadow: 0 26px 60px rgba(3, 8, 24, 0.42);
+    --journal-shadow-float: 0 20px 44px rgba(3, 8, 24, 0.46);
+    --journal-body-overlay-one: linear-gradient(90deg, rgba(122, 162, 255, 0.14), rgba(122, 215, 208, 0.08) 28%, transparent 64%);
+    --journal-body-overlay-two: radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.16), transparent 28%);
+    --journal-body-base: linear-gradient(180deg, #10183a 0%, #0c1430 100%);
+    --journal-panel-top: rgba(23, 31, 69, 0.96);
+    --journal-card-top: rgba(23, 31, 69, 0.96);
+    --journal-chip-bg: rgba(18, 26, 58, 0.82);
+    --journal-utility-bg: rgba(18, 26, 58, 0.8);
+    --journal-placeholder-bg: rgba(24, 33, 72, 0.72);
+    --journal-banner-soft-bg: rgba(25, 34, 73, 0.94);
+    --journal-input-bg: rgba(14, 22, 51, 0.84);
+    --journal-input-focus-bg: rgba(18, 27, 61, 0.96);
+    --journal-step-bg: rgba(18, 26, 58, 0.84);
+    --journal-step-active-bg: linear-gradient(180deg, rgba(28, 38, 82, 0.98), rgba(122, 162, 255, 0.12));
+    --journal-metric-bg: rgba(18, 26, 58, 0.88);
+    --journal-stat-bg: rgba(18, 26, 58, 0.84);
+    --journal-sparkline-bg: linear-gradient(180deg, rgba(22, 31, 67, 0.92), rgba(14, 22, 51, 0.96));
+    --journal-soft-card-bg: linear-gradient(180deg, rgba(24, 33, 72, 0.92), rgba(17, 25, 55, 0.9));
+    --journal-hero-accent-one: radial-gradient(circle at 88% 12%, rgba(122, 215, 208, 0.18), transparent 26%);
+    --journal-hero-accent-two: radial-gradient(circle at 12% 0%, rgba(240, 179, 124, 0.08), transparent 20%);
+    --journal-hero-base: linear-gradient(180deg, rgba(18, 26, 58, 0.98), rgba(13, 21, 48, 0.96));
+
+    --background: #0c1430;
+    --foreground: #ecf2ff;
+    --card: rgba(18, 26, 58, 0.9);
+    --card-foreground: #ecf2ff;
+    --popover: #121a39;
+    --popover-foreground: #ecf2ff;
+    --primary: #ecf2ff;
+    --primary-foreground: #0c1430;
+    --secondary: #151f48;
+    --secondary-foreground: #ecf2ff;
+    --muted: #151f48;
+    --muted-foreground: rgba(226, 234, 255, 0.72);
+    --accent: rgba(122, 162, 255, 0.16);
+    --accent-foreground: #ecf2ff;
+    --destructive: #ff9ea0;
+    --destructive-foreground: #0c1430;
+    --border: rgba(122, 162, 255, 0.16);
+    --input: rgba(122, 162, 255, 0.22);
+    --ring: rgba(122, 162, 255, 0.3);
+    --chart-1: #7aa2ff;
+    --chart-2: #7ad7d0;
+    --chart-3: #f0b37c;
+    --chart-4: #a89bff;
+    --chart-5: #ff9ea0;
+    --sidebar-background: rgba(18, 26, 58, 0.92);
+    --sidebar-foreground: #ecf2ff;
+    --sidebar-primary: #ecf2ff;
+    --sidebar-primary-foreground: #0c1430;
+    --sidebar-accent: rgba(122, 162, 255, 0.16);
+    --sidebar-accent-foreground: #ecf2ff;
+    --sidebar-border: rgba(122, 162, 255, 0.16);
+    --sidebar-ring: rgba(122, 162, 255, 0.3);
+    --sidebar: rgba(18, 26, 58, 0.92);
 }
 
 @layer base {
@@ -189,15 +440,19 @@
     }
     html {
         color-scheme: light;
+        background-color: var(--journal-bg);
+    }
+    html[data-theme='midnight-chart'] {
+        color-scheme: dark;
     }
     body {
         @apply text-foreground antialiased;
         font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
         min-height: 100vh;
         background:
-            linear-gradient(90deg, rgba(103, 114, 255, 0.14), rgba(255, 156, 107, 0.08) 24%, transparent 58%),
-            radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.14), transparent 26%),
-            linear-gradient(180deg, #f5f6ff 0%, #edf0ff 100%);
+            var(--journal-body-overlay-one),
+            var(--journal-body-overlay-two),
+            var(--journal-body-base);
     }
     h1,
     h2,
@@ -222,7 +477,7 @@
 
     .journal-panel {
         border: 1px solid var(--journal-line);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--journal-panel));
+        background: linear-gradient(180deg, var(--journal-panel-top), var(--journal-panel));
         box-shadow: var(--journal-shadow);
         border-radius: 30px;
         backdrop-filter: blur(20px);
@@ -230,14 +485,14 @@
 
     .journal-panel--hero {
         background:
-            radial-gradient(circle at 88% 12%, rgba(122, 215, 208, 0.24), transparent 26%),
-            radial-gradient(circle at 12% 0%, rgba(255, 156, 107, 0.12), transparent 22%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 247, 255, 0.94));
+            var(--journal-hero-accent-one),
+            var(--journal-hero-accent-two),
+            var(--journal-hero-base);
     }
 
     .journal-card {
         border: 1px solid var(--journal-line);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--journal-panel-soft));
+        background: linear-gradient(180deg, var(--journal-card-top), var(--journal-panel-soft));
         box-shadow: var(--journal-shadow);
         border-radius: 26px;
     }
@@ -264,7 +519,7 @@
         padding: 0.62rem 0.92rem;
         border-radius: 999px;
         border: 1px solid var(--journal-line);
-        background: rgba(255, 255, 255, 0.78);
+        background: var(--journal-chip-bg);
         color: var(--journal-muted);
         font-size: 0.82rem;
         white-space: nowrap;
@@ -272,7 +527,7 @@
     }
 
     .journal-chip--primary {
-        background: rgba(103, 114, 255, 0.12);
+        background: var(--accent);
         color: var(--journal-text);
     }
 
@@ -296,13 +551,13 @@
     }
 
     .journal-tab--active {
-        background: rgba(103, 114, 255, 0.12);
+        background: var(--accent);
         color: var(--journal-text);
-        box-shadow: inset 0 0 0 1px rgba(103, 114, 255, 0.14);
+        box-shadow: inset 0 0 0 1px var(--border);
     }
 
     .journal-tab--cta {
-        background: linear-gradient(135deg, rgba(103, 114, 255, 0.96), rgba(122, 162, 255, 0.94));
+        background: linear-gradient(135deg, var(--journal-sea), var(--journal-sea-strong));
         color: white;
         box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.18),
@@ -311,11 +566,11 @@
 
     .journal-tab--cta:hover {
         color: white;
-        background: linear-gradient(135deg, rgba(95, 106, 245, 0.98), rgba(116, 155, 250, 0.96));
+        transform: translateY(-1px);
     }
 
     .journal-tab--cta.journal-tab--active {
-        background: linear-gradient(135deg, rgba(95, 106, 245, 0.98), rgba(116, 155, 250, 0.96));
+        background: linear-gradient(135deg, var(--journal-sea), var(--journal-sea-strong));
         color: white;
         box-shadow:
             inset 0 0 0 1px rgba(255, 255, 255, 0.18),
@@ -324,7 +579,7 @@
 
     .journal-tab--placeholder {
         color: var(--journal-faint);
-        background: rgba(255, 255, 255, 0.56);
+        background: var(--journal-placeholder-bg);
         box-shadow: inset 0 0 0 1px rgba(103, 114, 255, 0.08);
         cursor: default;
     }
@@ -342,7 +597,7 @@
         padding: 0.65rem 1rem;
         border-radius: 999px;
         border: 1px solid var(--journal-line);
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--journal-utility-bg);
         color: var(--journal-muted);
         font-size: 0.84rem;
         font-weight: 600;
@@ -360,10 +615,10 @@
     }
 
     .journal-utility-link--active {
-        border-color: rgba(103, 114, 255, 0.2);
-        background: rgba(103, 114, 255, 0.12);
+        border-color: var(--border);
+        background: var(--accent);
         color: var(--journal-text);
-        box-shadow: inset 0 0 0 1px rgba(103, 114, 255, 0.12);
+        box-shadow: inset 0 0 0 1px var(--border);
     }
 
     .journal-map-pin-wrapper {
@@ -479,7 +734,7 @@
         gap: 0.4rem;
         padding: 0.78rem 1.15rem;
         border-radius: 999px;
-        background: linear-gradient(135deg, rgba(103, 114, 255, 0.98), rgba(122, 162, 255, 0.94));
+        background: linear-gradient(135deg, var(--journal-sea), var(--journal-sea-strong));
         color: white;
         font-weight: 700;
         box-shadow: 0 16px 32px rgba(103, 114, 255, 0.24);
@@ -506,7 +761,7 @@
 
     .journal-banner--soft {
         border-color: rgba(103, 114, 255, 0.18);
-        background: rgba(242, 244, 255, 0.92);
+        background: var(--journal-banner-soft-bg);
         color: var(--journal-text);
     }
 
@@ -526,9 +781,9 @@
     .journal-select,
     .journal-textarea {
         width: 100%;
-        border: 1px solid rgba(103, 114, 255, 0.2);
+        border: 1px solid var(--input);
         border-radius: 18px;
-        background: rgba(255, 255, 255, 0.78);
+        background: var(--journal-input-bg);
         color: var(--journal-text);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         transition:
@@ -554,9 +809,9 @@
     .journal-select:focus,
     .journal-textarea:focus {
         outline: none;
-        border-color: rgba(103, 114, 255, 0.38);
-        box-shadow: 0 0 0 4px rgba(103, 114, 255, 0.12);
-        background: rgba(255, 255, 255, 0.96);
+        border-color: var(--ring);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--journal-sea) 16%, transparent);
+        background: var(--journal-input-focus-bg);
     }
 
     .journal-field-label {
@@ -573,7 +828,7 @@
         padding: 0.9rem 1rem;
         border-radius: 22px;
         border: 1px solid var(--journal-line);
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--journal-step-bg);
         color: var(--journal-muted);
         text-align: left;
         transition:
@@ -588,8 +843,8 @@
     }
 
     .journal-step--active {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(103, 114, 255, 0.08));
-        border-color: rgba(103, 114, 255, 0.28);
+        background: var(--journal-step-active-bg);
+        border-color: var(--journal-line-strong);
         color: var(--journal-text);
         box-shadow: 0 16px 30px rgba(103, 114, 255, 0.12);
     }
@@ -601,7 +856,7 @@
         gap: 0.15rem;
         border: 1px solid var(--journal-line);
         border-radius: 26px;
-        background: rgba(255, 255, 255, 0.86);
+        background: var(--journal-metric-bg);
         box-shadow: var(--journal-shadow);
         padding: 1.35rem;
     }
@@ -609,7 +864,7 @@
     .journal-mini-sparkline {
         border: 1px solid rgba(103, 114, 255, 0.08);
         border-radius: 18px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 247, 255, 0.94));
+        background: var(--journal-sparkline-bg);
         padding: 0.45rem 0.55rem 0.35rem;
     }
 
@@ -620,7 +875,7 @@
         padding: 0.82rem 0.95rem;
         border-radius: 20px;
         border: 1px solid var(--journal-line);
-        background: rgba(255, 255, 255, 0.78);
+        background: var(--journal-stat-bg);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
     }
 
@@ -654,7 +909,7 @@
     .journal-soft-card {
         border: 1px solid rgba(103, 114, 255, 0.14);
         border-radius: 22px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 255, 0.84));
+        background: var(--journal-soft-card-bg);
         padding: 1rem;
     }
 
