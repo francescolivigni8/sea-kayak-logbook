@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 type JournalNavShape = {
@@ -45,44 +45,6 @@ const utilityLinks = computed(() => {
     ];
 });
 
-const showBackButton = computed(() => currentPath.value !== '/dashboard');
-
-const backFallback = computed(() => {
-    if (
-        currentPath.value.startsWith('/sessions/create') ||
-        currentPath.value.endsWith('/edit') ||
-        /^\/sessions\/\d+$/.test(currentPath.value)
-    ) {
-        return '/sessions';
-    }
-
-    if (currentPath.value.startsWith('/imports/')) {
-        return '/sessions';
-    }
-
-    if (currentPath.value.startsWith('/settings/')) {
-        return '/dashboard';
-    }
-
-    if (currentPath.value.startsWith('/insights/')) {
-        return '/dashboard';
-    }
-
-    if (currentPath.value.startsWith('/expeditions/') && currentPath.value !== '/expeditions') {
-        return '/expedition-notes';
-    }
-
-    if (
-        currentPath.value.startsWith('/diary') ||
-        currentPath.value.startsWith('/observations') ||
-        currentPath.value.startsWith('/expedition-notes')
-    ) {
-        return '/dashboard';
-    }
-
-    return '/dashboard';
-});
-
 function isActive(item: { href: string; match: readonly string[]; placeholder?: boolean }) {
     if (item.placeholder) {
         return false;
@@ -101,15 +63,6 @@ function isActive(item: { href: string; match: readonly string[]; placeholder?: 
     }
 
     return currentPath.value.startsWith(item.href);
-}
-
-function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-        window.history.back();
-        return;
-    }
-
-    router.visit(backFallback.value);
 }
 
 function isPrimaryCta(item: { href: string }) {
@@ -179,15 +132,6 @@ function isUtilityActive(item: { href: string; match: string[] }) {
                     </nav>
 
                     <div class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
-                        <button
-                            v-if="showBackButton"
-                            type="button"
-                            class="journal-utility-link shrink-0"
-                            @click="goBack"
-                        >
-                            Back
-                        </button>
-
                         <Link
                             v-for="link in utilityLinks"
                             :key="link.label"
