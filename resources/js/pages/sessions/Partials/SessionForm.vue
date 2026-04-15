@@ -246,12 +246,6 @@ const pageDescription = computed(() =>
 const submitLabel = computed(() => (props.mode === 'create' ? 'Save session' : 'Update session'));
 const fileInputClass =
     'journal-input file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium';
-const metaPills = computed(() => [
-    props.profile.homeWater,
-    props.profile.timezone,
-    '4-step flow',
-    'GPX / FIT',
-].filter(Boolean));
 const stepProgressLabel = computed(() => `Step ${currentStep.value + 1} of ${steps.length}`);
 const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(form.launch_lat)));
 const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
@@ -367,7 +361,7 @@ function submit() {
 <template>
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div class="space-y-3">
                 <div class="space-y-3">
                     <p class="journal-kicker">{{ mode === 'create' ? 'Add session' : 'Edit session' }}</p>
                     <div class="space-y-2">
@@ -378,17 +372,6 @@ function submit() {
                             {{ pageDescription }}
                         </p>
                     </div>
-                </div>
-
-                <div class="flex flex-wrap gap-2">
-                    <span
-                        v-for="pill in metaPills"
-                        :key="pill"
-                        class="journal-chip"
-                        :class="pill === profile.homeWater ? 'journal-chip--primary' : ''"
-                    >
-                        {{ pill }}
-                    </span>
                 </div>
             </div>
         </section>
