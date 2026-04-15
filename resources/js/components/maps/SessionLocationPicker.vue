@@ -2,7 +2,7 @@
 import L from 'leaflet';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-type MapTarget = 'launch' | 'landing';
+type MapTarget = 'launch' | 'landing' | 'route';
 
 interface DefaultView {
     lat: number;
@@ -10,17 +10,24 @@ interface DefaultView {
     zoom: number;
 }
 
+interface RouteWaypoint {
+    lat: number;
+    lng: number;
+}
+
 const props = withDefaults(defineProps<{
     launchLat?: number | null;
     launchLng?: number | null;
     landingLat?: number | null;
     landingLng?: number | null;
+    routeWaypointsJson?: string;
     defaultView?: DefaultView;
 }>(), {
     launchLat: null,
     launchLng: null,
     landingLat: null,
     landingLng: null,
+    routeWaypointsJson: '',
     defaultView: () => ({
         lat: 64.1466,
         lng: -21.9426,
@@ -33,6 +40,7 @@ const emit = defineEmits<{
     'update:launchLng': [value: string];
     'update:landingLat': [value: string];
     'update:landingLng': [value: string];
+    'update:routeWaypointsJson': [value: string];
 }>();
 
 const mapElement = ref<HTMLElement | null>(null);
@@ -65,10 +73,52 @@ const landingPoint = computed(() => {
     };
 });
 
+const routeWaypoints = computed<RouteWaypoint[]>(() => {
+    if (!props.routeWaypointsJson) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(props.routeWaypointsJson);
+
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        return parsed
+            .filter((point): point is { lat: number; lng: number } => typeof point?.lat === 'number' && typeof point?.lng === 'number')
+            .map((point) => ({
+                lat: Number(point.lat.toFixed(6)),
+                lng: Number(point.lng.toFixed(6)),
+            }));
+    } catch {
+        return [];
+    }
+});
+
+const renderedRoutePoints = computed(() => {
+    if (routeWaypoints.value.length === 0) {
+        return [];
+    }
+
+    return [launchPoint.value, ...routeWaypoints.value, landingPoint.value].filter(
+        (point): point is { lat: number; lng: number } => point !== null,
+    );
+});
+
 function buildBaseLayer() {
     return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: 'Map data © OpenStreetMap contributors',
+    });
+}
+
+function sessionMarkerIcon(tone: 'launch' | 'landing' | 'route', label: string) {
+    return L.divIcon({
+        className: 'journal-session-map-marker-shell',
+        html: `<span class="journal-session-map-marker journal-session-map-marker--${tone}">${label}</span>`,
+        iconSize: tone === 'route' ? [28, 28] : [34, 34],
+        iconAnchor: tone === 'route' ? [14, 14] : [17, 17],
     });
 }
 
@@ -77,7 +127,9 @@ function fitToPoints() {
         return;
     }
 
-    const points = [launchPoint.value, landingPoint.value].filter((point): point is { lat: number; lng: number } => point !== null);
+    const points = renderedRoutePoints.value.length > 1
+        ? renderedRoutePoints.value
+        : [launchPoint.value, landingPoint.value].filter((point): point is { lat: number; lng: number } => point !== null);
 
     if (!points.length) {
         map.setView([props.defaultView.lat, props.defaultView.lng], props.defaultView.zoom);
@@ -93,6 +145,56 @@ function fitToPoints() {
     map.fitBounds(bounds.pad(0.18));
 }
 
+function emitWaypoints(points: RouteWaypoint[]) {
+    emit('update:routeWaypointsJson', points.length ? JSON.stringify(points) : '');
+}
+
+function updateTargetPoint(lat: number, lng: number) {
+    const formattedLat = lat.toFixed(6);
+    const formattedLng = lng.toFixed(6);
+
+    if (activeTarget.value === 'launch') {
+        emit('update:launchLat', formattedLat);
+        emit('update:launchLng', formattedLng);
+        return;
+    }
+
+    if (activeTarget.value === 'landing') {
+        emit('update:landingLat', formattedLat);
+        emit('update:landingLng', formattedLng);
+        return;
+    }
+
+    emitWaypoints([
+        ...routeWaypoints.value,
+        {
+            lat: Number(formattedLat),
+            lng: Number(formattedLng),
+        },
+    ]);
+}
+
+function updateWaypoint(index: number, lat: number, lng: number) {
+    emitWaypoints(
+        routeWaypoints.value.map((point, pointIndex) =>
+            pointIndex === index
+                ? {
+                      lat: Number(lat.toFixed(6)),
+                      lng: Number(lng.toFixed(6)),
+                  }
+                : point,
+        ),
+    );
+}
+
+function removeWaypoint(index: number) {
+    emitWaypoints(routeWaypoints.value.filter((_, pointIndex) => pointIndex !== index));
+}
+
+function clearRouteTrace() {
+    emitWaypoints([]);
+}
+
 function renderMarkers() {
     if (!map || !markerLayer) {
         return;
@@ -106,59 +208,65 @@ function renderMarkers() {
     }
 
     if (launchPoint.value) {
-        L.circleMarker([launchPoint.value.lat, launchPoint.value.lng], {
-            radius: 8,
-            color: '#ffffff',
-            weight: 2,
-            fillColor: '#10b981',
-            fillOpacity: 1,
+        const launchMarker = L.marker([launchPoint.value.lat, launchPoint.value.lng], {
+            draggable: true,
+            icon: sessionMarkerIcon('launch', 'L'),
         })
             .bindTooltip('Launch')
             .addTo(markerLayer);
+
+        launchMarker.on('dragend', () => {
+            const point = launchMarker.getLatLng();
+            emit('update:launchLat', point.lat.toFixed(6));
+            emit('update:launchLng', point.lng.toFixed(6));
+        });
     }
 
     if (landingPoint.value) {
-        L.circleMarker([landingPoint.value.lat, landingPoint.value.lng], {
-            radius: 8,
-            color: '#ffffff',
-            weight: 2,
-            fillColor: '#f97316',
-            fillOpacity: 1,
+        const landingMarker = L.marker([landingPoint.value.lat, landingPoint.value.lng], {
+            draggable: true,
+            icon: sessionMarkerIcon('landing', 'F'),
         })
             .bindTooltip('Landing')
             .addTo(markerLayer);
+
+        landingMarker.on('dragend', () => {
+            const point = landingMarker.getLatLng();
+            emit('update:landingLat', point.lat.toFixed(6));
+            emit('update:landingLng', point.lng.toFixed(6));
+        });
     }
 
-    if (launchPoint.value && landingPoint.value) {
+    routeWaypoints.value.forEach((point, index) => {
+        const routeMarker = L.marker([point.lat, point.lng], {
+            draggable: true,
+            icon: sessionMarkerIcon('route', String(index + 1)),
+        })
+            .bindTooltip(`Route point ${index + 1}`)
+            .addTo(markerLayer);
+
+        routeMarker.on('dragend', () => {
+            const markerPoint = routeMarker.getLatLng();
+            updateWaypoint(index, markerPoint.lat, markerPoint.lng);
+        });
+
+        routeMarker.on('dblclick', () => {
+            removeWaypoint(index);
+        });
+    });
+
+    if (renderedRoutePoints.value.length > 1) {
         lineLayer = L.polyline(
-            [
-                [launchPoint.value.lat, launchPoint.value.lng],
-                [landingPoint.value.lat, landingPoint.value.lng],
-            ],
+            renderedRoutePoints.value.map((point) => [point.lat, point.lng] as [number, number]),
             {
                 color: '#6772ff',
-                weight: 3,
+                weight: 4,
                 opacity: 0.9,
-                dashArray: '8 8',
             },
         ).addTo(map);
     }
 
     fitToPoints();
-}
-
-function updateTargetPoint(lat: number, lng: number) {
-    const formattedLat = lat.toFixed(6);
-    const formattedLng = lng.toFixed(6);
-
-    if (activeTarget.value === 'launch') {
-        emit('update:launchLat', formattedLat);
-        emit('update:launchLng', formattedLng);
-        return;
-    }
-
-    emit('update:landingLat', formattedLat);
-    emit('update:landingLng', formattedLng);
 }
 
 async function initializeMap() {
@@ -171,6 +279,7 @@ async function initializeMap() {
     map = L.map(mapElement.value, {
         zoomControl: true,
         scrollWheelZoom: false,
+        doubleClickZoom: false,
     });
 
     markerLayer = L.layerGroup().addTo(map);
@@ -186,7 +295,7 @@ async function initializeMap() {
 }
 
 watch(
-    () => [props.launchLat, props.launchLng, props.landingLat, props.landingLng],
+    () => [props.launchLat, props.launchLng, props.landingLat, props.landingLng, props.routeWaypointsJson],
     () => {
         renderMarkers();
     },
@@ -210,9 +319,9 @@ onBeforeUnmount(() => {
                 <p class="journal-kicker">Geolocation</p>
                 <h4 class="text-[1.35rem] leading-none text-[color:var(--journal-text)]">Place the session</h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Click the map to set the
-                    <strong class="text-[color:var(--journal-text)]">{{ activeTarget }}</strong>
-                    point. A launch pin alone is enough to show the session on the atlas.
+                    Pins alone save the place. If you want a visible route, switch to
+                    <strong class="text-[color:var(--journal-text)]">trace route</strong>
+                    and click the map to add editable route points.
                 </p>
             </div>
 
@@ -233,6 +342,22 @@ onBeforeUnmount(() => {
                 >
                     Place landing
                 </button>
+                <button
+                    type="button"
+                    class="journal-utility-link"
+                    :class="activeTarget === 'route' ? 'journal-chip--primary' : ''"
+                    @click="activeTarget = 'route'"
+                >
+                    Trace route
+                </button>
+                <button
+                    type="button"
+                    class="journal-utility-link"
+                    :disabled="routeWaypoints.length === 0"
+                    @click="clearRouteTrace"
+                >
+                    Clear route
+                </button>
             </div>
         </div>
 
@@ -243,7 +368,9 @@ onBeforeUnmount(() => {
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
             <span class="journal-chip">Launch = green</span>
             <span class="journal-chip">Landing = orange</span>
-            <span class="journal-chip">Click map to update current target</span>
+            <span class="journal-chip">Trace route = blue points</span>
+            <span class="journal-chip">Drag markers to refine</span>
+            <span class="journal-chip">Double-click a route point to remove it</span>
         </div>
     </section>
 </template>

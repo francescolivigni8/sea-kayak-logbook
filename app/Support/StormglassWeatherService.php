@@ -17,11 +17,26 @@ class StormglassWeatherService
 
     public function enrichSession(PaddleSession $session): array
     {
+        $result = $this->previewSession($session);
+
+        if ($result['status'] !== 'filled') {
+            return $result;
+        }
+
+        $session->conditions_logged = true;
+        $session->save();
+
+        return $result;
+    }
+
+    public function previewSession(PaddleSession $session): array
+    {
         if (! $this->isConfigured()) {
             return [
                 'status' => 'skipped',
                 'reason' => 'Stormglass API key is not configured yet.',
                 'filledFields' => 0,
+                'fields' => [],
             ];
         }
 
@@ -32,6 +47,7 @@ class StormglassWeatherService
                 'status' => 'skipped',
                 'reason' => 'No saved launch or landing coordinates were available.',
                 'filledFields' => 0,
+                'fields' => [],
             ];
         }
 
@@ -46,6 +62,7 @@ class StormglassWeatherService
                 'status' => 'failed',
                 'reason' => 'Stormglass request failed.',
                 'filledFields' => 0,
+                'fields' => [],
             ];
         }
 
@@ -54,6 +71,7 @@ class StormglassWeatherService
                 'status' => 'skipped',
                 'reason' => 'Stormglass returned no usable forecast hour.',
                 'filledFields' => 0,
+                'fields' => [],
             ];
         }
 
@@ -64,16 +82,15 @@ class StormglassWeatherService
                 'status' => 'skipped',
                 'reason' => 'Stormglass did not return any values we could apply.',
                 'filledFields' => 0,
+                'fields' => [],
             ];
         }
-
-        $session->conditions_logged = true;
-        $session->save();
 
         return [
             'status' => 'filled',
             'reason' => null,
             'filledFields' => $filledFields,
+            'fields' => $this->extractFields($session),
         ];
     }
 
@@ -247,6 +264,27 @@ class StormglassWeatherService
         }
 
         return implode(', ', $parts).'.';
+    }
+
+    private function extractFields(PaddleSession $session): array
+    {
+        return [
+            'wind_avg_ms' => $session->wind_avg_ms,
+            'wind_gust_ms' => $session->wind_gust_ms,
+            'wind_direction_deg' => $session->wind_direction_deg,
+            'wind_beaufort' => $session->wind_beaufort,
+            'tide_state' => $session->tide_state,
+            'current_knots' => $session->current_knots,
+            'current_direction_deg' => $session->current_direction_deg,
+            'wave_height_m' => $session->wave_height_m,
+            'swell_height_m' => $session->swell_height_m,
+            'swell_period_s' => $session->swell_period_s,
+            'swell_direction_deg' => $session->swell_direction_deg,
+            'air_temp_c' => $session->air_temp_c,
+            'sea_temp_c' => $session->sea_temp_c,
+            'visibility_code' => $session->visibility_code,
+            'weather_summary' => $session->weather_summary,
+        ];
     }
 
     private function assignRounded(PaddleSession $session, string $field, ?float $value, int $precision): int

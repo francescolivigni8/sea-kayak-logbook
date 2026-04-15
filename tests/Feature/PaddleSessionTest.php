@@ -104,6 +104,42 @@ class PaddleSessionTest extends TestCase
         ]);
     }
 
+    public function test_manual_sessions_can_store_an_editable_route_trace_without_a_track_file(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Manual traced paddle',
+                'session_date' => '2026-04-06',
+                'launch_name' => 'Reykjavik',
+                'launch_lat' => '64.146600',
+                'launch_lng' => '-21.942600',
+                'landing_name' => 'Grotta',
+                'landing_lat' => '64.167200',
+                'landing_lng' => '-22.022600',
+                'route_category' => 'journey',
+                'distance_km' => '6.2',
+                'manual_route_waypoints' => json_encode([
+                    ['lat' => 64.1531, 'lng' => -21.9782],
+                    ['lat' => 64.1595, 'lng' => -22.0043],
+                ]),
+            ])
+            ->assertRedirect();
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Manual traced paddle')
+            ->firstOrFail();
+
+        $this->assertIsArray($session->route_profile);
+        $this->assertCount(4, $session->route_profile);
+        $this->assertNotNull($session->route_points);
+        $this->assertSame(64.1531, (float) $session->route_profile[1]['lat']);
+        $this->assertSame(-22.0043, (float) $session->route_profile[2]['lng']);
+    }
+
     public function test_manual_gpx_uploads_are_parsed_into_route_data(): void
     {
         Storage::fake('public');
@@ -240,5 +276,51 @@ GPX);
         $this->assertSame('clear', $session->visibility_code);
         $this->assertSame('flooding', $session->tide_state);
         $this->assertNotNull($session->weather_summary);
+    }
+
+    public function test_weather_preview_endpoint_returns_stormglass_values_before_save(): void
+    {
+        config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+
+        Http::fake([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
+                'hours' => [[
+                    'time' => '2026-04-06T18:00:00+00:00',
+                    'windSpeed' => ['sg' => 7.2],
+                    'gust' => ['sg' => 10.4],
+                    'windDirection' => ['sg' => 215],
+                    'airTemperature' => ['sg' => 8.5],
+                    'waterTemperature' => ['sg' => 6.1],
+                    'visibility' => ['sg' => 12000],
+                    'currentSpeed' => ['sg' => 0.4],
+                    'currentDirection' => ['sg' => 155],
+                    'waveHeight' => ['sg' => 0.7],
+                    'swellHeight' => ['sg' => 0.9],
+                    'swellPeriod' => ['sg' => 5.5],
+                    'swellDirection' => ['sg' => 235],
+                ]],
+            ]),
+            'api.stormglass.io/v2/tide/extremes/point*' => Http::response([
+                'data' => [
+                    ['time' => '2026-04-06T15:45:00+00:00', 'type' => 'low', 'height' => 0.4],
+                    ['time' => '2026-04-06T21:55:00+00:00', 'type' => 'high', 'height' => 2.9],
+                ],
+            ]),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('sessions.weather-preview', [
+                'session_date' => '2026-04-06',
+                'start_time_local' => '18:00',
+                'launch_lat' => '64.146600',
+                'launch_lng' => '-21.942600',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('status', 'filled')
+            ->assertJsonPath('fields.wind_beaufort', 4)
+            ->assertJsonPath('fields.tide_state', 'flooding')
+            ->assertJsonPath('fields.current_knots', 0.8);
     }
 }

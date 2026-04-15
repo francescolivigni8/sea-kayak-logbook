@@ -510,6 +510,12 @@
         color: var(--journal-text);
     }
 
+    .journal-banner--success-strong {
+        border-color: rgba(137, 223, 171, 0.58);
+        background: linear-gradient(180deg, rgba(245, 255, 249, 0.98), rgba(233, 252, 240, 0.94));
+        box-shadow: 0 18px 34px rgba(137, 223, 171, 0.16);
+    }
+
     .journal-banner--danger {
         border-color: rgba(255, 138, 128, 0.28);
         background: rgba(255, 241, 240, 0.94);
@@ -650,5 +656,38 @@
         border-radius: 22px;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 255, 0.84));
         padding: 1rem;
+    }
+
+    .journal-session-map-marker-shell {
+        background: transparent;
+        border: 0;
+    }
+
+    .journal-session-map-marker {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.96);
+        box-shadow: 0 10px 22px rgba(23, 28, 76, 0.18);
+        color: white;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .journal-session-map-marker--launch {
+        background: linear-gradient(135deg, #11b981, #2dd4bf);
+    }
+
+    .journal-session-map-marker--landing {
+        background: linear-gradient(135deg, #fb923c, #f97316);
+    }
+
+    .journal-session-map-marker--route {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #6c7cff, #4f46e5);
+        font-size: 0.7rem;
     }
 }

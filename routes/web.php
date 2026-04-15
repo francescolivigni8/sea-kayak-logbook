@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('imports/garmin', [GarminImportController::class, 'store'])->name('imports.garmin.store');
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
+    Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])->name('sessions.weather-preview');
 
     Route::resource('sessions', PaddleSessionController::class)
         ->except(['destroy']);

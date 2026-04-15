@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
 import InputError from '@/components/InputError.vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface ProfileSummary {
@@ -60,6 +60,7 @@ interface SessionFormDefaults {
     route_tags_text: string;
     partners_text: string;
     skills_text: string;
+    manual_route_waypoints: string;
     successful_rolls_count: string;
     wet_exits_count: string;
     tow_rescues_count: string;
@@ -87,6 +88,7 @@ const props = defineProps<{
     initialStep?: number;
 }>();
 
+const page = usePage();
 const form = useForm({
     ...props.formDefaults,
     gpx_file: null as File | null,
@@ -120,6 +122,9 @@ const steps = [
 const currentStep = ref(Math.max(0, Math.min(props.initialStep ?? 0, steps.length - 1)));
 const currentStepMeta = computed(() => steps[currentStep.value]);
 const notesTextarea = ref<HTMLTextAreaElement | null>(null);
+const weatherPreviewState = ref<'idle' | 'loading' | 'filled' | 'warning' | 'error'>('idle');
+const weatherPreviewMessage = ref<string | null>(null);
+const flashSuccessMessage = computed(() => page.props.flash?.success as string | undefined);
 
 const routeCategoryOptions = ['journey', 'training', 'benchmark', 'navigation', 'rescue-practice', 'expedition'];
 const bodyOfWaterOptions = ['sea', 'ocean', 'fjord', 'lake', 'river', 'canal', 'other'];
@@ -147,6 +152,7 @@ const stepFieldMap: Record<string, number> = {
     moving_minutes: 0,
     route_tags_text: 0,
     partners_text: 0,
+    manual_route_waypoints: 0,
 
     wind_avg_ms: 1,
     wind_gust_ms: 1,
@@ -192,6 +198,8 @@ const stepFieldMap: Record<string, number> = {
 
 const photoPreviewUrl = ref<string | null>(props.existingAssets.photoUrl);
 let activeObjectUrl: string | null = null;
+let weatherPreviewTimer: ReturnType<typeof setTimeout> | null = null;
+let weatherPreviewAbortController: AbortController | null = null;
 
 watch(
     () => form.session_photo,
@@ -221,6 +229,38 @@ watch(
 );
 
 watch(
+    () => form.autofill_weather,
+    (enabled) => {
+        if (!enabled) {
+            weatherPreviewState.value = 'idle';
+            weatherPreviewMessage.value = null;
+
+            if (weatherPreviewTimer) {
+                clearTimeout(weatherPreviewTimer);
+                weatherPreviewTimer = null;
+            }
+
+            weatherPreviewAbortController?.abort();
+            weatherPreviewAbortController = null;
+            return;
+        }
+
+        scheduleWeatherPreview();
+    },
+);
+
+watch(
+    () => [form.session_date, form.start_time_local, form.launch_lat, form.launch_lng, form.landing_lat, form.landing_lng],
+    () => {
+        if (!form.autofill_weather) {
+            return;
+        }
+
+        scheduleWeatherPreview();
+    },
+);
+
+watch(
     () => ({ ...form.errors }),
     (errors) => {
         const firstStepWithError = Object.keys(errors)
@@ -238,6 +278,12 @@ onBeforeUnmount(() => {
     if (activeObjectUrl) {
         URL.revokeObjectURL(activeObjectUrl);
     }
+
+    if (weatherPreviewTimer) {
+        clearTimeout(weatherPreviewTimer);
+    }
+
+    weatherPreviewAbortController?.abort();
 });
 
 const pageTitle = computed(() => (props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session'));
@@ -255,6 +301,12 @@ const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(f
 const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
 const landingLatNumber = computed(() => (form.landing_lat === '' ? null : Number(form.landing_lat)));
 const landingLngNumber = computed(() => (form.landing_lng === '' ? null : Number(form.landing_lng)));
+const hasWeatherPreviewCoordinates = computed(() => {
+    const hasLaunchPoint = launchLatNumber.value !== null && launchLngNumber.value !== null;
+    const hasLandingPoint = landingLatNumber.value !== null && landingLngNumber.value !== null;
+
+    return hasLaunchPoint || hasLandingPoint;
+});
 const durationHours = computed({
     get: () => {
         if (form.duration_minutes === '') {
@@ -293,6 +345,133 @@ const expeditionMapWarning = computed(() => {
 
     return 'This expedition will count in your totals, but it will not appear on the world map until you attach a GPX/FIT file or save launch or landing coordinates.';
 });
+
+function assignPreviewFields(fields: Record<string, string | number | null>) {
+    const weatherFieldKeys = [
+        'wind_avg_ms',
+        'wind_gust_ms',
+        'wind_direction_deg',
+        'wind_beaufort',
+        'tide_state',
+        'current_knots',
+        'current_direction_deg',
+        'wave_height_m',
+        'swell_height_m',
+        'swell_period_s',
+        'swell_direction_deg',
+        'air_temp_c',
+        'sea_temp_c',
+        'visibility_code',
+        'weather_summary',
+    ] as const;
+
+    for (const key of weatherFieldKeys) {
+        const value = fields[key];
+        form[key] = value === null || value === undefined ? '' : String(value);
+    }
+}
+
+function scheduleWeatherPreview() {
+    if (!props.weatherAutofillAvailable) {
+        weatherPreviewState.value = 'warning';
+        weatherPreviewMessage.value = 'Add your Stormglass API key first to preview weather on the form.';
+        return;
+    }
+
+    if (weatherPreviewTimer) {
+        clearTimeout(weatherPreviewTimer);
+    }
+
+    weatherPreviewTimer = setTimeout(() => {
+        void previewWeatherNow();
+    }, 320);
+}
+
+async function previewWeatherNow() {
+    if (!form.autofill_weather) {
+        return;
+    }
+
+    if (!form.session_date) {
+        weatherPreviewState.value = 'warning';
+        weatherPreviewMessage.value = 'Pick the session date first, then Stormglass can preview the sea state.';
+        return;
+    }
+
+    if (!hasWeatherPreviewCoordinates.value) {
+        weatherPreviewState.value = 'warning';
+        weatherPreviewMessage.value = 'Add a launch or landing point first, then Stormglass can fill the weather right away.';
+        return;
+    }
+
+    weatherPreviewAbortController?.abort();
+    weatherPreviewAbortController = new AbortController();
+    weatherPreviewState.value = 'loading';
+    weatherPreviewMessage.value = 'Previewing the nearest Stormglass weather point...';
+
+    const params = new URLSearchParams({
+        session_date: form.session_date,
+    });
+
+    if (form.start_time_local) {
+        params.set('start_time_local', form.start_time_local);
+    }
+
+    if (form.launch_lat) {
+        params.set('launch_lat', form.launch_lat);
+    }
+
+    if (form.launch_lng) {
+        params.set('launch_lng', form.launch_lng);
+    }
+
+    if (form.landing_lat) {
+        params.set('landing_lat', form.landing_lat);
+    }
+
+    if (form.landing_lng) {
+        params.set('landing_lng', form.landing_lng);
+    }
+
+    try {
+        const response = await fetch(`/sessions/weather-preview?${params.toString()}`, {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            signal: weatherPreviewAbortController.signal,
+        });
+
+        const payload = (await response.json()) as {
+            status?: string;
+            message?: string;
+            reason?: string | null;
+            fields?: Record<string, string | number | null>;
+            filledFields?: number;
+        };
+
+        if (!response.ok) {
+            throw new Error(payload.message || payload.reason || 'Stormglass preview failed.');
+        }
+
+        if (payload.status === 'filled' && payload.fields) {
+            assignPreviewFields(payload.fields);
+            weatherPreviewState.value = 'filled';
+            weatherPreviewMessage.value = payload.message ?? `Stormglass filled ${payload.filledFields ?? 0} fields on the form.`;
+            return;
+        }
+
+        weatherPreviewState.value = payload.status === 'failed' ? 'error' : 'warning';
+        weatherPreviewMessage.value = payload.message || payload.reason || 'Stormglass could not fill the weather yet.';
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            return;
+        }
+
+        weatherPreviewState.value = 'error';
+        weatherPreviewMessage.value = error instanceof Error ? error.message : 'Stormglass preview failed.';
+    }
+}
 
 function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event) {
     const target = event.target as HTMLInputElement;
@@ -373,6 +552,13 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-5">
+        <section v-if="flashSuccessMessage" class="journal-banner journal-banner--success-strong">
+            <p class="journal-kicker text-[color:#256a48]">Session saved</p>
+            <p class="mt-2 text-sm font-semibold leading-6 md:text-base">
+                {{ flashSuccessMessage }}
+            </p>
+        </section>
+
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="space-y-3">
                 <div class="space-y-3">
@@ -569,10 +755,12 @@ onMounted(async () => {
                             :launch-lng="launchLngNumber"
                             :landing-lat="landingLatNumber"
                             :landing-lng="landingLngNumber"
+                            :route-waypoints-json="form.manual_route_waypoints"
                             @update:launch-lat="form.launch_lat = $event"
                             @update:launch-lng="form.launch_lng = $event"
                             @update:landing-lat="form.landing_lat = $event"
                             @update:landing-lng="form.landing_lng = $event"
+                            @update:route-waypoints-json="form.manual_route_waypoints = $event"
                         />
                     </div>
 
@@ -626,13 +814,24 @@ onMounted(async () => {
                                 :disabled="!weatherAutofillAvailable"
                             />
                             <span class="space-y-1">
-                                <strong class="block font-medium">Fill weather from Stormglass on save</strong>
+                                <strong class="block font-medium">Fill weather from Stormglass now and on save</strong>
                                 <span class="block text-[color:var(--journal-muted)]">
-                                    Uses the saved session point and time to fill wind, swell, current, temperatures, and derive Beaufort automatically.
+                                    Uses the current session point and time to preview wind, tide, swell, current, temperatures, and Beaufort before you save.
                                     <template v-if="!weatherAutofillAvailable"> Add your Stormglass API key first to enable this.</template>
                                 </span>
                             </span>
                         </label>
+
+                        <div
+                            v-if="weatherPreviewState !== 'idle' && weatherPreviewMessage"
+                            class="md:col-span-2 xl:col-span-4 journal-banner text-sm"
+                            :class="{
+                                'journal-banner--soft': weatherPreviewState === 'loading',
+                                'journal-banner--danger': weatherPreviewState === 'warning' || weatherPreviewState === 'error',
+                            }"
+                        >
+                            {{ weatherPreviewMessage }}
+                        </div>
 
                         <div>
                             <label class="journal-field-label" for="wind_avg_ms">Wind avg (m/s)</label>

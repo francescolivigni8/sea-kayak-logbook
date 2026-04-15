@@ -10,6 +10,7 @@ use App\Support\GpxTrackService;
 use App\Support\SessionMediaService;
 use App\Support\StormglassWeatherService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -75,6 +76,40 @@ class PaddleSessionController extends Controller
         ]);
     }
 
+    public function weatherPreview(Request $request): JsonResponse
+    {
+        $profile = $request->user()->resolveActiveProfile();
+        $validated = $request->validate([
+            'session_date' => ['required', 'date'],
+            'start_time_local' => ['nullable', 'date_format:H:i'],
+            'launch_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'launch_lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'landing_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'landing_lng' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        $previewSession = new PaddleSession([
+            'session_date' => $validated['session_date'],
+            'start_at' => $this->buildStartAt($validated['session_date'], $validated['start_time_local'] ?? null, $profile->timezone),
+            'timezone' => $profile->timezone,
+            'launch_lat' => $this->nullableFloat($validated['launch_lat'] ?? null),
+            'launch_lng' => $this->nullableFloat($validated['launch_lng'] ?? null),
+            'landing_lat' => $this->nullableFloat($validated['landing_lat'] ?? null),
+            'landing_lng' => $this->nullableFloat($validated['landing_lng'] ?? null),
+        ]);
+
+        $result = $this->stormglassWeather->previewSession($previewSession);
+
+        return response()->json([
+            ...$result,
+            'message' => match ($result['status']) {
+                'filled' => sprintf('Stormglass filled %d weather fields.', (int) ($result['filledFields'] ?? 0)),
+                'failed' => $result['reason'] ?? 'Stormglass preview failed.',
+                default => $result['reason'] ?? 'Stormglass could not fill the weather yet.',
+            },
+        ]);
+    }
+
     public function store(UpsertPaddleSessionRequest $request): RedirectResponse
     {
         $profile = $request->user()->resolveActiveProfile();
@@ -120,11 +155,11 @@ class PaddleSessionController extends Controller
         $profile = $request->user()->resolveActiveProfile();
         $this->ensureSessionBelongsToProfile($session, $profile);
 
-        $session->fill($this->buildPayload($request, $profile));
+        $session->fill($this->buildPayload($request, $profile, $session));
         $session->save();
 
         $this->storeFiles($request, $session);
-        $successMessage = 'Session updated.';
+        $successMessage = 'Session saved.';
 
         if ($request->boolean('autofill_weather')) {
             $weatherResult = $this->stormglassWeather->enrichSession($session->fresh());
@@ -283,6 +318,7 @@ class PaddleSessionController extends Controller
             'route_tags_text' => implode(', ', $session?->route_tags ?? []),
             'partners_text' => implode(', ', $session?->partners ?? []),
             'skills_text' => implode(', ', $session?->skills ?? []),
+            'manual_route_waypoints' => $this->manualRouteWaypoints($session),
             'successful_rolls_count' => (string) ($session?->successful_rolls_count ?? 0),
             'wet_exits_count' => (string) ($session?->wet_exits_count ?? 0),
             'tow_rescues_count' => (string) ($session?->tow_rescues_count ?? 0),
@@ -306,12 +342,23 @@ class PaddleSessionController extends Controller
         abort_unless($session->profile_id === $profile->id, 404);
     }
 
-    private function buildPayload(UpsertPaddleSessionRequest $request, Profile $profile): array
+    private function buildPayload(UpsertPaddleSessionRequest $request, Profile $profile, ?PaddleSession $session = null): array
     {
         $validated = $request->validated();
         $isExpedition = (bool) ($validated['is_expedition'] ?? false);
+        $launchLat = $this->nullableFloat($validated['launch_lat'] ?? null);
+        $launchLng = $this->nullableFloat($validated['launch_lng'] ?? null);
+        $landingLat = $this->nullableFloat($validated['landing_lat'] ?? null);
+        $landingLng = $this->nullableFloat($validated['landing_lng'] ?? null);
+        $canManageManualRoute = ! $request->hasFile('gpx_file')
+            && ! $request->hasFile('fit_file')
+            && ! filled($session?->gpx_path)
+            && ! filled($session?->fit_path);
+        $manualRoute = $canManageManualRoute
+            ? $this->buildManualRouteSummary($launchLat, $launchLng, $landingLat, $landingLng, $validated['manual_route_waypoints'] ?? null)
+            : null;
 
-        return [
+        $payload = [
             'recorded_by_user_id' => $request->user()->id,
             'session_date' => $validated['session_date'],
             'start_at' => $this->buildStartAt($validated['session_date'], $validated['start_time_local'] ?? null, $profile->timezone),
@@ -319,11 +366,11 @@ class PaddleSessionController extends Controller
             'title' => trim($validated['title']),
             'area_name' => $this->nullIfBlank($validated['area_name'] ?? null),
             'launch_name' => trim($validated['launch_name']),
-            'launch_lat' => $this->nullableFloat($validated['launch_lat'] ?? null),
-            'launch_lng' => $this->nullableFloat($validated['launch_lng'] ?? null),
+            'launch_lat' => $launchLat,
+            'launch_lng' => $launchLng,
             'landing_name' => $this->nullIfBlank($validated['landing_name'] ?? null),
-            'landing_lat' => $this->nullableFloat($validated['landing_lat'] ?? null),
-            'landing_lng' => $this->nullableFloat($validated['landing_lng'] ?? null),
+            'landing_lat' => $landingLat,
+            'landing_lng' => $landingLng,
             'route_category' => $validated['route_category'] ?? 'journey',
             'body_of_water' => $this->nullIfBlank($validated['body_of_water'] ?? null),
             'kayak_used' => $this->nullIfBlank($validated['kayak_used'] ?? null),
@@ -374,6 +421,13 @@ class PaddleSessionController extends Controller
             'expedition_days' => $isExpedition ? $this->nullableInt($validated['expedition_days'] ?? null) : null,
             'is_public' => false,
         ];
+
+        if ($canManageManualRoute) {
+            $payload['route_points'] = $manualRoute['route_points'] ?? null;
+            $payload['route_profile'] = $manualRoute['route_profile'] ?? null;
+        }
+
+        return $payload;
     }
 
     private function storeFiles(UpsertPaddleSessionRequest $request, PaddleSession $session): void
@@ -494,6 +548,107 @@ class PaddleSessionController extends Controller
             ->all();
     }
 
+    private function manualRouteWaypoints(?PaddleSession $session): string
+    {
+        if ($session === null || filled($session->gpx_path) || filled($session->fit_path) || ! is_array($session->route_profile)) {
+            return '';
+        }
+
+        if (count($session->route_profile) <= 2) {
+            return '';
+        }
+
+        return json_encode(
+            collect($session->route_profile)
+                ->slice(1, count($session->route_profile) - 2)
+                ->filter(fn (array $point) => isset($point['lat'], $point['lng']))
+                ->map(fn (array $point) => [
+                    'lat' => round((float) $point['lat'], 6),
+                    'lng' => round((float) $point['lng'], 6),
+                ])
+                ->values()
+                ->all(),
+        ) ?: '';
+    }
+
+    private function buildManualRouteSummary(?float $launchLat, ?float $launchLng, ?float $landingLat, ?float $landingLng, ?string $waypointsJson): ?array
+    {
+        $waypoints = collect(json_decode($waypointsJson ?: '[]', true))
+            ->filter(fn (mixed $point) => is_array($point) && isset($point['lat'], $point['lng']))
+            ->map(fn (array $point) => [
+                'lat' => round((float) $point['lat'], 6),
+                'lng' => round((float) $point['lng'], 6),
+            ])
+            ->values();
+
+        $points = collect();
+
+        if ($launchLat !== null && $launchLng !== null) {
+            $points->push([
+                'lat' => round($launchLat, 6),
+                'lng' => round($launchLng, 6),
+            ]);
+        }
+
+        $points = $points->concat($waypoints);
+
+        if ($landingLat !== null && $landingLng !== null) {
+            $points->push([
+                'lat' => round($landingLat, 6),
+                'lng' => round($landingLng, 6),
+            ]);
+        }
+
+        $points = $points
+            ->filter(fn (array $point, int $index) => $index === 0 || $point !== $points->get($index - 1))
+            ->values();
+
+        if ($waypoints->isEmpty() || $points->count() < 2) {
+            return [
+                'route_points' => null,
+                'route_profile' => null,
+            ];
+        }
+
+        $lats = $points->pluck('lat')->all();
+        $lngs = $points->pluck('lng')->all();
+        $minLat = min($lats);
+        $maxLat = max($lats);
+        $minLng = min($lngs);
+        $maxLng = max($lngs);
+        $latSpan = max($maxLat - $minLat, 0.0001);
+        $lngSpan = max($maxLng - $minLng, 0.0001);
+        $width = 320;
+        $height = 150;
+        $padding = 14;
+        $distanceKm = 0.0;
+
+        $routeProfile = $points->values()->map(function (array $point, int $index) use ($points, &$distanceKm, $padding, $width, $height, $minLat, $latSpan, $minLng, $lngSpan) {
+            if ($index > 0) {
+                $previous = $points->get($index - 1);
+                $distanceKm += $this->haversineKm($previous['lat'], $previous['lng'], $point['lat'], $point['lng']);
+            }
+
+            $x = $padding + ((($point['lng'] - $minLng) / $lngSpan) * ($width - ($padding * 2)));
+            $y = $padding + ((1 - (($point['lat'] - $minLat) / $latSpan)) * ($height - ($padding * 2)));
+
+            return [
+                'x' => round($x, 1),
+                'y' => round($y, 1),
+                'lat' => $point['lat'],
+                'lng' => $point['lng'],
+                'minute' => 0.0,
+                'distanceKm' => round($distanceKm, 2),
+                'speedKmh' => 0.0,
+            ];
+        })->all();
+
+        return [
+            'route_points' => collect($routeProfile)->map(fn (array $point) => $point['x'].','.$point['y'])->implode(' '),
+            'route_profile' => $routeProfile,
+        ];
+    }
+
     private function nullIfBlank(mixed $value): ?string
     {
         if ($value === null) {
@@ -513,6 +668,22 @@ class PaddleSessionController extends Controller
     private function nullableInt(mixed $value): ?int
     {
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    private function haversineKm(float $leftLat, float $leftLng, float $rightLat, float $rightLng): float
+    {
+        $earthRadiusKm = 6371;
+        $toRadians = fn (float $degrees): float => deg2rad($degrees);
+
+        $dLat = $toRadians($rightLat - $leftLat);
+        $dLng = $toRadians($rightLng - $leftLng);
+        $lat1 = $toRadians($leftLat);
+        $lat2 = $toRadians($rightLat);
+
+        $a = sin($dLat / 2) ** 2 + (sin($dLng / 2) ** 2 * cos($lat1) * cos($lat2));
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadiusKm * $c;
     }
 
     private function routeCategoryLabel(?string $category): string

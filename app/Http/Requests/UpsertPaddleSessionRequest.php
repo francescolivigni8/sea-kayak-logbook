@@ -63,6 +63,7 @@ class UpsertPaddleSessionRequest extends FormRequest
             'route_tags_text' => ['nullable', 'string'],
             'partners_text' => ['nullable', 'string'],
             'skills_text' => ['nullable', 'string'],
+            'manual_route_waypoints' => ['nullable', 'string'],
             'successful_rolls_count' => ['nullable', 'integer', 'min:0'],
             'wet_exits_count' => ['nullable', 'integer', 'min:0'],
             'tow_rescues_count' => ['nullable', 'integer', 'min:0'],
