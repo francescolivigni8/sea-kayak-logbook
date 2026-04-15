@@ -110,7 +110,7 @@ const steps = [
     {
         key: 'notes',
         title: 'Notes and files',
-        description: 'Visibility, expedition fields, notes, GPX/FIT, and a photo.',
+        description: 'Observations, expedition fields, GPX/FIT, and a photo.',
     },
 ] as const;
 
@@ -257,6 +257,30 @@ const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(f
 const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
 const landingLatNumber = computed(() => (form.landing_lat === '' ? null : Number(form.landing_lat)));
 const landingLngNumber = computed(() => (form.landing_lng === '' ? null : Number(form.landing_lng)));
+const durationHours = computed({
+    get: () => {
+        if (form.duration_minutes === '') {
+            return '';
+        }
+
+        return String(Math.floor(Number.parseInt(form.duration_minutes, 10) / 60));
+    },
+    set: (value: string) => {
+        syncDuration(value, durationRemainingMinutes.value);
+    },
+});
+const durationRemainingMinutes = computed({
+    get: () => {
+        if (form.duration_minutes === '') {
+            return '';
+        }
+
+        return String(Number.parseInt(form.duration_minutes, 10) % 60);
+    },
+    set: (value: string) => {
+        syncDuration(durationHours.value, value);
+    },
+});
 const hasExpeditionMapPointSource = computed(() => {
     const hasLaunchPoint = launchLatNumber.value !== null && launchLngNumber.value !== null;
     const hasLandingPoint = landingLatNumber.value !== null && landingLngNumber.value !== null;
@@ -293,6 +317,21 @@ function copyLaunchToLanding() {
 function clearLandingCoordinates() {
     form.landing_lat = '';
     form.landing_lng = '';
+}
+
+function syncDuration(hoursValue: string, minutesValue: string) {
+    const hasHours = hoursValue.trim() !== '';
+    const hasMinutes = minutesValue.trim() !== '';
+
+    if (!hasHours && !hasMinutes) {
+        form.duration_minutes = '';
+        return;
+    }
+
+    const safeHours = Math.max(0, Number.parseInt(hoursValue || '0', 10) || 0);
+    const safeMinutes = Math.max(0, Math.min(59, Number.parseInt(minutesValue || '0', 10) || 0));
+
+    form.duration_minutes = String((safeHours * 60) + safeMinutes);
 }
 
 function nextStep() {
@@ -492,15 +531,18 @@ function submit() {
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="duration_minutes">Duration (min)</label>
-                        <input id="duration_minutes" v-model="form.duration_minutes" type="number" min="0" class="journal-input" />
+                        <label class="journal-field-label" for="duration_hours">Duration</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-2">
+                                <span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--journal-faint)]">Hours</span>
+                                <input id="duration_hours" v-model="durationHours" type="number" min="0" class="journal-input" placeholder="1" />
+                            </div>
+                            <div class="space-y-2">
+                                <span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--journal-faint)]">Minutes</span>
+                                <input id="duration_minutes" v-model="durationRemainingMinutes" type="number" min="0" max="59" class="journal-input" placeholder="30" />
+                            </div>
+                        </div>
                         <InputError :message="form.errors.duration_minutes" />
-                    </div>
-
-                    <div>
-                        <label class="journal-field-label" for="moving_minutes">Moving time (min)</label>
-                        <input id="moving_minutes" v-model="form.moving_minutes" type="number" min="0" class="journal-input" />
-                        <InputError :message="form.errors.moving_minutes" />
                     </div>
 
                     <div class="md:col-span-2 xl:col-span-2">
@@ -804,12 +846,12 @@ function submit() {
                             <InputError :message="form.errors.notes_public" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="notes_private">Session notes</label>
+                            <label class="journal-field-label" for="notes_private">Suggestions for next time</label>
                             <textarea
                                 id="notes_private"
                                 v-model="form.notes_private"
                                 class="journal-textarea"
-                                placeholder="Reflections, reminders, or lessons you want to keep with this session."
+                                placeholder="Suggestions, tweaks, or reminders to carry into the next paddle."
                             />
                             <InputError :message="form.errors.notes_private" />
                         </div>
