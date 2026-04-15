@@ -193,6 +193,7 @@ class StormglassWeatherService
         $windSpeed = $this->extractNumericValue($hour, 'windSpeed');
         $windGust = $this->extractNumericValue($hour, 'gust');
         $windDirection = $this->extractNumericValue($hour, 'windDirection');
+        $precipitation = $this->extractNumericValue($hour, 'precipitation');
         $currentSpeed = $this->extractNumericValue($hour, 'currentSpeed');
         $currentDirection = $this->extractNumericValue($hour, 'currentDirection');
         $waveHeight = $this->extractNumericValue($hour, 'waveHeight');
@@ -221,6 +222,12 @@ class StormglassWeatherService
             $filled++;
         }
 
+        $rainSeverity = $this->resolveRainSeverity($precipitation);
+        if ($rainSeverity !== null) {
+            $session->rain_severity = $rainSeverity;
+            $filled++;
+        }
+
         $tideState = ($lat !== null && $lng !== null)
             ? $this->resolveTideState($targetTime, $this->fetchTideExtremes($lat, $lng, $targetTime))
             : null;
@@ -232,6 +239,32 @@ class StormglassWeatherService
         $beaufort = $this->resolveBeaufort($windSpeed);
         if ($beaufort !== null) {
             $session->wind_beaufort = $beaufort;
+            $filled++;
+        }
+
+        $windSeverity = $this->resolveWindSeverity($windSpeed, $windGust, $beaufort);
+        if ($windSeverity !== null) {
+            $session->wind_severity = $windSeverity;
+            $filled++;
+        }
+
+        $temperatureSeverity = $this->resolveTemperatureSeverity($airTemperature, $waterTemperature);
+        if ($temperatureSeverity !== null) {
+            $session->temperature_severity = $temperatureSeverity;
+            $filled++;
+        }
+
+        $forecastSeverity = $this->resolveForecastSeverity(
+            $windSeverity,
+            $rainSeverity,
+            $temperatureSeverity,
+            $waveHeight,
+            $swellHeight,
+            $currentSpeed !== null ? $currentSpeed * 1.943844 : null,
+            $visibilityCode,
+        );
+        if ($forecastSeverity !== null) {
+            $session->forecast_severity = $forecastSeverity;
             $filled++;
         }
 
@@ -282,6 +315,10 @@ class StormglassWeatherService
             'swell_direction_deg' => $session->swell_direction_deg,
             'air_temp_c' => $session->air_temp_c,
             'sea_temp_c' => $session->sea_temp_c,
+            'rain_severity' => $session->rain_severity,
+            'wind_severity' => $session->wind_severity,
+            'temperature_severity' => $session->temperature_severity,
+            'forecast_severity' => $session->forecast_severity,
             'visibility_code' => $session->visibility_code,
             'weather_summary' => $session->weather_summary,
         ];
@@ -389,6 +426,112 @@ class StormglassWeatherService
             $windSpeed < 32.7 => 11,
             default => 12,
         };
+    }
+
+    private function resolveRainSeverity(?float $precipitation): ?string
+    {
+        if ($precipitation === null) {
+            return null;
+        }
+
+        return match (true) {
+            $precipitation >= 7.5 => 'extreme',
+            $precipitation >= 2.5 => 'high',
+            $precipitation >= 0.5 => 'moderate',
+            default => 'low',
+        };
+    }
+
+    private function resolveWindSeverity(?float $windSpeed, ?float $windGust, ?int $beaufort): ?string
+    {
+        if ($windSpeed === null && $windGust === null && $beaufort === null) {
+            return null;
+        }
+
+        if (($windSpeed !== null && $windSpeed >= 17.2) || ($windGust !== null && $windGust >= 20.8) || ($beaufort !== null && $beaufort >= 8)) {
+            return 'extreme';
+        }
+
+        if (($windSpeed !== null && $windSpeed >= 10.8) || ($windGust !== null && $windGust >= 13.9) || ($beaufort !== null && $beaufort >= 6)) {
+            return 'high';
+        }
+
+        if (($windSpeed !== null && $windSpeed >= 5.5) || ($windGust !== null && $windGust >= 8.0) || ($beaufort !== null && $beaufort >= 4)) {
+            return 'moderate';
+        }
+
+        return 'low';
+    }
+
+    private function resolveTemperatureSeverity(?float $airTemperature, ?float $waterTemperature): ?string
+    {
+        if ($airTemperature === null && $waterTemperature === null) {
+            return null;
+        }
+
+        if (($airTemperature !== null && $airTemperature <= 0) || ($waterTemperature !== null && $waterTemperature <= 4) || ($airTemperature !== null && $airTemperature >= 30)) {
+            return 'extreme';
+        }
+
+        if (($airTemperature !== null && $airTemperature <= 5) || ($waterTemperature !== null && $waterTemperature <= 7) || ($airTemperature !== null && $airTemperature >= 26)) {
+            return 'high';
+        }
+
+        if (($airTemperature !== null && $airTemperature <= 10) || ($waterTemperature !== null && $waterTemperature <= 10) || ($airTemperature !== null && $airTemperature >= 22)) {
+            return 'moderate';
+        }
+
+        return 'low';
+    }
+
+    private function resolveForecastSeverity(
+        ?string $windSeverity,
+        ?string $rainSeverity,
+        ?string $temperatureSeverity,
+        ?float $waveHeight,
+        ?float $swellHeight,
+        ?float $currentKnots,
+        ?string $visibilityCode,
+    ): ?string {
+        $severity = $this->maxSeverity($windSeverity, $rainSeverity, $temperatureSeverity);
+
+        if ($waveHeight !== null || $swellHeight !== null || $currentKnots !== null || $visibilityCode !== null) {
+            $severity = $this->maxSeverity(
+                $severity,
+                match (true) {
+                    $waveHeight !== null && $waveHeight >= 2.0 => 'extreme',
+                    $swellHeight !== null && $swellHeight >= 2.5 => 'extreme',
+                    $currentKnots !== null && $currentKnots >= 3.0 => 'extreme',
+                    $visibilityCode === 'fog' => 'extreme',
+                    $waveHeight !== null && $waveHeight >= 1.2 => 'high',
+                    $swellHeight !== null && $swellHeight >= 1.5 => 'high',
+                    $currentKnots !== null && $currentKnots >= 2.0 => 'high',
+                    $visibilityCode === 'poor' => 'high',
+                    $waveHeight !== null && $waveHeight >= 0.6 => 'moderate',
+                    $swellHeight !== null && $swellHeight >= 0.8 => 'moderate',
+                    $currentKnots !== null && $currentKnots >= 1.0 => 'moderate',
+                    in_array($visibilityCode, ['moderate', 'good', 'clear'], true) => 'low',
+                    default => null,
+                },
+            );
+        }
+
+        return $severity;
+    }
+
+    private function maxSeverity(?string ...$values): ?string
+    {
+        $order = [
+            'low' => 1,
+            'moderate' => 2,
+            'high' => 3,
+            'extreme' => 4,
+        ];
+
+        return collect($values)
+            ->filter(fn (?string $value) => $value !== null && isset($order[$value]))
+            ->sortBy(fn (string $value) => $order[$value])
+            ->last();
     }
 
     private function resolveTideState(CarbonInterface $targetTime, array $extremes): ?string

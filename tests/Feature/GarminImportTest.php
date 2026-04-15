@@ -91,6 +91,7 @@ class GarminImportTest extends TestCase
                     'windSpeed' => ['sg' => 8.2],
                     'gust' => ['sg' => 11.6],
                     'windDirection' => ['sg' => 195],
+                    'precipitation' => ['sg' => 0.2],
                     'airTemperature' => ['sg' => 12.4],
                     'waterTemperature' => ['sg' => 9.1],
                     'visibility' => ['sg' => 8000],
@@ -138,6 +139,10 @@ class GarminImportTest extends TestCase
         $this->assertSame(5, $session->wind_beaufort);
         $this->assertSame(8.2, (float) $session->wind_avg_ms);
         $this->assertSame('ebbing', $session->tide_state);
+        $this->assertSame('low', $session->rain_severity);
+        $this->assertSame('moderate', $session->wind_severity);
+        $this->assertSame('moderate', $session->temperature_severity);
+        $this->assertSame('moderate', $session->forecast_severity);
         $this->assertNotNull($session->weather_summary);
     }
 }

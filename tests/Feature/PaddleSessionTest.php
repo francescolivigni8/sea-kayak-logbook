@@ -229,6 +229,7 @@ GPX);
                     'windSpeed' => ['sg' => 7.2],
                     'gust' => ['sg' => 10.4],
                     'windDirection' => ['sg' => 215],
+                    'precipitation' => ['sg' => 0.8],
                     'airTemperature' => ['sg' => 8.5],
                     'waterTemperature' => ['sg' => 6.1],
                     'visibility' => ['sg' => 12000],
@@ -275,6 +276,10 @@ GPX);
         $this->assertSame(0.8, (float) $session->current_knots);
         $this->assertSame('clear', $session->visibility_code);
         $this->assertSame('flooding', $session->tide_state);
+        $this->assertSame('moderate', $session->rain_severity);
+        $this->assertSame('moderate', $session->wind_severity);
+        $this->assertSame('high', $session->temperature_severity);
+        $this->assertSame('high', $session->forecast_severity);
         $this->assertNotNull($session->weather_summary);
     }
 
@@ -289,6 +294,7 @@ GPX);
                     'windSpeed' => ['sg' => 7.2],
                     'gust' => ['sg' => 10.4],
                     'windDirection' => ['sg' => 215],
+                    'precipitation' => ['sg' => 0.8],
                     'airTemperature' => ['sg' => 8.5],
                     'waterTemperature' => ['sg' => 6.1],
                     'visibility' => ['sg' => 12000],
@@ -321,6 +327,10 @@ GPX);
             ->assertJsonPath('status', 'filled')
             ->assertJsonPath('fields.wind_beaufort', 4)
             ->assertJsonPath('fields.tide_state', 'flooding')
-            ->assertJsonPath('fields.current_knots', 0.8);
+            ->assertJsonPath('fields.current_knots', 0.8)
+            ->assertJsonPath('fields.wind_severity', 'moderate')
+            ->assertJsonPath('fields.temperature_severity', 'high')
+            ->assertJsonPath('fields.forecast_severity', 'high')
+            ->assertJsonPath('fields.rain_severity', 'moderate');
     }
 }

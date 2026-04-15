@@ -15,6 +15,7 @@ return [
                     'windSpeed',
                     'gust',
                     'windDirection',
+                    'precipitation',
                     'airTemperature',
                     'waterTemperature',
                     'visibility',

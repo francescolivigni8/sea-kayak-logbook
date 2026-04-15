@@ -816,7 +816,7 @@ onMounted(async () => {
                             <span class="space-y-1">
                                 <strong class="block font-medium">Fill weather from Stormglass now and on save</strong>
                                 <span class="block text-[color:var(--journal-muted)]">
-                                    Uses the current session point and time to preview wind, tide, swell, current, temperatures, and Beaufort before you save.
+                                    Uses the current session point and time to preview wind, tide, swell, current, temperatures, Beaufort, and the environmental checklist before you save.
                                     <template v-if="!weatherAutofillAvailable"> Add your Stormglass API key first to enable this.</template>
                                 </span>
                             </span>
