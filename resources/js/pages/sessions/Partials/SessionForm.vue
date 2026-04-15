@@ -817,7 +817,7 @@ function submit() {
                         {{ expeditionMapWarning }}
                     </section>
 
-                    <div class="grid gap-4 xl:grid-cols-3">
+                    <div class="grid gap-4 xl:grid-cols-2">
                         <div>
                             <label class="journal-field-label" for="notes_public">Observations</label>
                             <textarea
@@ -827,16 +827,6 @@ function submit() {
                                 placeholder="Wildlife, route notes, standout moments, or observations from the paddle."
                             />
                             <InputError :message="form.errors.notes_public" />
-                        </div>
-                        <div>
-                            <label class="journal-field-label" for="notes_private">Suggestions for next time</label>
-                            <textarea
-                                id="notes_private"
-                                v-model="form.notes_private"
-                                class="journal-textarea"
-                                placeholder="Suggestions, tweaks, or reminders to carry into the next paddle."
-                            />
-                            <InputError :message="form.errors.notes_private" />
                         </div>
                         <div>
                             <label class="journal-field-label" for="expedition_notes">Expedition notes</label>
