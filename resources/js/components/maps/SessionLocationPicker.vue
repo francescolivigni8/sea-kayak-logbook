@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="space-y-2">
                 <p class="journal-kicker">Geolocation</p>
-                <h4 class="text-[1.35rem] leading-none text-[color:var(--journal-text)]">Place the session</h4>
+                <h4 class="text-[1.2rem] leading-none text-[color:var(--journal-text)] sm:text-[1.35rem]">Place the session</h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
                     Pins alone save the place. If you want a visible route, switch to
                     <strong class="text-[color:var(--journal-text)]">trace route</strong>
@@ -325,10 +325,10 @@ onBeforeUnmount(() => {
                 </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
                 <button
                     type="button"
-                    class="journal-utility-link"
+                    class="journal-utility-link shrink-0"
                     :class="activeTarget === 'launch' ? 'journal-chip--primary' : ''"
                     @click="activeTarget = 'launch'"
                 >
@@ -336,7 +336,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="journal-utility-link"
+                    class="journal-utility-link shrink-0"
                     :class="activeTarget === 'landing' ? 'journal-chip--primary' : ''"
                     @click="activeTarget = 'landing'"
                 >
@@ -344,7 +344,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="journal-utility-link"
+                    class="journal-utility-link shrink-0"
                     :class="activeTarget === 'route' ? 'journal-chip--primary' : ''"
                     @click="activeTarget = 'route'"
                 >
@@ -352,7 +352,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="journal-utility-link"
+                    class="journal-utility-link shrink-0"
                     :disabled="routeWaypoints.length === 0"
                     @click="clearRouteTrace"
                 >
@@ -362,15 +362,15 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="mt-4 overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-            <div ref="mapElement" class="h-[320px]" />
+            <div ref="mapElement" class="h-[260px] sm:h-[320px]" />
         </div>
 
-        <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-            <span class="journal-chip">Launch = green</span>
-            <span class="journal-chip">Landing = orange</span>
-            <span class="journal-chip">Trace route = blue points</span>
-            <span class="journal-chip">Drag markers to refine</span>
-            <span class="journal-chip">Double-click a route point to remove it</span>
+        <div class="mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium text-[color:var(--journal-muted)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+            <span class="journal-chip shrink-0">Launch = green</span>
+            <span class="journal-chip shrink-0">Landing = orange</span>
+            <span class="journal-chip shrink-0">Trace route = blue points</span>
+            <span class="journal-chip shrink-0">Drag markers to refine</span>
+            <span class="journal-chip shrink-0">Double-click a route point to remove it</span>
         </div>
     </section>
 </template>

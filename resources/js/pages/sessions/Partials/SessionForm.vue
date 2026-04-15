@@ -551,7 +551,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="space-y-5">
+    <div class="space-y-4 sm:space-y-5">
         <section v-if="flashSuccessMessage" class="journal-banner journal-banner--success-strong">
             <p class="journal-kicker text-[color:#256a48]">Session saved</p>
             <p class="mt-2 text-sm font-semibold leading-6 md:text-base">
@@ -559,12 +559,12 @@ onMounted(async () => {
             </p>
         </section>
 
-        <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
+        <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
             <div class="space-y-3">
                 <div class="space-y-3">
                     <p class="journal-kicker">{{ mode === 'create' ? 'Add session' : 'Edit session' }}</p>
                     <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.5rem)] leading-[0.96]">
+                        <h2 class="text-[1.75rem] leading-[0.96] sm:text-[clamp(1.9rem,3vw,2.5rem)]">
                             {{ pageTitle }}
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
@@ -580,20 +580,20 @@ onMounted(async () => {
         </section>
 
         <form class="space-y-5" @submit.prevent="submit">
-            <section class="journal-panel px-5 py-5 md:px-6">
+            <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p class="text-sm font-medium text-[color:var(--journal-muted)]">
                         {{ stepProgressLabel }}
                     </p>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">Required: title, date, launch, distance or route file</span>
+                    <span class="w-full text-xs font-medium text-[color:var(--journal-muted)] sm:w-auto sm:text-sm">Required: title, date, launch, distance or route file</span>
                 </div>
 
-                <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div class="mt-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:mt-5 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4">
                     <button
                         v-for="(step, index) in steps"
                         :key="step.key"
                         type="button"
-                        :class="['journal-step', currentStep === index ? 'journal-step--active' : '']"
+                        :class="['journal-step', 'min-w-[220px] shrink-0 md:min-w-0', currentStep === index ? 'journal-step--active' : '']"
                         @click="goToStep(index)"
                     >
                         <span class="journal-kicker">{{ `Step ${index + 1}` }}</span>
@@ -603,11 +603,11 @@ onMounted(async () => {
                 </div>
             </section>
 
-            <section class="journal-panel px-5 py-5 md:px-6">
+            <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
                     <div class="space-y-2">
                         <p class="journal-kicker">{{ currentStepMeta.title }}</p>
-                        <h3 class="text-[1.9rem] leading-none">{{ currentStepMeta.title }}</h3>
+                        <h3 class="text-[1.5rem] leading-none sm:text-[1.9rem]">{{ currentStepMeta.title }}</h3>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
                             {{ currentStepMeta.description }}
                         </p>
@@ -618,7 +618,7 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <div v-show="currentStep === 0" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div v-show="currentStep === 0" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <div class="xl:col-span-2">
                         <label class="journal-field-label" for="title">Title</label>
                         <input id="title" v-model="form.title" class="journal-input" placeholder="Morning benchmark paddle" />
@@ -727,7 +727,7 @@ onMounted(async () => {
                         <InputError :message="form.errors.duration_minutes" />
                     </div>
 
-                    <div class="md:col-span-2 xl:col-span-2">
+                    <div class="sm:col-span-2 xl:col-span-2">
                         <label class="journal-field-label" for="route_tags_text">Tags</label>
                         <input
                             id="route_tags_text"
@@ -738,7 +738,7 @@ onMounted(async () => {
                         <InputError :message="form.errors.route_tags_text" />
                     </div>
 
-                    <div class="md:col-span-2 xl:col-span-1">
+                    <div class="sm:col-span-2 xl:col-span-1">
                         <label class="journal-field-label" for="partners_text">Partners</label>
                         <input
                             id="partners_text"
@@ -749,7 +749,7 @@ onMounted(async () => {
                         <InputError :message="form.errors.partners_text" />
                     </div>
 
-                    <div class="md:col-span-2 xl:col-span-3">
+                    <div class="sm:col-span-2 xl:col-span-3">
                         <SessionLocationPicker
                             :launch-lat="launchLatNumber"
                             :launch-lng="launchLngNumber"
@@ -788,7 +788,7 @@ onMounted(async () => {
                         <InputError :message="form.errors.landing_lng" />
                     </div>
 
-                    <div class="md:col-span-2 xl:col-span-2 flex flex-wrap items-end gap-2">
+                    <div class="sm:col-span-2 xl:col-span-2 flex flex-wrap items-end gap-2">
                         <button type="button" class="journal-utility-link" @click="copyLaunchToLanding">
                             Use launch for landing
                         </button>
@@ -802,9 +802,9 @@ onMounted(async () => {
                 </div>
 
                 <div v-show="currentStep === 1" class="space-y-5">
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <label
-                            class="md:col-span-2 xl:col-span-4 flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)]"
+                            class="sm:col-span-2 xl:col-span-4 flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)]"
                             :class="!weatherAutofillAvailable ? 'opacity-70' : ''"
                         >
                             <input
@@ -824,7 +824,7 @@ onMounted(async () => {
 
                         <div
                             v-if="weatherPreviewState !== 'idle' && weatherPreviewMessage"
-                            class="md:col-span-2 xl:col-span-4 journal-banner text-sm"
+                            class="sm:col-span-2 xl:col-span-4 journal-banner text-sm"
                             :class="{
                                 'journal-banner--soft': weatherPreviewState === 'loading',
                                 'journal-banner--danger': weatherPreviewState === 'warning' || weatherPreviewState === 'error',
@@ -913,7 +913,7 @@ onMounted(async () => {
                             <h4 class="text-[1.35rem] leading-none">Session checklist</h4>
                         </div>
 
-                        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <div>
                                 <label class="journal-field-label" for="rain_severity">Rain</label>
                                 <select id="rain_severity" v-model="form.rain_severity" class="journal-select">
@@ -949,7 +949,7 @@ onMounted(async () => {
                         </div>
                     </section>
 
-                    <div class="grid gap-4 xl:grid-cols-2">
+                    <div class="grid gap-4 lg:grid-cols-2">
                         <div>
                             <label class="journal-field-label" for="weather_summary">Conditions summary</label>
                             <textarea
@@ -974,7 +974,7 @@ onMounted(async () => {
                 </div>
 
                 <div v-show="currentStep === 2" class="space-y-5">
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <div>
                             <label class="journal-field-label" for="successful_rolls_count">Successful rolls</label>
                             <input id="successful_rolls_count" v-model="form.successful_rolls_count" type="number" min="0" class="journal-input" />
@@ -998,7 +998,7 @@ onMounted(async () => {
                         <InputError :message="form.errors.skills_text" />
                     </div>
 
-                    <div class="grid gap-4 xl:grid-cols-2">
+                    <div class="grid gap-4 lg:grid-cols-2">
                         <div>
                             <label class="journal-field-label" for="what_went_well">What went well</label>
                             <textarea id="what_went_well" v-model="form.what_went_well" class="journal-textarea" />
@@ -1011,7 +1011,7 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <div class="grid gap-4 md:grid-cols-3">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="journal-field-label" for="confidence_score">Confidence (1-5)</label>
                             <input id="confidence_score" v-model="form.confidence_score" type="number" min="1" max="5" class="journal-input" />
@@ -1031,7 +1031,7 @@ onMounted(async () => {
                 </div>
 
                 <div v-show="currentStep === 3" class="space-y-5">
-                    <div class="grid gap-4 xl:grid-cols-2">
+                    <div class="grid gap-4 lg:grid-cols-2">
                         <label class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]">
                             <input v-model="form.is_expedition" type="checkbox" class="size-4 rounded border-[color:var(--journal-line)]" />
                             Tag as expedition / multiday
@@ -1072,7 +1072,7 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <div class="grid gap-4 xl:grid-cols-3">
+                    <div class="grid gap-4 lg:grid-cols-3">
                         <div>
                             <label class="journal-field-label" for="gpx_file">GPX file</label>
                             <input id="gpx_file" type="file" accept=".gpx,.xml" :class="fileInputClass" @change="assignFile('gpx_file', $event)" />
@@ -1105,20 +1105,20 @@ onMounted(async () => {
                         v-if="photoPreviewUrl"
                         class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/72"
                     >
-                        <img :src="photoPreviewUrl" alt="Session photo preview" class="h-64 w-full object-cover" />
+                        <img :src="photoPreviewUrl" alt="Session photo preview" class="h-52 w-full object-cover sm:h-64" />
                     </div>
                 </div>
             </section>
 
-            <section class="journal-panel flex flex-wrap items-center justify-between gap-3 px-5 py-5 md:px-6">
+            <section class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5">
                 <p class="text-sm text-[color:var(--journal-muted)]">
                     Minimum save requirement: title, date, launch, and distance or a route file.
                 </p>
 
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center md:w-auto">
                     <button
                         type="button"
-                        class="journal-utility-link disabled:cursor-not-allowed disabled:opacity-50"
+                        class="journal-utility-link w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                         :disabled="currentStep === 0"
                         @click="previousStep"
                     >
@@ -1128,7 +1128,7 @@ onMounted(async () => {
                     <button
                         v-if="currentStep < steps.length - 1"
                         type="button"
-                        class="journal-primary-link"
+                        class="journal-primary-link w-full sm:w-auto"
                         @click="nextStep"
                     >
                         Next
@@ -1137,7 +1137,7 @@ onMounted(async () => {
                     <button
                         v-else
                         type="submit"
-                        class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-60"
+                        class="journal-primary-link w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Saving...' : submitLabel }}

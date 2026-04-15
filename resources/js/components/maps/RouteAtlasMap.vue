@@ -583,14 +583,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div class="flex flex-wrap items-center gap-2">
+    <div class="space-y-3 sm:space-y-4">
+        <div class="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
                 <button
                     v-for="(style, key) in styleOptions"
                     :key="key"
                     type="button"
-                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    class="shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs"
                     :class="selectedStyle === key
                         ? 'border-[color:var(--journal-line-strong)] bg-[rgba(103,114,255,0.14)] text-[color:var(--journal-text)]'
                         : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="allowPinView"
                     type="button"
-                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    class="shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs"
                     :class="pinFeedback === 'saved'
                         ? 'border-[rgba(137,223,171,0.5)] bg-[rgba(241,255,245,0.9)] text-[#256a48]'
                         : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
@@ -614,7 +614,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="allowPinView"
                     type="button"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)] transition hover:border-[color:var(--journal-line-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-2.5 py-1.5 text-[11px] font-medium text-[color:var(--journal-muted)] transition hover:border-[color:var(--journal-line-strong)] disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-xs"
                     :disabled="!pinnedView"
                     @click="goToPinnedView"
                 >
@@ -622,10 +622,10 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <div v-if="showFilters" class="flex flex-wrap items-center gap-2">
+            <div v-if="showFilters" class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
                 <select
                     v-model="selectedYear"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
+                    class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-2.5 py-1.5 text-[11px] font-medium text-[color:var(--journal-muted)] sm:px-3 sm:text-xs"
                 >
                     <option value="all">All years</option>
                     <option
@@ -640,7 +640,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showKindFilter"
                     v-model="selectedKind"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
+                    class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-2.5 py-1.5 text-[11px] font-medium text-[color:var(--journal-muted)] sm:px-3 sm:text-xs"
                 >
                     <option value="all">All sessions</option>
                     <option value="day">Day sessions</option>
@@ -650,7 +650,7 @@ onBeforeUnmount(() => {
                 <select
                     v-if="showGeometryFilter"
                     v-model="selectedGeometry"
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1.5 text-xs font-medium text-[color:var(--journal-muted)]"
+                    class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-2.5 py-1.5 text-[11px] font-medium text-[color:var(--journal-muted)] sm:px-3 sm:text-xs"
                 >
                     <option value="all">Routes and pins</option>
                     <option value="routes">Routes only</option>
@@ -659,7 +659,7 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-[1.7rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+        <div class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]">
             <div ref="mapElement" :class="props.heightClass" />
         </div>
 
@@ -677,12 +677,12 @@ onBeforeUnmount(() => {
             {{ emptyMessage }}
         </div>
 
-        <div v-if="props.showLegend && legendRoutes.length" class="flex flex-wrap gap-2">
+        <div v-if="props.showLegend && legendRoutes.length" class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
             <button
                 v-for="route in legendRoutes"
                 :key="route.id"
                 type="button"
-                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1 text-xs text-[color:var(--journal-muted)] transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-[color:var(--journal-line)] disabled:hover:text-[color:var(--journal-muted)]"
+                class="inline-flex shrink-0 items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-3 py-1 text-xs text-[color:var(--journal-muted)] transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-[color:var(--journal-line)] disabled:hover:text-[color:var(--journal-muted)]"
                 :disabled="!route.path"
                 @click="openPath(route.path)"
             >

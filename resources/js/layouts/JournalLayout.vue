@@ -117,18 +117,18 @@ function isUtilityActive(item: { href: string; match: string[] }) {
 
 <template>
     <div class="journal-page">
-        <header class="journal-panel journal-panel--hero overflow-hidden px-5 py-4 md:px-6 md:py-5">
-            <div class="flex flex-col gap-4">
-                <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
+        <header class="journal-panel journal-panel--hero overflow-hidden px-4 py-4 sm:px-5 md:px-6 md:py-5">
+            <div class="flex flex-col gap-3 sm:gap-4">
+                <div class="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
                     <div class="space-y-2">
                         <p class="journal-kicker">Sea kayak logbook</p>
-                        <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94] text-[color:var(--journal-text)]">
+                        <h1 class="text-[2.1rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]">
                             {{ heroTitle }}
                         </h1>
                     </div>
 
                     <div class="space-y-4 xl:text-right">
-                        <div class="flex flex-wrap justify-start gap-3 xl:justify-end">
+                        <div class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-start sm:gap-3 xl:justify-end">
                             <div class="journal-stat-pill">
                                 <span class="journal-stat-pill__label">Sessions</span>
                                 <span class="journal-stat-pill__value">{{ journalNav?.sessionCount ?? 0 }}</span>
@@ -150,7 +150,7 @@ function isUtilityActive(item: { href: string; match: string[] }) {
                 </div>
 
                 <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <nav class="inline-flex flex-wrap items-center gap-2 rounded-full border border-[color:var(--journal-line)] bg-white/74 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                    <nav class="flex items-center gap-2 overflow-x-auto rounded-[1.65rem] border border-[color:var(--journal-line)] bg-white/74 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:inline-flex sm:flex-wrap">
                         <component
                             v-for="item in primaryNav"
                             :key="item.label"
@@ -158,6 +158,7 @@ function isUtilityActive(item: { href: string; match: string[] }) {
                             :href="isPlaceholder(item) ? undefined : item.href"
                             :class="[
                                 'journal-tab',
+                                'shrink-0',
                                 isActive(item) ? 'journal-tab--active' : '',
                                 isPrimaryCta(item) ? 'journal-tab--cta' : '',
                                 isPlaceholder(item) ? 'journal-tab--placeholder' : '',
@@ -167,11 +168,11 @@ function isUtilityActive(item: { href: string; match: string[] }) {
                         </component>
                     </nav>
 
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
                         <button
                             v-if="showBackButton"
                             type="button"
-                            class="journal-utility-link"
+                            class="journal-utility-link shrink-0"
                             @click="goBack"
                         >
                             Back
@@ -183,13 +184,13 @@ function isUtilityActive(item: { href: string; match: string[] }) {
                             :href="link.href"
                             :class="[
                                 'journal-utility-link',
+                                'shrink-0',
                                 isUtilityActive(link) ? 'journal-utility-link--active' : '',
                             ]"
                         >
                             {{ link.label }}
                         </Link>
-
-                        <Link href="/logout" method="post" as="button" class="journal-utility-link">
+                        <Link href="/logout" method="post" as="button" class="journal-utility-link shrink-0">
                             Sign out
                         </Link>
                     </div>

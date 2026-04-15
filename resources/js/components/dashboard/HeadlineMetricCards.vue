@@ -265,7 +265,7 @@ const cards = computed<MetricCard[]>(() => [
 </script>
 
 <template>
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <article
             v-for="card in cards"
             :key="card.label"
@@ -275,7 +275,7 @@ const cards = computed<MetricCard[]>(() => [
             <p class="journal-kicker">{{ card.label }}</p>
 
             <div class="mt-4 flex items-end justify-between gap-3">
-                <p class="text-3xl font-semibold text-[color:var(--journal-text)] md:text-[2.2rem]">
+                <p class="text-[2rem] font-semibold text-[color:var(--journal-text)] sm:text-3xl md:text-[2.2rem]">
                     {{ card.value }}
                 </p>
                 <p
@@ -288,7 +288,7 @@ const cards = computed<MetricCard[]>(() => [
 
             <div v-if="card.type === 'sparkline' && card.sparkline" class="mt-4">
                 <div class="journal-mini-sparkline">
-                    <svg viewBox="0 0 176 52" class="h-16 w-full" preserveAspectRatio="none" aria-hidden="true">
+                    <svg viewBox="0 0 176 52" class="h-14 w-full sm:h-16" preserveAspectRatio="none" aria-hidden="true">
                         <path :d="card.sparkline.areaPath" :fill="card.sparkline.fillColor" />
                         <path
                             :d="card.sparkline.linePath"

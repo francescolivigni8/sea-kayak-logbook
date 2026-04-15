@@ -210,19 +210,19 @@ function tidePercent(count: number) {
 
 <template>
     <div class="space-y-4">
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]">
+        <section class="grid gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]">
             <article class="journal-card h-full px-4 py-4 md:px-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Wind</p>
-                        <h3 class="mt-2 text-[1.45rem] leading-none">Beaufort distribution</h3>
+                        <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">Beaufort distribution</h3>
                     </div>
                     <span class="journal-chip">{{ loggedForceCount }} logged</span>
                 </div>
 
-                <div class="mt-5 flex items-center gap-4">
-                    <div class="relative grid h-24 w-24 place-items-center rounded-full" :style="forceDonutStyle">
-                        <div class="grid h-[58px] w-[58px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                <div class="mt-4 flex flex-col gap-4 sm:mt-5 sm:flex-row sm:items-center">
+                    <div class="relative grid h-20 w-20 place-items-center rounded-full sm:h-24 sm:w-24" :style="forceDonutStyle">
+                        <div class="grid h-[52px] w-[52px] place-items-center rounded-full bg-white/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:h-[58px] sm:w-[58px]">
                             <div>
                                 <p class="text-[18px] font-semibold text-[color:var(--journal-text)]">{{ averageBeaufortLabel }}</p>
                                 <p class="text-[7px] font-medium uppercase tracking-[0.1em] leading-none text-[color:var(--journal-faint)]">
@@ -259,7 +259,7 @@ function tidePercent(count: number) {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Wind counts</p>
-                        <h3 class="mt-2 text-[1.45rem] leading-none">F2-F6</h3>
+                        <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">F2-F6</h3>
                     </div>
                     <span class="journal-chip">Counts</span>
                 </div>
@@ -296,7 +296,7 @@ function tidePercent(count: number) {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Development</p>
-                        <h3 class="mt-2 text-[1.45rem] leading-none">Rescue events</h3>
+                        <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">Rescue events</h3>
                     </div>
                     <span class="journal-chip">Session totals</span>
                 </div>
@@ -328,7 +328,7 @@ function tidePercent(count: number) {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Tide + current</p>
-                        <h3 class="mt-2 text-[1.45rem] leading-none">Sea profile</h3>
+                        <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">Sea profile</h3>
                     </div>
                     <span class="journal-chip">Exposure</span>
                 </div>
@@ -357,50 +357,52 @@ function tidePercent(count: number) {
             </article>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]">
-            <article class="journal-card px-5 py-5 md:px-6">
+        <section class="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]">
+            <article class="journal-card px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Conditions</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Environmental conditions</h3>
+                        <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">Environmental conditions</h3>
                     </div>
                     <span class="journal-chip">Session checklist</span>
                 </div>
 
                 <div v-if="hasConditionData" class="mt-6 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/78">
-                    <div class="grid grid-cols-[minmax(128px,1.05fr)_repeat(4,minmax(62px,1fr))]">
-                        <div class="border-b border-[color:var(--journal-line)] px-4 py-3" />
-                        <div
-                            v-for="severity in severityOrder"
-                            :key="severity"
-                            class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[10px] font-semibold leading-tight text-[color:var(--journal-faint)]"
-                        >
-                            {{ severityLabels[severity] }}
-                        </div>
-
-                        <template v-for="item in conditionHeatmapRows" :key="item.label">
-                            <div class="border-b border-[color:var(--journal-line)] px-4 py-3">
-                                <p class="text-sm font-semibold leading-5 text-[color:var(--journal-text)]">
-                                    {{ item.label }}
-                                </p>
-                                <p class="mt-1 text-[11px] uppercase tracking-[0.12em] text-[color:var(--journal-faint)]">
-                                    {{ item.total }} logged
-                                </p>
-                            </div>
-
+                    <div class="overflow-x-auto">
+                        <div class="grid min-w-[430px] grid-cols-[minmax(128px,1.05fr)_repeat(4,minmax(62px,1fr))]">
+                            <div class="border-b border-[color:var(--journal-line)] px-4 py-3" />
                             <div
-                                v-for="value in item.values"
-                                :key="`${item.label}-${value.key}`"
-                                class="border-b border-l border-[color:var(--journal-line)] p-2"
+                                v-for="severity in severityOrder"
+                                :key="severity"
+                                class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[10px] font-semibold leading-tight text-[color:var(--journal-faint)]"
                             >
-                                <div
-                                    class="grid min-h-[62px] place-items-center rounded-[16px] border text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
-                                    :style="value.style"
-                                >
-                                    <span class="text-lg font-semibold">{{ value.count || '—' }}</span>
-                                </div>
+                                {{ severityLabels[severity] }}
                             </div>
-                        </template>
+
+                            <template v-for="item in conditionHeatmapRows" :key="item.label">
+                                <div class="border-b border-[color:var(--journal-line)] px-4 py-3">
+                                    <p class="text-sm font-semibold leading-5 text-[color:var(--journal-text)]">
+                                        {{ item.label }}
+                                    </p>
+                                    <p class="mt-1 text-[11px] uppercase tracking-[0.12em] text-[color:var(--journal-faint)]">
+                                        {{ item.total }} logged
+                                    </p>
+                                </div>
+
+                                <div
+                                    v-for="value in item.values"
+                                    :key="`${item.label}-${value.key}`"
+                                    class="border-b border-l border-[color:var(--journal-line)] p-2"
+                                >
+                                    <div
+                                        class="grid min-h-[62px] place-items-center rounded-[16px] border text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+                                        :style="value.style"
+                                    >
+                                        <span class="text-lg font-semibold">{{ value.count || '—' }}</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
                     <div class="border-t border-[color:var(--journal-line)] px-4 py-3 text-sm leading-6 text-[color:var(--journal-muted)]">
@@ -416,11 +418,11 @@ function tidePercent(count: number) {
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6">
+            <article class="journal-card px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Consistency</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Distance by month</h3>
+                        <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">Distance by month</h3>
                     </div>
                     <span class="journal-chip">Year view</span>
                 </div>
@@ -450,11 +452,11 @@ function tidePercent(count: number) {
                 </div>
             </article>
 
-            <article class="journal-card px-5 py-5 md:px-6">
+            <article class="journal-card px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Distance windows</p>
-                        <h3 class="mt-2 text-[1.7rem] leading-none">Timeframe comparison</h3>
+                        <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">Timeframe comparison</h3>
                     </div>
                     <span class="journal-chip">{{ compareChip }}</span>
                 </div>

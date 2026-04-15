@@ -946,3 +946,66 @@ html[data-theme='midnight-chart'] {
         font-size: 0.7rem;
     }
 }
+
+@media (max-width: 767px) {
+    @layer components {
+        .journal-page {
+            gap: 1rem;
+            padding: 0.8rem;
+        }
+
+        .journal-panel,
+        .journal-card,
+        .journal-metric-card {
+            border-radius: 24px;
+        }
+
+        .journal-chip {
+            padding: 0.52rem 0.78rem;
+            font-size: 0.74rem;
+        }
+
+        .journal-tab {
+            padding: 0.68rem 0.96rem;
+            font-size: 0.98rem;
+        }
+
+        .journal-utility-link {
+            padding: 0.62rem 0.88rem;
+            font-size: 0.78rem;
+        }
+
+        .journal-primary-link {
+            min-height: 48px;
+            padding: 0.82rem 1rem;
+        }
+
+        .journal-step {
+            padding: 0.82rem 0.9rem;
+        }
+
+        .journal-banner {
+            padding: 0.82rem 0.95rem;
+            font-size: 0.9rem;
+        }
+
+        .journal-metric-card {
+            padding: 1.05rem;
+        }
+
+        .journal-stat-pill {
+            min-width: 0;
+            padding: 0.72rem 0.75rem;
+            border-radius: 18px;
+        }
+
+        .journal-stat-pill__label {
+            font-size: 0.56rem;
+            letter-spacing: 0.12em;
+        }
+
+        .journal-stat-pill__value {
+            font-size: 0.92rem;
+        }
+    }
+}

@@ -144,7 +144,7 @@ const expeditionMapWarning = computed(() => {
 <template>
     <Head title="Dashboard" />
 
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-4 sm:gap-5">
         <section v-if="successMessage" class="journal-banner">
             {{ successMessage }}
         </section>
@@ -163,11 +163,11 @@ const expeditionMapWarning = computed(() => {
             compare-chip="Distance"
         />
 
-        <section class="journal-panel px-5 py-5 md:px-6">
+        <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Map</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Route map</h3>
+                    <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">Route map</h3>
                 </div>
                 <span class="journal-chip">{{ mapData.routes.length }} routes</span>
             </div>
@@ -179,21 +179,21 @@ const expeditionMapWarning = computed(() => {
                     :default-view="mapData.defaultView"
                     :storage-key="`${profile.slug}-route-atlas`"
                     :show-filters="false"
-                    height-class="h-[560px]"
+                    height-class="h-[320px] sm:h-[420px] lg:h-[560px]"
                 />
             </div>
         </section>
 
-        <section class="journal-panel px-5 py-5 md:px-6">
+        <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Expeditions</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Expeditions and multiday</h3>
+                    <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">Expeditions and multiday</h3>
                 </div>
                 <span class="journal-chip">Checklist tagged</span>
             </div>
 
-            <div class="mt-6 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5">
+            <div class="mt-5 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:mt-6 sm:px-5 sm:py-5">
                 <p class="text-base font-semibold text-[color:var(--journal-text)]">
                     Longer journeys, kept separate and still counted in the full logbook totals.
                 </p>
@@ -202,7 +202,7 @@ const expeditionMapWarning = computed(() => {
                 </p>
             </div>
 
-            <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 lg:grid-cols-3">
                 <article
                     v-for="card in expeditionCards"
                     :key="card.label"
@@ -226,7 +226,7 @@ const expeditionMapWarning = computed(() => {
                 <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="journal-kicker">Expeditions</p>
-                        <h4 class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]">I paddled here</h4>
+                        <h4 class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]">I paddled here</h4>
                     </div>
                     <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
                 </div>
@@ -243,7 +243,7 @@ const expeditionMapWarning = computed(() => {
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
                     empty-message="No expedition locations logged yet."
-                    height-class="h-[440px]"
+                    height-class="h-[280px] sm:h-[360px] lg:h-[440px]"
                 />
             </div>
 
