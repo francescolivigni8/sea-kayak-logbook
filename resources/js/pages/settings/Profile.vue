@@ -5,6 +5,7 @@ import { onUnmounted, ref, toRefs } from 'vue';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import InputError from '@/components/InputError.vue';
+import DefaultMapViewPicker from '@/components/maps/DefaultMapViewPicker.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TwoFactorRecoveryCodes from '@/components/TwoFactorRecoveryCodes.vue';
 import TwoFactorSetupModal from '@/components/TwoFactorSetupModal.vue';
@@ -217,57 +218,21 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                             <article class="journal-soft-card md:col-span-2">
                                 <Label class="journal-field-label">Default session map view</Label>
                                 <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    The Place session map opens here when a new session has no pin yet.
+                                    The Place session map opens here when a new session has no pin yet. Click the map or drag the pin to choose the default starting area.
                                 </p>
 
-                                <div class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_0.6fr]">
-                                    <div>
-                                        <Label class="journal-field-label" for="default_map_lat">Latitude</Label>
-                                        <input
-                                            id="default_map_lat"
-                                            class="journal-input"
-                                            name="default_map_lat"
-                                            type="number"
-                                            step="0.000001"
-                                            min="-90"
-                                            max="90"
-                                            v-model="defaultMapLat"
-                                            placeholder="64.167000"
-                                        />
-                                        <InputError class="mt-2" :message="errors.default_map_lat" />
-                                    </div>
-
-                                    <div>
-                                        <Label class="journal-field-label" for="default_map_lng">Longitude</Label>
-                                        <input
-                                            id="default_map_lng"
-                                            class="journal-input"
-                                            name="default_map_lng"
-                                            type="number"
-                                            step="0.000001"
-                                            min="-180"
-                                            max="180"
-                                            v-model="defaultMapLng"
-                                            placeholder="-21.821000"
-                                        />
-                                        <InputError class="mt-2" :message="errors.default_map_lng" />
-                                    </div>
-
-                                    <div>
-                                        <Label class="journal-field-label" for="default_map_zoom">Zoom</Label>
-                                        <input
-                                            id="default_map_zoom"
-                                            class="journal-input"
-                                            name="default_map_zoom"
-                                            type="number"
-                                            min="2"
-                                            max="16"
-                                            v-model="defaultMapZoom"
-                                            placeholder="10"
-                                        />
-                                        <InputError class="mt-2" :message="errors.default_map_zoom" />
-                                    </div>
-                                </div>
+                                <DefaultMapViewPicker
+                                    class="mt-4"
+                                    v-model:lat="defaultMapLat"
+                                    v-model:lng="defaultMapLng"
+                                    v-model:zoom="defaultMapZoom"
+                                    :saved="recentlySuccessful"
+                                    :errors="{
+                                        lat: errors.default_map_lat,
+                                        lng: errors.default_map_lng,
+                                        zoom: errors.default_map_zoom,
+                                    }"
+                                />
 
                                 <div class="mt-4 flex flex-wrap gap-2 text-xs">
                                     <button
