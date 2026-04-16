@@ -176,7 +176,6 @@ class PaddleSessionController extends Controller
             'slug' => $profile->slug,
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
-            'isPublic' => $profile->is_public,
             'kayaksOwned' => data_get($profile->settings, 'kayaks_owned', []),
             'paddlesOwned' => data_get($profile->settings, 'paddles_owned', []),
         ];

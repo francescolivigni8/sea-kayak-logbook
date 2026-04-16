@@ -17,6 +17,10 @@ Route::get('/', function (Request $request) {
         : redirect()->route('login');
 })->name('home');
 
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms', 'legal.terms')->name('legal.terms');
+Route::view('/contact', 'legal.contact')->name('legal.contact');
+
 Route::get('/p/{profile:slug}', PublicProfileController::class)->name('profiles.public.show');
 Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, 'publicIndex'])
     ->name('profiles.public.expeditions.index');

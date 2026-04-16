@@ -22,10 +22,10 @@ The pivot keeps the kayak-specific product model, but moves auth, profiles, sess
   - GPX/FIT/photo attachment fields
   - expedition and notes fields
 - Diary/calendar experience
-- Public shareable profile at `/p/{slug}`
 - Expedition atlas and world-footprint maps
 - Garmin CSV import page with optional GPX and FIT matching
 - GPX and FIT parsing into route geometry, timing, and session metrics
+- Private-first launch posture; public profile routes are disabled by default behind `KAYAK_PUBLIC_PROFILES_ENABLED`
 
 ## Local commands
 
@@ -58,7 +58,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 ## Data model notes
 
 `profiles`
-- ownership, slug, home water, timezone, public/private profile state
+- ownership, slug, home water, timezone, private-first profile state
 
 `profile_memberships`
 - many-to-many user access to profiles
@@ -69,7 +69,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 - severity checklist values
 - rescue counters
 - expedition flags and days out
-- public/private notes
+- observation and private note fields
 - expedition notes
 - GPX/FIT file references
 - session photo references
@@ -80,12 +80,14 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 - For production object storage, set `FILESYSTEM_DISK=s3` and `KAYAK_MEDIA_DISK=s3`.
 - To unlock the internal users/insights page, set `KAYAK_OWNER_EMAILS` to a comma-separated list of owner emails.
 - To enable Stormglass weather autofill on manual sessions and Garmin imports, set `STORMGLASS_API_KEY` in the environment. The app derives Beaufort from returned wind speed automatically.
-- Password reset, email verification, and login all use Laravel Fortify, so production mail delivery matters before launch.
+- Keep `KAYAK_PUBLIC_PROFILES_ENABLED=false` for the private-first launch. Public read-only sharing can be reintroduced later.
+- Keep `KAYAK_NOINDEX=true` for staging/private feedback unless we intentionally want search indexing.
+- Password reset and login use Laravel Fortify, so production mail delivery matters before launch. Email verification is currently disabled.
 - Deployment/auth/storage steps are documented in [DEPLOY.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/DEPLOY.md).
 
 ## Next slices
 
 1. Extend FIT-derived charts with heart rate and temperature overlays where the file contains them
-2. Add richer public diary/observation surfacing
+2. Decide the future public read-only profile/session exposure model
 3. Add profile switching and shared-membership management UI
 4. Deploy the Laravel app on its real production host and wire production mail

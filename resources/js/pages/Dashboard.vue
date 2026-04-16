@@ -11,8 +11,6 @@ interface ProfileSummary {
     bio: string;
     homeWater: string;
     timezone: string;
-    isPublic: boolean;
-    publicPath: string;
 }
 
 interface HeadlineStats {

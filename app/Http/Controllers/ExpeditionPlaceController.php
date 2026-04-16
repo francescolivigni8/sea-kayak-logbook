@@ -42,7 +42,7 @@ class ExpeditionPlaceController extends Controller
 
     public function publicShow(Profile $profile, string $place): Response
     {
-        abort_unless($profile->is_public, 404);
+        abort_unless(config('kayak.public_profiles_enabled') && $profile->is_public, 404);
 
         $sessions = $profile->sessions()
             ->where('is_public', true)
@@ -59,7 +59,7 @@ class ExpeditionPlaceController extends Controller
 
     public function publicIndex(Profile $profile): Response
     {
-        abort_unless($profile->is_public, 404);
+        abort_unless(config('kayak.public_profiles_enabled') && $profile->is_public, 404);
 
         $sessions = $profile->sessions()
             ->where('is_public', true)

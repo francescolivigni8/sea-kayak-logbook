@@ -23,7 +23,6 @@ interface ExpeditionPlace {
     latestDate: string | null;
     photoUrl: string | null;
     path: string;
-    publicPath: string;
 }
 
 interface MapData {

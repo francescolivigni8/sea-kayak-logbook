@@ -8,8 +8,6 @@ interface ProfileSummary {
     slug: string;
     homeWater: string;
     timezone: string;
-    isPublic: boolean;
-    publicPath: string;
 }
 
 interface ExpeditionPlace {
@@ -21,7 +19,6 @@ interface ExpeditionPlace {
     latestDate: string | null;
     photoUrl: string | null;
     path: string;
-    publicPath: string;
 }
 
 interface MapData {

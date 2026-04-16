@@ -1,177 +1,141 @@
 # Deploying Sea Kayak Logbook
 
-Recommended host: **Laravel Cloud**
+Recommended host: **Laravel Cloud**.
 
-Why this is the best fit for this project:
+This app is currently launch-hardened as a **private-first** Laravel + Inertia + Vue app. Public profile sharing code still exists behind a feature flag, but it is disabled by default until we intentionally decide what should be exposed read-only.
 
-- first-party Laravel hosting
-- built-in free `*.laravel.cloud` preview domain after first successful deploy
-- custom domain support with automatic TLS
-- managed Postgres, queues, cache, and object storage available in the same platform
-- good fit for Fortify auth, public profile pages, and uploaded GPX/FIT/photo media
+## 1. Required Laravel Cloud resources
 
-This app is a Laravel + Inertia + Vue application with:
+Attach these resources to the environment before launch:
 
-- session auth via Laravel Fortify
-- shareable public profile pages
-- media uploads for GPX, FIT, and session photos
-- optional public disk for local development
-- optional object storage for production
+- Managed Postgres database
+- Object storage bucket for GPX, FIT, and session photos
+- Optional queue/worker later if mail or imports move to background jobs
 
-## 0. Laravel Cloud path
+Laravel Cloud injects database and storage credentials for attached resources. Do not manually copy database passwords into custom env vars unless Cloud specifically tells you to.
 
-Laravel Cloud creates applications from an existing Git repository or from a starter kit. For this app, the expected production path is:
+## 2. Known-good production env
 
-1. Push this Laravel project to GitHub, GitLab, or Bitbucket.
-2. Create a Laravel Cloud application from that repository.
-3. Attach:
-   - a managed Postgres database
-   - object storage bucket
-   - optional queue / worker if mail or future background jobs are queued
-4. Set the environment variables from this document.
-5. Deploy once and use the generated `*.laravel.cloud` domain for testing.
-6. Add your real custom domain after the first successful deploy.
+Use this as the canonical Laravel Cloud baseline:
 
-Important:
-
-- Laravel Cloud does **not** support SQLite for production.
-- Treat the local filesystem as non-persistent in production and use object storage for media.
-
-## 1. Build and bootstrap
-
-From `/Users/francesco/Documents/New project/sea-kayak-logbook-laravel`:
-
-```bash
-composer install --no-dev --optimize-autoloader
-npm install
-npm run build
-php artisan migrate --force
-php artisan db:seed --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-If you are using the local `public` disk for media:
-
-```bash
-php artisan storage:link
-```
-
-## 2. Minimum production environment
-
-Set these before launch:
-
-```bash
+```env
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://your-real-app-url.example
-ASSET_URL=
-
-DB_CONNECTION=mysql
-DB_HOST=...
-DB_PORT=3306
-DB_DATABASE=...
-DB_USERNAME=...
-DB_PASSWORD=...
+APP_URL=https://your-current-laravel-cloud-or-custom-domain
 
 SESSION_DRIVER=database
-SESSION_DOMAIN=your-real-app-url.example
 SESSION_SECURE_COOKIE=true
 
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
+FILESYSTEM_DISK=s3
+KAYAK_MEDIA_DISK=s3
+
+KAYAK_PUBLIC_PROFILES_ENABLED=false
+KAYAK_NOINDEX=true
+KAYAK_OWNER_EMAILS=your-owner-login-email@example.com
+
+STORMGLASS_API_KEY=your-stormglass-api-key
+```
+
+Important:
+
+- Do **not** set `SESSION_DOMAIN` for the Laravel Cloud staging domain. We already confirmed that forcing this value can break login/session cookies.
+- Keep `KAYAK_NOINDEX=true` while this is staging/private-feedback.
+- Keep `KAYAK_PUBLIC_PROFILES_ENABLED=false` until the public read-only surface is deliberately relaunched.
+
+## 3. Mail requirement
+
+Password reset is enabled, so real production mail is required before opening this to real users.
+
+Staging can temporarily use:
+
+```env
+MAIL_MAILER=log
+```
+
+Real launch should use a real provider, for example SMTP, Postmark, Resend, Mailgun, or SES:
+
+```env
 MAIL_MAILER=smtp
 MAIL_HOST=...
 MAIL_PORT=587
 MAIL_USERNAME=...
 MAIL_PASSWORD=...
 MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=noreply@your-domain.example
-MAIL_FROM_NAME="${APP_NAME}"
+MAIL_FROM_ADDRESS=noreply@yourkayakingjournal.com
+MAIL_FROM_NAME="Sea Kayak Logbook"
 ```
-
-## 3. Media storage
-
-### Local/public disk
-
-Good for local dev or a simple single-server deploy:
-
-```bash
-FILESYSTEM_DISK=public
-KAYAK_MEDIA_DISK=public
-```
-
-Requirements:
-
-- `php artisan storage:link`
-- persistent shared storage on the host
-
-### S3-compatible production storage
-
-Recommended for real deployment:
-
-```bash
-FILESYSTEM_DISK=s3
-KAYAK_MEDIA_DISK=s3
-
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_DEFAULT_REGION=...
-AWS_BUCKET=...
-AWS_URL=
-AWS_ENDPOINT=
-AWS_USE_PATH_STYLE_ENDPOINT=false
-```
-
-If the project host does not already ship with the S3 adapter, install:
-
-```bash
-composer require league/flysystem-aws-s3-v3
-```
-
-## 4. Auth and email
-
-This app uses Laravel Fortify for:
-
-- registration
-- login
-- password reset
-- email verification
-- optional two-factor authentication
 
 Before launch, confirm:
 
-1. `APP_URL` matches the real site URL.
-2. Production mail is configured and working.
-3. Password reset emails arrive quickly.
-4. Email verification links return to the same app host.
+- password reset email arrives
+- reset link opens the same app host set in `APP_URL`
+- sender domain/SPF/DKIM is configured with the mail provider
 
-If mail is queued in production, run a queue worker:
+Email verification is currently disabled for this private-first launch. Do not add it to the launch checklist unless we re-enable the Fortify feature.
+
+## 4. Build commands
+
+Use these build commands:
 
 ```bash
-php artisan queue:work
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
 
-## 5. Launch smoke test
+Do **not** run `php artisan db:seed --force` in production.
 
-Run these checks on the real URL:
+## 5. Deploy commands
+
+Use this deploy command:
+
+```bash
+php artisan migrate --force
+```
+
+Do not use `migrate:fresh` in production once real data exists.
+
+## 6. Launch smoke test
+
+Run these on the real staging/live URL after every launch candidate deploy:
 
 1. Register a new user.
-2. Verify the email.
-3. Log in with password.
-4. Request a password reset email.
-5. Create a session with photo + GPX.
-6. Create a session with FIT only.
-7. Open the dashboard, diary, session detail, and public profile.
-8. Confirm uploaded media URLs resolve correctly.
+2. Complete profile setup.
+3. Log out and log back in; confirm the user lands on `/dashboard`.
+4. Request a password reset and complete it through real email.
+5. Create a manual session with a map point.
+6. Create an expedition session with a map point and confirm the world map pin appears.
+7. Import Garmin CSV plus GPX/FIT when available.
+8. Use Stormglass autofill and confirm wind, Beaufort, tide, and environmental checklist fields populate.
+9. Upload a photo and confirm the media URL resolves.
+10. Confirm `/insights/users` is visible only to the email in `KAYAK_OWNER_EMAILS`.
+11. Confirm `/p/{slug}` and public expedition URLs return `404` while `KAYAK_PUBLIC_PROFILES_ENABLED=false`.
+12. Confirm responses include `X-Robots-Tag: noindex, nofollow, noarchive` while `KAYAK_NOINDEX=true`.
 
-## 6. Useful routes after deploy
+## 7. Useful private routes
 
 - Dashboard: `/dashboard`
 - Diary: `/diary`
-- Sessions: `/sessions`
+- Sessions/library: `/sessions`
+- Add session: `/sessions/create`
 - Garmin import: `/imports/garmin`
-- Public profile: `/p/{slug}`
-- Public expeditions: `/p/{slug}/expeditions`
+- Expedition atlas: `/expeditions`
+- Observations: `/observations`
+- Expedition notes: `/expedition-notes`
+- Owner user insights: `/insights/users`
+
+## 8. Later public launch
+
+When we decide to expose a public read-only surface:
+
+1. Design the exact public profile/session privacy model.
+2. Add UI controls for what can be exposed.
+3. Re-enable with `KAYAK_PUBLIC_PROFILES_ENABLED=true`.
+4. Decide whether `KAYAK_NOINDEX` should remain true or move to false.
+5. Re-run a public-route smoke test.

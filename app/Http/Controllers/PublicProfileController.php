@@ -15,7 +15,7 @@ class PublicProfileController extends Controller
 
     public function __invoke(Profile $profile): Response
     {
-        abort_unless($profile->is_public, 404);
+        abort_unless(config('kayak.public_profiles_enabled') && $profile->is_public, 404);
 
         $sessions = $profile->sessions()
             ->where('is_public', true)

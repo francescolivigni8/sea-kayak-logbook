@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('home_water')->default('Faxafloi');
             $table->string('timezone')->default('Atlantic/Reykjavik');
             $table->string('default_map_style')->default('chart');
-            $table->boolean('is_public')->default(true);
+            $table->boolean('is_public')->default(false);
             $table->json('settings')->nullable();
             $table->timestamps();
         });

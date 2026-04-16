@@ -13,6 +13,8 @@ class PublicProfileTest extends TestCase
 
     public function test_guests_can_view_a_public_profile(): void
     {
+        config(['kayak.public_profiles_enabled' => true]);
+
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
         $profile->update([
@@ -89,11 +91,37 @@ class PublicProfileTest extends TestCase
 
     public function test_private_profiles_are_not_exposed_publicly(): void
     {
+        config(['kayak.public_profiles_enabled' => true]);
+
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
         $profile->update([
             'is_public' => false,
             'slug' => 'francesco-private-logbook',
+        ]);
+
+        $this->get(route('profiles.public.show', $profile))
+            ->assertNotFound();
+    }
+
+    public function test_public_profiles_are_disabled_by_default_for_private_launch(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->update([
+            'is_public' => true,
+            'slug' => 'francesco-public-logbook',
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Should stay private',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'journey',
+            'distance_km' => 8.4,
+            'duration_minutes' => 120,
+            'is_public' => true,
         ]);
 
         $this->get(route('profiles.public.show', $profile))

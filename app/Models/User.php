@@ -86,7 +86,7 @@ class User extends Authenticatable
             'home_water' => 'Faxafloi',
             'timezone' => 'Atlantic/Reykjavik',
             'default_map_style' => 'chart',
-            'is_public' => true,
+            'is_public' => false,
         ]);
 
         ProfileMembership::firstOrCreate(

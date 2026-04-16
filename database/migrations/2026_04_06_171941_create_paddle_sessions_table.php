@@ -78,7 +78,7 @@ return new class extends Migration
             $table->string('fit_path')->nullable();
             $table->string('session_photo_path')->nullable();
             $table->string('session_photo_name')->nullable();
-            $table->boolean('is_public')->default(true);
+            $table->boolean('is_public')->default(false);
             $table->timestamps();
 
             $table->unique(['profile_id', 'external_ref']);

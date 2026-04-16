@@ -49,7 +49,6 @@ class HandleInertiaRequests extends Middleware
 
             $journalNav = [
                 'homeWater' => $profile->home_water,
-                'publicPath' => '/p/'.$profile->slug,
                 'sessionCount' => $sessionCount,
                 'topForce' => $topForce ?: null,
                 'thisYearDistanceKm' => $thisYearDistanceKm,

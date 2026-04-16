@@ -45,8 +45,10 @@ class ProfileDashboardData
                 'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
-                'isPublic' => $profile->is_public,
-                'publicPath' => '/p/'.$profile->slug,
+                ...($publicView ? [
+                    'isPublic' => $profile->is_public,
+                    'publicPath' => '/p/'.$profile->slug,
+                ] : []),
             ],
             'headline' => [
                 'sessionCount' => $sessionCount,
@@ -92,8 +94,10 @@ class ProfileDashboardData
                 'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
-                'isPublic' => $profile->is_public,
-                'publicPath' => '/p/'.$profile->slug,
+                ...($publicView ? [
+                    'isPublic' => $profile->is_public,
+                    'publicPath' => '/p/'.$profile->slug,
+                ] : []),
             ],
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
@@ -214,8 +218,10 @@ class ProfileDashboardData
                 'bio' => $this->profileBio($profile),
                 'homeWater' => $profile->home_water,
                 'timezone' => $profile->timezone,
-                'isPublic' => $profile->is_public,
-                'publicPath' => '/p/'.$profile->slug,
+                ...($publicView ? [
+                    'isPublic' => $profile->is_public,
+                    'publicPath' => '/p/'.$profile->slug,
+                ] : []),
             ],
             'place' => [
                 'slug' => $place['slug'],
@@ -226,7 +232,6 @@ class ProfileDashboardData
                 'latestDate' => $place['latestDate'],
                 'photoUrl' => $place['photoUrl'],
                 'path' => $place['path'],
-                'publicPath' => $place['publicPath'],
             ],
             'mapData' => [
                 'defaultView' => [
@@ -388,8 +393,8 @@ class ProfileDashboardData
                 'tone' => 'amber',
             ],
             [
-                'label' => 'Public sessions',
-                'count' => (int) $sessions->filter(fn (PaddleSession $session) => $session->is_public)->count(),
+                'label' => 'Expedition sessions',
+                'count' => (int) $sessions->filter(fn (PaddleSession $session) => $session->is_expedition)->count(),
                 'tone' => 'violet',
             ],
         ];
@@ -648,7 +653,6 @@ class ProfileDashboardData
                     'path' => $publicView
                         ? route('profiles.public.expeditions.show', ['profile' => $profile, 'place' => $slug])
                         : route('expeditions.show', ['place' => $slug]),
-                    'publicPath' => route('profiles.public.expeditions.show', ['profile' => $profile, 'place' => $slug]),
                 ];
             })
             ->values()
@@ -737,7 +741,6 @@ class ProfileDashboardData
             'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
             'launchName' => $session->launch_name,
             'beaufort' => $session->wind_beaufort,
-            'isPublic' => (bool) $session->is_public,
             'hasTrack' => $this->hasTrackData($session),
             'isExpedition' => (bool) $session->is_expedition,
         ];

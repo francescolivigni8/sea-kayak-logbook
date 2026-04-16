@@ -98,7 +98,6 @@ interface ExpeditionPlace {
     latestDate: string | null;
     photoUrl: string | null;
     path: string;
-    publicPath: string;
 }
 
 interface RecentSession {
@@ -110,7 +109,6 @@ interface RecentSession {
     routeCategoryLabel: string;
     launchName: string | null;
     beaufort: number | null;
-    isPublic: boolean;
     hasTrack: boolean;
     isExpedition: boolean;
 }

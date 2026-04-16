@@ -102,6 +102,7 @@
         }
         .muted { font-size: 14px; color: var(--muted); }
         .link { color: var(--text); font-weight: 700; text-decoration: none; }
+        .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 13px; }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
     </style>
 </head>
@@ -154,6 +155,11 @@
                 Already have an account?
                 <a class="link" href="{{ route('login') }}">Log in</a>
             </p>
+            <div class="legal">
+                <a class="link" href="{{ route('legal.privacy') }}">Privacy</a>
+                <a class="link" href="{{ route('legal.terms') }}">Terms</a>
+                <a class="link" href="{{ route('legal.contact') }}">Contact</a>
+            </div>
         </section>
     </main>
 </body>
