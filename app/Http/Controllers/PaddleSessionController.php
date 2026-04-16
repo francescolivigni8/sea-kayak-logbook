@@ -176,6 +176,7 @@ class PaddleSessionController extends Controller
             'slug' => $profile->slug,
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
+            'defaultMapView' => $this->defaultMapView($profile),
             'kayaksOwned' => data_get($profile->settings, 'kayaks_owned', []),
             'paddlesOwned' => data_get($profile->settings, 'paddles_owned', []),
         ];
@@ -333,6 +334,15 @@ class PaddleSessionController extends Controller
             'expedition_notes' => $session?->expedition_notes ?? '',
             'autofill_weather' => false,
             'is_public' => false,
+        ];
+    }
+
+    private function defaultMapView(Profile $profile): array
+    {
+        return [
+            'lat' => (float) data_get($profile->settings, 'default_map_view.lat', 64.1670),
+            'lng' => (float) data_get($profile->settings, 'default_map_view.lng', -21.8210),
+            'zoom' => (int) data_get($profile->settings, 'default_map_view.zoom', 10),
         ];
     }
 

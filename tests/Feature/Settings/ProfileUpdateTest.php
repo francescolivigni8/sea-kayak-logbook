@@ -34,6 +34,9 @@ class ProfileUpdateTest extends TestCase
                 'kayak_club' => 'Brokey Kayak Club',
                 'kayaks_owned_text' => 'Valley Etain 17-7, P&H Scorpio MV',
                 'paddles_owned_text' => 'Werner Cyprus, Gearlab Kalleq',
+                'default_map_lat' => '65.688500',
+                'default_map_lng' => '-18.126200',
+                'default_map_zoom' => '12',
             ]);
 
         $response
@@ -50,6 +53,9 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
         $this->assertSame(['Valley Etain 17-7', 'P&H Scorpio MV'], data_get($profile->settings, 'kayaks_owned'));
         $this->assertSame(['Werner Cyprus', 'Gearlab Kalleq'], data_get($profile->settings, 'paddles_owned'));
+        $this->assertSame(65.6885, data_get($profile->settings, 'default_map_view.lat'));
+        $this->assertSame(-18.1262, data_get($profile->settings, 'default_map_view.lng'));
+        $this->assertSame(12, data_get($profile->settings, 'default_map_view.zoom'));
         $this->assertNotNull(data_get($profile->settings, 'setup_completed_at'));
     }
 

@@ -23,6 +23,9 @@ class ProfileUpdateRequest extends FormRequest
             'kayak_club' => ['nullable', 'string', 'max:255'],
             'kayaks_owned_text' => ['nullable', 'string', 'max:2000'],
             'paddles_owned_text' => ['nullable', 'string', 'max:2000'],
+            'default_map_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'default_map_lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'default_map_zoom' => ['nullable', 'integer', 'min:2', 'max:16'],
         ];
     }
 }

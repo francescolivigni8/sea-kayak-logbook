@@ -33,6 +33,9 @@ type Props = {
             kayakClub: string;
             kayaksOwnedText: string;
             paddlesOwnedText: string;
+            defaultMapLat: string;
+            defaultMapLng: string;
+            defaultMapZoom: string;
         };
     };
 };
@@ -53,8 +56,17 @@ defineOptions({
 
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
 const showSetupModal = ref(false);
+const defaultMapLat = ref(profile.value.settings.defaultMapLat);
+const defaultMapLng = ref(profile.value.settings.defaultMapLng);
+const defaultMapZoom = ref(profile.value.settings.defaultMapZoom);
 
 onUnmounted(() => clearTwoFactorAuthData());
+
+function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
+    defaultMapLat.value = lat;
+    defaultMapLng.value = lng;
+    defaultMapZoom.value = zoom;
+}
 </script>
 
 <template>
@@ -200,6 +212,79 @@ onUnmounted(() => clearTwoFactorAuthData());
                                     Add the actual paddle models you rotate between.
                                 </p>
                                 <InputError class="mt-2" :message="errors.paddles_owned_text" />
+                            </article>
+
+                            <article class="journal-soft-card md:col-span-2">
+                                <Label class="journal-field-label">Default session map view</Label>
+                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                                    The Place session map opens here when a new session has no pin yet.
+                                </p>
+
+                                <div class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_0.6fr]">
+                                    <div>
+                                        <Label class="journal-field-label" for="default_map_lat">Latitude</Label>
+                                        <input
+                                            id="default_map_lat"
+                                            class="journal-input"
+                                            name="default_map_lat"
+                                            type="number"
+                                            step="0.000001"
+                                            min="-90"
+                                            max="90"
+                                            v-model="defaultMapLat"
+                                            placeholder="64.167000"
+                                        />
+                                        <InputError class="mt-2" :message="errors.default_map_lat" />
+                                    </div>
+
+                                    <div>
+                                        <Label class="journal-field-label" for="default_map_lng">Longitude</Label>
+                                        <input
+                                            id="default_map_lng"
+                                            class="journal-input"
+                                            name="default_map_lng"
+                                            type="number"
+                                            step="0.000001"
+                                            min="-180"
+                                            max="180"
+                                            v-model="defaultMapLng"
+                                            placeholder="-21.821000"
+                                        />
+                                        <InputError class="mt-2" :message="errors.default_map_lng" />
+                                    </div>
+
+                                    <div>
+                                        <Label class="journal-field-label" for="default_map_zoom">Zoom</Label>
+                                        <input
+                                            id="default_map_zoom"
+                                            class="journal-input"
+                                            name="default_map_zoom"
+                                            type="number"
+                                            min="2"
+                                            max="16"
+                                            v-model="defaultMapZoom"
+                                            placeholder="10"
+                                        />
+                                        <InputError class="mt-2" :message="errors.default_map_zoom" />
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                                    <button
+                                        class="journal-chip"
+                                        type="button"
+                                        @click="setDefaultMapPreset('64.167000', '-21.821000', '10')"
+                                    >
+                                        Faxafloi
+                                    </button>
+                                    <button
+                                        class="journal-chip"
+                                        type="button"
+                                        @click="setDefaultMapPreset('64.146600', '-21.942600', '11')"
+                                    >
+                                        Reykjavik
+                                    </button>
+                                </div>
                             </article>
                         </div>
 

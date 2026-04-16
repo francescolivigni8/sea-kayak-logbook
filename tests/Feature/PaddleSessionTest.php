@@ -23,6 +23,28 @@ class PaddleSessionTest extends TestCase
             ->assertOk();
     }
 
+    public function test_create_session_uses_profile_default_map_view(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $settings = $profile->settings ?? [];
+        $settings['default_map_view'] = [
+            'lat' => 65.6885,
+            'lng' => -18.1262,
+            'zoom' => 12,
+        ];
+        $profile->settings = $settings;
+        $profile->save();
+
+        $this->actingAs($user)
+            ->get(route('sessions.create'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('profile.defaultMapView.lat', 65.6885)
+                ->where('profile.defaultMapView.lng', -18.1262)
+                ->where('profile.defaultMapView.zoom', 12));
+    }
+
     public function test_authenticated_users_can_view_a_session_detail_page(): void
     {
         $user = User::factory()->create();

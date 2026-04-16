@@ -43,6 +43,9 @@ class ProfileController extends Controller
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
                     'kayaksOwnedText' => implode(', ', data_get($settings, 'kayaks_owned', [])),
                     'paddlesOwnedText' => implode(', ', data_get($settings, 'paddles_owned', [])),
+                    'defaultMapLat' => (string) data_get($settings, 'default_map_view.lat', '64.1670'),
+                    'defaultMapLng' => (string) data_get($settings, 'default_map_view.lng', '-21.8210'),
+                    'defaultMapZoom' => (string) data_get($settings, 'default_map_view.zoom', '10'),
                 ],
             ],
         ]);
@@ -68,6 +71,11 @@ class ProfileController extends Controller
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
         $settings['kayaks_owned'] = $this->explodeManualTags($validated['kayaks_owned_text'] ?? null);
         $settings['paddles_owned'] = $this->explodeManualTags($validated['paddles_owned_text'] ?? null);
+        $settings['default_map_view'] = [
+            'lat' => round((float) ($validated['default_map_lat'] ?? 64.1670), 6),
+            'lng' => round((float) ($validated['default_map_lng'] ?? -21.8210), 6),
+            'zoom' => (int) ($validated['default_map_zoom'] ?? 10),
+        ];
         $settings['setup_completed_at'] = now()->toIso8601String();
         $profile->settings = $settings;
         $profile->save();

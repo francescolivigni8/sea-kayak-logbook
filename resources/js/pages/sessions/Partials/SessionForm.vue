@@ -8,6 +8,11 @@ interface ProfileSummary {
     name: string;
     homeWater: string;
     timezone: string;
+    defaultMapView?: {
+        lat: number;
+        lng: number;
+        zoom: number;
+    };
     kayaksOwned?: string[];
     paddlesOwned?: string[];
 }
@@ -756,6 +761,7 @@ onMounted(async () => {
                             :landing-lat="landingLatNumber"
                             :landing-lng="landingLngNumber"
                             :route-waypoints-json="form.manual_route_waypoints"
+                            :default-view="profile.defaultMapView"
                             @update:launch-lat="form.launch_lat = $event"
                             @update:launch-lng="form.launch_lng = $event"
                             @update:landing-lat="form.landing_lat = $event"

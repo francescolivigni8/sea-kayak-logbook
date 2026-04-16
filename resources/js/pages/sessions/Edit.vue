@@ -27,6 +27,11 @@ defineProps<{
         name: string;
         homeWater: string;
         timezone: string;
+        defaultMapView?: {
+            lat: number;
+            lng: number;
+            zoom: number;
+        };
     };
     weatherAutofillAvailable: boolean;
     sessionMeta: {
