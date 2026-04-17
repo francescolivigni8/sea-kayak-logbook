@@ -38,10 +38,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('observations', [JournalNotesController::class, 'observations'])->name('observations');
     Route::get('expedition-notes', [JournalNotesController::class, 'expeditionNotes'])->name('expedition-notes');
     Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
-    Route::post('imports/garmin', [GarminImportController::class, 'store'])->name('imports.garmin.store');
+    Route::post('imports/garmin', [GarminImportController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('imports.garmin.store');
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
-    Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])->name('sessions.weather-preview');
+    Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])
+        ->middleware('throttle:20,1')
+        ->name('sessions.weather-preview');
     Route::get('insights/users', UserInsightsController::class)
         ->middleware('journal.owner')
         ->name('insights.users');
