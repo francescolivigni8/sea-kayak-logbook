@@ -17,6 +17,6 @@ class LoginResponse implements LoginResponseContract
             return redirect()->to(route('profile.edit', ['setup' => 1], false));
         }
 
-        return redirect()->intended(config('fortify.home'));
+        return redirect()->to(route('dashboard', absolute: false));
     }
 }

@@ -26,7 +26,7 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
             'requiresSetup' => $profile->requiresSetup(),
-            'setupMode' => $request->boolean('setup') || $profile->requiresSetup(),
+            'setupMode' => $profile->requiresSetup(),
             'security' => [
                 'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
                 'twoFactorEnabled' => Features::canManageTwoFactorAuthentication()
@@ -66,6 +66,7 @@ class ProfileController extends Controller
         $request->user()->save();
 
         $profile = $request->user()->resolveActiveProfile();
+        $wasSetupRequired = $profile->requiresSetup();
         $settings = $profile->settings ?? [];
         $settings['paddler_name'] = $this->blankToNull($validated['paddler_name'] ?? null);
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
@@ -76,11 +77,12 @@ class ProfileController extends Controller
             'lng' => round((float) ($validated['default_map_lng'] ?? -21.8210), 6),
             'zoom' => (int) ($validated['default_map_zoom'] ?? 10),
         ];
+        $settings['setup_required'] = false;
         $settings['setup_completed_at'] = now()->toIso8601String();
         $profile->settings = $settings;
         $profile->save();
 
-        if ($request->boolean('finish_setup') || $profile->requiresSetup()) {
+        if ($request->boolean('finish_setup') || $wasSetupRequired) {
             return to_route('dashboard')->with('success', 'Profile setup complete.');
         }
 

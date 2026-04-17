@@ -87,6 +87,9 @@ class User extends Authenticatable
             'timezone' => 'Atlantic/Reykjavik',
             'default_map_style' => 'chart',
             'is_public' => false,
+            'settings' => [
+                'setup_required' => true,
+            ],
         ]);
 
         ProfileMembership::firstOrCreate(

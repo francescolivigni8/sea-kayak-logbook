@@ -37,6 +37,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
         $settings = $profile->settings ?? [];
+        $settings['setup_required'] = false;
         $settings['setup_completed_at'] = now()->toIso8601String();
         $profile->settings = $settings;
         $profile->save();
@@ -45,6 +46,40 @@ class AuthenticationTest extends TestCase
             'email' => $user->email,
             'password' => 'JournalPass123!',
         ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_existing_profiles_without_new_setup_flags_are_sent_to_the_dashboard()
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [];
+        $profile->save();
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'JournalPass123!',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_existing_profiles_ignore_stale_setup_intended_urls_on_login()
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [];
+        $profile->save();
+
+        $response = $this
+            ->withSession(['url.intended' => route('profile.edit', ['setup' => 1], false)])
+            ->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => 'JournalPass123!',
+            ]);
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));

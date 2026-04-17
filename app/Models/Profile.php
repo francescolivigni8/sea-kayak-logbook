@@ -55,6 +55,9 @@ class Profile extends Model
 
     public function requiresSetup(): bool
     {
-        return blank(data_get($this->settings ?? [], 'setup_completed_at'));
+        $settings = $this->settings ?? [];
+
+        return (bool) data_get($settings, 'setup_required', false)
+            && blank(data_get($settings, 'setup_completed_at'));
     }
 }

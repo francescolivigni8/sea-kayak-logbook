@@ -21,9 +21,30 @@ class ProfileUpdateTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_legacy_profiles_do_not_enter_setup_mode_from_query_string()
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [];
+        $profile->save();
+
+        $response = $this
+            ->actingAs($user)
+            ->get(route('profile.edit', ['setup' => 1]));
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('requiresSetup', false)
+                ->where('setupMode', false));
+    }
+
     public function test_profile_information_can_be_updated()
     {
         $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [];
+        $profile->save();
 
         $response = $this
             ->actingAs($user)
@@ -56,12 +77,16 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame(65.6885, data_get($profile->settings, 'default_map_view.lat'));
         $this->assertSame(-18.1262, data_get($profile->settings, 'default_map_view.lng'));
         $this->assertSame(12, data_get($profile->settings, 'default_map_view.zoom'));
+        $this->assertFalse(data_get($profile->settings, 'setup_required'));
         $this->assertNotNull(data_get($profile->settings, 'setup_completed_at'));
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
         $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [];
+        $profile->save();
 
         $response = $this
             ->actingAs($user)
