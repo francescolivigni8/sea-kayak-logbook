@@ -83,11 +83,20 @@ function isUtilityActive(item: { href: string; match: string[] }) {
         <header class="journal-panel journal-panel--hero overflow-hidden px-4 py-4 sm:px-5 md:px-6 md:py-5">
             <div class="flex flex-col gap-3 sm:gap-4">
                 <div class="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start">
-                    <div class="space-y-2">
-                        <p class="journal-kicker">Sea kayak logbook</p>
-                        <h1 class="text-[2.1rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]">
-                            {{ heroTitle }}
-                        </h1>
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <img
+                            src="/brand/ykj-logo-clean.png"
+                            alt="Your Kayaking Journal logo"
+                            class="size-16 shrink-0 rounded-[1.25rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-20"
+                            width="80"
+                            height="80"
+                        />
+                        <div class="space-y-2">
+                            <p class="journal-kicker">Sea kayak logbook</p>
+                            <h1 class="text-[2.1rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]">
+                                {{ heroTitle }}
+                            </h1>
+                        </div>
                     </div>
 
                     <div class="space-y-4 xl:text-right">

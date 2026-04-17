@@ -10,6 +10,8 @@
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
         rel="stylesheet"
     >
+    <link rel="icon" href="/brand/ykj-logo-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <style>
         :root {
             color-scheme: light;
@@ -36,6 +38,21 @@
             padding: 30px;
             backdrop-filter: blur(18px);
         }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .brand-logo {
+            width: 82px;
+            height: 82px;
+            flex: 0 0 auto;
+            border-radius: 22px;
+            border: 1px solid rgba(103, 114, 255, 0.16);
+            object-fit: cover;
+            box-shadow: 0 18px 34px rgba(37, 43, 82, 0.14);
+        }
+        .brand-copy { min-width: 0; }
         .eyebrow {
             font-family: "IBM Plex Mono", ui-monospace, monospace;
             font-size: 12px;
@@ -104,13 +121,22 @@
         .link { color: var(--text); font-weight: 700; text-decoration: none; }
         .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 13px; }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
+        @media (max-width: 520px) {
+            .brand { align-items: flex-start; }
+            .brand-logo { width: 66px; height: 66px; border-radius: 18px; }
+        }
     </style>
 </head>
 <body>
     <main class="wrap">
         <section class="card">
-            <div class="eyebrow">New workspace</div>
-            <h1>Create your kayak account</h1>
+            <div class="brand">
+                <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="82" height="82">
+                <div class="brand-copy">
+                    <div class="eyebrow">New workspace</div>
+                    <h1>Create your kayak account</h1>
+                </div>
+            </div>
             <p>Create the account first, then go straight into your paddler profile setup before you start logging sessions.</p>
 
             <div class="chips">

@@ -7,6 +7,8 @@
         <meta name="robots" content="noindex, nofollow, noarchive">
     @endif
     <title>Privacy · Sea Kayak Logbook</title>
+    <link rel="icon" href="/brand/ykj-logo-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <style>
         body { margin: 0; font-family: Manrope, ui-sans-serif, system-ui, sans-serif; color: #252b52; background: #edf0ff; }
         main { max-width: 760px; margin: 0 auto; padding: 48px 20px 72px; }
