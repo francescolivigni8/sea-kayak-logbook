@@ -119,6 +119,70 @@ class PlanningTest extends TestCase
             ->assertJsonPath('message', 'Stormglass daily request quota is exhausted. Try again after the reset, reduce waypoints, or upgrade the request limit.');
     }
 
+    public function test_planning_weather_preview_reports_stormglass_auth_details(): void
+    {
+        Cache::flush();
+        config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+
+        Http::fake([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
+                'message' => 'Invalid API key',
+            ], 401),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('planning.weather-preview', [
+                'plan_date' => '2026-04-18',
+                'start_time_local' => '09:00',
+                'lat' => '64.146600',
+                'lng' => '-21.942600',
+                'label' => 'Route area',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('status', 'failed')
+            ->assertJsonPath('httpStatus', 401)
+            ->assertJsonPath('providerMessage', 'Invalid API key')
+            ->assertJsonPath('message', 'Stormglass returned HTTP 401. The API key is missing or invalid in Stormglass. Check STORMGLASS_API_KEY in Laravel Cloud, redeploy, or try STORMGLASS_AUTH_VALUE_PREFIX=Bearer. Stormglass said: Invalid API key');
+    }
+
+    public function test_stormglass_source_can_be_omitted_for_restricted_accounts(): void
+    {
+        Cache::flush();
+        config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+        config()->set('kayak.weather.providers.stormglass.source', 'none');
+
+        Http::fake([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
+                'hours' => [[
+                    'time' => '2026-04-18T09:00:00+00:00',
+                    'windSpeed' => ['noaa' => 5.8],
+                    'gust' => ['noaa' => 8.2],
+                    'windDirection' => ['noaa' => 205],
+                ]],
+            ]),
+            'api.stormglass.io/v2/tide/extremes/point*' => Http::response([
+                'data' => [],
+            ]),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('planning.weather-preview', [
+                'plan_date' => '2026-04-18',
+                'start_time_local' => '09:00',
+                'lat' => '64.146600',
+                'lng' => '-21.942600',
+                'label' => 'Route area',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('status', 'filled');
+
+        Http::assertSent(fn ($request) => ! array_key_exists('source', $request->data()));
+    }
+
     public function test_planning_weather_preview_reuses_cached_stormglass_points(): void
     {
         Cache::flush();

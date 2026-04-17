@@ -18,6 +18,7 @@ return [
                 'base_url' => env('STORMGLASS_BASE_URL', 'https://api.stormglass.io/v2/weather/point'),
                 'tide_extremes_url' => env('STORMGLASS_TIDE_EXTREMES_URL', 'https://api.stormglass.io/v2/tide/extremes/point'),
                 'auth_header' => env('STORMGLASS_AUTH_HEADER', 'Authorization'),
+                'auth_value_prefix' => env('STORMGLASS_AUTH_VALUE_PREFIX', ''),
                 'source' => env('STORMGLASS_SOURCE', 'sg'),
                 'timeout' => (int) env('STORMGLASS_TIMEOUT', 10),
                 'cache_seconds' => (int) env('STORMGLASS_CACHE_SECONDS', 3600),

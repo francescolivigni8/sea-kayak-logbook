@@ -5,9 +5,11 @@ namespace App\Support;
 use App\Models\PaddleSession;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Throwable;
 
 class StormglassWeatherService
@@ -59,11 +61,13 @@ class StormglassWeatherService
             $hour = $this->fetchNearestForecastHour($lat, $lng, $targetTime);
         } catch (RequestException $exception) {
             report($exception);
+            $failure = $this->requestFailureDetails($exception);
 
             return [
                 'status' => 'failed',
-                'reason' => $this->requestFailureMessage($exception),
-                'httpStatus' => $exception->response?->status(),
+                'reason' => $failure['reason'],
+                'httpStatus' => $failure['httpStatus'],
+                'providerMessage' => $failure['providerMessage'],
                 'filledFields' => 0,
                 'fields' => [],
             ];
@@ -138,16 +142,9 @@ class StormglassWeatherService
             function () use ($lat, $lng, $targetTime) {
                 $response = Http::timeout($this->timeout())
                     ->withHeaders([
-                        $this->authHeader() => $this->apiKey(),
+                        $this->authHeader() => $this->authValue(),
                     ])
-                    ->get($this->baseUrl(), [
-                        'lat' => $lat,
-                        'lng' => $lng,
-                        'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
-                        'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
-                        'params' => implode(',', $this->params()),
-                        'source' => $this->source(),
-                    ])
+                    ->get($this->baseUrl(), $this->weatherQuery($lat, $lng, $targetTime))
                     ->throw();
 
                 $hours = $response->json('hours');
@@ -195,7 +192,7 @@ class StormglassWeatherService
 
         $response = Http::timeout($this->timeout())
             ->withHeaders([
-                $this->authHeader() => $this->apiKey(),
+                $this->authHeader() => $this->authValue(),
             ])
             ->get($this->tideExtremesUrl(), [
                 'lat' => $lat,
@@ -392,10 +389,11 @@ class StormglassWeatherService
             return null;
         }
 
+        $source = $this->source();
         $preferredKeys = array_unique(array_filter([
-            $this->source(),
-            strtolower($this->source()),
-            explode(':', $this->source())[0] ?? null,
+            $source,
+            $source ? strtolower($source) : null,
+            $source ? explode(':', $source)[0] : null,
             'sg',
         ]));
 
@@ -664,9 +662,13 @@ class StormglassWeatherService
         return config('kayak.weather.providers.stormglass.auth_header', 'Authorization');
     }
 
-    private function source(): string
+    private function source(): ?string
     {
-        return config('kayak.weather.providers.stormglass.source', 'sg');
+        $source = trim((string) config('kayak.weather.providers.stormglass.source', 'sg'));
+
+        return in_array(strtolower($source), ['', 'none', 'default', 'auto'], true)
+            ? null
+            : $source;
     }
 
     private function timeout(): int
@@ -695,21 +697,82 @@ class StormglassWeatherService
             round($lat, 4),
             round($lng, 4),
             Carbon::instance($targetTime)->utc()->format('YmdHi'),
-            $this->source(),
+            $this->source() ?? 'default',
             sha1($scope),
         );
     }
 
-    private function requestFailureMessage(RequestException $exception): string
+    private function weatherQuery(float $lat, float $lng, CarbonInterface $targetTime): array
+    {
+        $query = [
+            'lat' => $lat,
+            'lng' => $lng,
+            'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
+            'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
+            'params' => implode(',', $this->params()),
+        ];
+
+        if ($this->source() !== null) {
+            $query['source'] = $this->source();
+        }
+
+        return $query;
+    }
+
+    private function authValue(): string
+    {
+        $prefix = trim((string) config('kayak.weather.providers.stormglass.auth_value_prefix', ''));
+        $key = trim((string) $this->apiKey());
+
+        return $prefix === '' ? $key : $prefix.' '.$key;
+    }
+
+    private function requestFailureDetails(RequestException $exception): array
     {
         $status = $exception->response?->status();
+        $providerMessage = $this->providerMessage($exception->response);
+
+        return [
+            'reason' => $this->requestFailureMessage($status, $providerMessage),
+            'httpStatus' => $status,
+            'providerMessage' => $providerMessage,
+        ];
+    }
+
+    private function requestFailureMessage(?int $status, ?string $providerMessage): string
+    {
+        $suffix = $providerMessage ? ' Stormglass said: '.$providerMessage : '';
 
         return match (true) {
-            $status === 401 || $status === 403 => 'Stormglass rejected the API key. Check the key in Laravel Cloud before trying again.',
+            $status === 401 => 'Stormglass returned HTTP 401. The API key is missing or invalid in Stormglass. Check STORMGLASS_API_KEY in Laravel Cloud, redeploy, or try STORMGLASS_AUTH_VALUE_PREFIX=Bearer.'.$suffix,
+            $status === 403 => 'Stormglass returned HTTP 403. The key reached Stormglass, but this account may not be allowed to use the selected source or endpoint. Try STORMGLASS_SOURCE=none, check the subscription, or regenerate the key.'.$suffix,
             $status === 429 => 'Stormglass daily request quota is exhausted. Try again after the reset, reduce waypoints, or upgrade the request limit.',
             $status !== null && $status >= 500 => 'Stormglass is unavailable right now. Try refreshing conditions again later.',
             $status !== null => sprintf('Stormglass request failed with HTTP %d.', $status),
             default => 'Stormglass request failed before a response was returned.',
         };
+    }
+
+    private function providerMessage(?ClientResponse $response): ?string
+    {
+        if (! $response) {
+            return null;
+        }
+
+        $json = $response->json();
+        $message = is_array($json)
+            ? data_get($json, 'message')
+                ?? data_get($json, 'error')
+                ?? data_get($json, 'detail')
+                ?? data_get($json, 'reason')
+            : null;
+
+        if (is_scalar($message) && filled((string) $message)) {
+            return Str::limit(trim((string) $message), 180);
+        }
+
+        $body = trim(strip_tags($response->body()));
+
+        return $body !== '' ? Str::limit($body, 180) : null;
     }
 }
