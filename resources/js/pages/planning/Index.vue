@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import PlanningRouteMap from '@/components/maps/PlanningRouteMap.vue';
 import { dashboard } from '@/routes';
@@ -17,9 +17,47 @@ interface ProfileSummary {
 }
 
 interface FormDefaults {
+    title: string;
     plan_date: string;
     start_time_local: string;
     speed_knots: string;
+    launch_name: string;
+    launch_lat: string;
+    launch_lng: string;
+    landing_name: string;
+    landing_lat: string;
+    landing_lng: string;
+    route_waypoints: string;
+    forecast_points: string;
+    notes: string;
+}
+
+interface PlannedSessionSummary {
+    id: number;
+    status: string;
+    title: string;
+    planDate: string | null;
+    startTimeLocal: string | null;
+    timezone: string;
+    launchName: string | null;
+    launchLat: string;
+    launchLng: string;
+    landingName: string | null;
+    landingLat: string;
+    landingLng: string;
+    speedKnots: string;
+    distanceKm: number;
+    estimatedDurationMinutes: number | null;
+    routeWaypointsJson: string;
+    forecastByPoint: Record<string, ForecastResult>;
+    notes: string;
+    updatedAt: string | null;
+}
+
+interface FlashPageProps {
+    flash?: {
+        success?: string;
+    };
 }
 
 interface ForecastFields {
@@ -65,7 +103,13 @@ const props = defineProps<{
     profile: ProfileSummary;
     weatherAutofillAvailable: boolean;
     formDefaults: FormDefaults;
+    plannedSession: PlannedSessionSummary | null;
 }>();
+
+const page = usePage();
+const successMessage = computed(
+    () => (page.props as FlashPageProps).flash?.success,
+);
 
 defineOptions({
     layout: {
@@ -82,27 +126,69 @@ defineOptions({
     },
 });
 
+const initialForecastByPoint =
+    props.plannedSession?.forecastByPoint ??
+    parseForecastMap(props.formDefaults.forecast_points);
+
+const title = ref(props.formDefaults.title);
 const planDate = ref(props.formDefaults.plan_date);
 const startTimeLocal = ref(props.formDefaults.start_time_local);
 const speedKnots = ref(props.formDefaults.speed_knots);
-const launchLat = ref('');
-const launchLng = ref('');
-const landingLat = ref('');
-const landingLng = ref('');
-const routeWaypointsJson = ref('');
+const launchName = ref(props.formDefaults.launch_name);
+const launchLat = ref(props.formDefaults.launch_lat);
+const launchLng = ref(props.formDefaults.launch_lng);
+const landingName = ref(props.formDefaults.landing_name);
+const landingLat = ref(props.formDefaults.landing_lat);
+const landingLng = ref(props.formDefaults.landing_lng);
+const routeWaypointsJson = ref(props.formDefaults.route_waypoints);
+const notes = ref(props.formDefaults.notes);
 const forecastStatus = ref<'idle' | 'loading' | 'filled' | 'warning' | 'error'>(
-    'idle',
+    Object.keys(initialForecastByPoint).length ? 'filled' : 'idle',
 );
-const forecastMessage = ref<string | null>(null);
-const forecastByPoint = ref<Record<string, ForecastResult>>({});
-const hasFetchedForecast = ref(false);
+const forecastMessage = ref<string | null>(
+    Object.keys(initialForecastByPoint).length
+        ? 'Saved waypoint forecast loaded. Refresh conditions if the plan changes.'
+        : null,
+);
+const forecastByPoint = ref<Record<string, ForecastResult>>(
+    initialForecastByPoint,
+);
+const hasFetchedForecast = ref(Object.keys(initialForecastByPoint).length > 0);
 
 let forecastTimer: ReturnType<typeof setTimeout> | null = null;
 let forecastAbortController: AbortController | null = null;
 
+const saveForm = useForm({
+    title: '',
+    plan_date: '',
+    start_time_local: '',
+    speed_knots: '',
+    launch_name: '',
+    launch_lat: '',
+    launch_lng: '',
+    landing_name: '',
+    landing_lat: '',
+    landing_lng: '',
+    route_waypoints: '',
+    forecast_points: '',
+    notes: '',
+});
+
 const speedKmh = computed(
     () => Math.max(parseFloat(speedKnots.value) || 0, 0) * 1.852,
 );
+
+const isEditing = computed(() => props.plannedSession !== null);
+const plannerTitle = computed(() =>
+    isEditing.value ? 'Edit planned session' : 'Plan a day out',
+);
+const saveButtonLabel = computed(() => {
+    if (saveForm.processing) {
+        return isEditing.value ? 'Updating plan...' : 'Saving plan...';
+    }
+
+    return isEditing.value ? 'Update plan' : 'Save plan';
+});
 
 const parsedRouteWaypoints = computed(() => {
     if (!routeWaypointsJson.value) {
@@ -210,6 +296,24 @@ const forecastProgressLabel = computed(() => {
     return 'Ready';
 });
 
+function parseForecastMap(value: string): Record<string, ForecastResult> {
+    if (!value) {
+        return {};
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+            return {};
+        }
+
+        return parsed as Record<string, ForecastResult>;
+    } catch {
+        return {};
+    }
+}
+
 function coordinatePair(lat: string, lng: string) {
     const parsedLat = parseFloat(lat);
     const parsedLng = parseFloat(lng);
@@ -286,6 +390,44 @@ function formatCoordinate(value: number): string {
 
 function pointForecast(point: RoutePoint): ForecastResult {
     return forecastByPoint.value[point.key] ?? { status: 'idle' };
+}
+
+function defaultPlanTitle(): string {
+    return title.value.trim() || `Planned paddle ${planDate.value}`;
+}
+
+function syncSaveForm() {
+    saveForm.title = defaultPlanTitle();
+    saveForm.plan_date = planDate.value;
+    saveForm.start_time_local = startTimeLocal.value;
+    saveForm.speed_knots = speedKnots.value;
+    saveForm.launch_name = launchName.value;
+    saveForm.launch_lat = launchLat.value;
+    saveForm.launch_lng = launchLng.value;
+    saveForm.landing_name = landingName.value;
+    saveForm.landing_lat = landingLat.value;
+    saveForm.landing_lng = landingLng.value;
+    saveForm.route_waypoints = routeWaypointsJson.value;
+    saveForm.forecast_points = Object.keys(forecastByPoint.value).length
+        ? JSON.stringify(forecastByPoint.value)
+        : '';
+    saveForm.notes = notes.value;
+}
+
+function savePlan() {
+    syncSaveForm();
+
+    if (props.plannedSession) {
+        saveForm.put(`/planning/${props.plannedSession.id}`, {
+            preserveScroll: true,
+        });
+
+        return;
+    }
+
+    saveForm.post('/planning', {
+        preserveScroll: false,
+    });
 }
 
 function scheduleForecastRefresh() {
@@ -398,7 +540,7 @@ watch(
 </script>
 
 <template>
-    <Head title="Planning" />
+    <Head :title="plannerTitle" />
 
     <div class="flex flex-col gap-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
@@ -411,7 +553,7 @@ watch(
                         <h2
                             class="text-[clamp(1.9rem,3vw,2.7rem)] leading-[0.96]"
                         >
-                            Plan a day out
+                            {{ plannerTitle }}
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
                             Sketch launch, landing, and course points before the
@@ -451,6 +593,10 @@ watch(
             </div>
         </section>
 
+        <section v-if="successMessage" class="journal-banner">
+            {{ successMessage }}
+        </section>
+
         <section class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_420px]">
             <div class="flex flex-col gap-5">
                 <PlanningRouteMap
@@ -465,8 +611,34 @@ watch(
 
             <aside class="flex flex-col gap-5">
                 <section class="journal-card p-5">
-                    <p class="journal-kicker">Plan settings</p>
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">Plan settings</p>
+                            <h3 class="mt-2 text-[1.35rem] leading-none">
+                                Save the day out
+                            </h3>
+                        </div>
+                        <span v-if="isEditing" class="journal-chip">Saved</span>
+                    </div>
                     <div class="mt-4 grid gap-4">
+                        <div>
+                            <label class="journal-field-label" for="title"
+                                >Plan name</label
+                            >
+                            <input
+                                id="title"
+                                v-model="title"
+                                type="text"
+                                class="journal-input"
+                                placeholder="e.g. Saturday Hvalfjordur plan"
+                            />
+                            <p
+                                v-if="saveForm.errors.title"
+                                class="mt-2 text-xs font-semibold text-red-500"
+                            >
+                                {{ saveForm.errors.title }}
+                            </p>
+                        </div>
                         <div>
                             <label class="journal-field-label" for="plan_date"
                                 >Date</label
@@ -477,6 +649,12 @@ watch(
                                 type="date"
                                 class="journal-input"
                             />
+                            <p
+                                v-if="saveForm.errors.plan_date"
+                                class="mt-2 text-xs font-semibold text-red-500"
+                            >
+                                {{ saveForm.errors.plan_date }}
+                            </p>
                         </div>
                         <div>
                             <label
@@ -506,6 +684,76 @@ watch(
                                 />
                                 <span class="journal-chip">kt</span>
                             </div>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                            <div>
+                                <label
+                                    class="journal-field-label"
+                                    for="launch_name"
+                                    >Launch name</label
+                                >
+                                <input
+                                    id="launch_name"
+                                    v-model="launchName"
+                                    type="text"
+                                    class="journal-input"
+                                    placeholder="Optional"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="journal-field-label"
+                                    for="landing_name"
+                                    >Landing name</label
+                                >
+                                <input
+                                    id="landing_name"
+                                    v-model="landingName"
+                                    type="text"
+                                    class="journal-input"
+                                    placeholder="Optional"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="journal-field-label" for="notes"
+                                >Planning notes</label
+                            >
+                            <textarea
+                                id="notes"
+                                v-model="notes"
+                                rows="4"
+                                class="journal-input min-h-28"
+                                placeholder="Parking, bail-out options, timings, food, shuttle, kit checks..."
+                            />
+                        </div>
+
+                        <div
+                            class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/68 p-4 text-sm leading-6 text-[color:var(--journal-muted)]"
+                        >
+                            Saved plans appear in Library under
+                            <span
+                                class="font-semibold text-[color:var(--journal-text)]"
+                                >Planned sessions</span
+                            >. They do not count as logged paddles until we add
+                            a dedicated “convert to session” step.
+                        </div>
+
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                type="button"
+                                class="journal-primary-link justify-center disabled:cursor-not-allowed disabled:opacity-60"
+                                :disabled="saveForm.processing"
+                                @click="savePlan"
+                            >
+                                {{ saveButtonLabel }}
+                            </button>
+                            <Link
+                                href="/sessions"
+                                class="journal-utility-link justify-center"
+                            >
+                                Open Library
+                            </Link>
                         </div>
                     </div>
                 </section>

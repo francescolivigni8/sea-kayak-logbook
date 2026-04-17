@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpsertPaddleSessionRequest;
 use App\Models\PaddleSession;
+use App\Models\PlannedSession;
 use App\Models\Profile;
 use App\Support\FitTrackService;
 use App\Support\GpxTrackService;
@@ -36,14 +37,23 @@ class PaddleSessionController extends Controller
             ->map(fn (PaddleSession $session) => $this->mapSessionListItem($session))
             ->values();
 
+        $plannedSessions = $profile->plannedSessions()
+            ->orderBy('plan_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (PlannedSession $plannedSession) => $this->mapPlannedSessionListItem($plannedSession))
+            ->values();
+
         return Inertia::render('sessions/Index', [
             'profile' => $this->mapProfile($profile),
             'stats' => [
+                'plannedCount' => $plannedSessions->count(),
                 'sessionCount' => $sessions->count(),
                 'distanceKm' => round((float) $profile->sessions()->sum('distance_km'), 1),
                 'expeditionTrips' => (int) $profile->sessions()->where('is_expedition', true)->count(),
                 'expeditionDays' => (int) $profile->sessions()->where('is_expedition', true)->sum('expedition_days'),
             ],
+            'plannedSessions' => $plannedSessions,
             'sessions' => $sessions,
         ]);
     }
@@ -198,6 +208,28 @@ class PaddleSessionController extends Controller
             'hasTrack' => $this->hasTrackData($session),
             'hasObservation' => filled($session->notes_public),
             'photoUrl' => $this->media->url($session->session_photo_path),
+        ];
+    }
+
+    private function mapPlannedSessionListItem(PlannedSession $plannedSession): array
+    {
+        $pointCount = is_array($plannedSession->route_profile)
+            ? count($plannedSession->route_profile)
+            : 0;
+
+        return [
+            'id' => $plannedSession->id,
+            'title' => $plannedSession->title,
+            'date' => optional($plannedSession->plan_date)->toDateString(),
+            'startTimeLocal' => $plannedSession->start_at?->setTimezone($plannedSession->timezone)->format('H:i'),
+            'launchName' => $plannedSession->launch_name,
+            'landingName' => $plannedSession->landing_name,
+            'distanceKm' => round((float) $plannedSession->distance_km, 1),
+            'estimatedDurationMinutes' => $plannedSession->estimated_duration_minutes,
+            'speedKnots' => round((float) $plannedSession->speed_knots, 1),
+            'pointCount' => $pointCount,
+            'hasForecast' => filled($plannedSession->forecast_points),
+            'notes' => $plannedSession->notes,
         ];
     }
 

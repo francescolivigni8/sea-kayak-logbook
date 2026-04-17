@@ -45,6 +45,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
     Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
+    Route::post('planning', [PlanningController::class, 'store'])->name('planning.store');
+    Route::get('planning/{plannedSession}/edit', [PlanningController::class, 'edit'])->name('planning.edit');
+    Route::put('planning/{plannedSession}', [PlanningController::class, 'update'])->name('planning.update');
     Route::get('planning/weather-preview', [PlanningController::class, 'weatherPreview'])
         ->middleware('throttle:20,1')
         ->name('planning.weather-preview');

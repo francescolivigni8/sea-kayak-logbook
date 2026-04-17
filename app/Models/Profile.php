@@ -53,6 +53,11 @@ class Profile extends Model
         return $this->hasMany(PaddleSession::class);
     }
 
+    public function plannedSessions(): HasMany
+    {
+        return $this->hasMany(PlannedSession::class);
+    }
+
     public function requiresSetup(): bool
     {
         $settings = $this->settings ?? [];

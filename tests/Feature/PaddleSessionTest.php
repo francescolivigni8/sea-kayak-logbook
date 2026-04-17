@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class PaddleSessionTest extends TestCase
@@ -21,6 +22,43 @@ class PaddleSessionTest extends TestCase
         $this->actingAs($user)
             ->get(route('sessions.index'))
             ->assertOk();
+    }
+
+    public function test_library_splits_planned_sessions_and_logged_sessions(): void
+    {
+        $this->withoutVite();
+
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $profile->plannedSessions()->create([
+            'created_by_user_id' => $user->id,
+            'title' => 'Future route',
+            'plan_date' => '2026-04-18',
+            'timezone' => $profile->timezone,
+            'speed_knots' => 3.5,
+            'distance_km' => 6.4,
+            'estimated_duration_minutes' => 60,
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Logged route',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'journey',
+            'distance_km' => 8.4,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('sessions/Index')
+                ->where('stats.plannedCount', 1)
+                ->where('stats.sessionCount', 1)
+                ->has('plannedSessions', 1)
+                ->has('sessions', 1));
     }
 
     public function test_create_session_uses_profile_default_map_view(): void
