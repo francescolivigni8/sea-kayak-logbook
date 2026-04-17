@@ -4,9 +4,7 @@ namespace App\Support;
 
 use App\Models\Profile;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
 
 class UserInsightsData
 {

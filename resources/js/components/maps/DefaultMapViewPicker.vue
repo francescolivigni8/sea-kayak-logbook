@@ -1,27 +1,37 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 
-const props = withDefaults(defineProps<{
-    lat: string;
-    lng: string;
-    zoom: string;
-    latName?: string;
-    lngName?: string;
-    zoomName?: string;
-    saved?: boolean;
-    errors?: {
-        lat?: string;
-        lng?: string;
-        zoom?: string;
-    };
-}>(), {
-    latName: 'default_map_lat',
-    lngName: 'default_map_lng',
-    zoomName: 'default_map_zoom',
-    saved: false,
-    errors: () => ({}),
-});
+const props = withDefaults(
+    defineProps<{
+        lat: string;
+        lng: string;
+        zoom: string;
+        latName?: string;
+        lngName?: string;
+        zoomName?: string;
+        saved?: boolean;
+        errors?: {
+            lat?: string;
+            lng?: string;
+            zoom?: string;
+        };
+    }>(),
+    {
+        latName: 'default_map_lat',
+        lngName: 'default_map_lng',
+        zoomName: 'default_map_zoom',
+        saved: false,
+        errors: () => ({}),
+    },
+);
 
 const emit = defineEmits<{
     'update:lat': [value: string];
@@ -40,11 +50,20 @@ const mapElement = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 let marker: L.Marker | null = null;
 
-const normalizedLat = computed(() => parseCoordinate(props.lat, fallbackView.lat, -90, 90).toFixed(6));
-const normalizedLng = computed(() => parseCoordinate(props.lng, fallbackView.lng, -180, 180).toFixed(6));
+const normalizedLat = computed(() =>
+    parseCoordinate(props.lat, fallbackView.lat, -90, 90).toFixed(6),
+);
+const normalizedLng = computed(() =>
+    parseCoordinate(props.lng, fallbackView.lng, -180, 180).toFixed(6),
+);
 const normalizedZoom = computed(() => String(parseZoom(props.zoom)));
 
-function parseCoordinate(value: string, fallback: number, min: number, max: number): number {
+function parseCoordinate(
+    value: string,
+    fallback: number,
+    min: number,
+    max: number,
+): number {
     const parsed = Number(value);
 
     if (!Number.isFinite(parsed)) {
@@ -150,7 +169,9 @@ function syncMapPointToValues() {
     moveMarker(view.lat, view.lng);
 
     const center = map.getCenter();
-    const centerChanged = Math.abs(center.lat - view.lat) > 0.00001 || Math.abs(center.lng - view.lng) > 0.00001;
+    const centerChanged =
+        Math.abs(center.lat - view.lat) > 0.00001 ||
+        Math.abs(center.lng - view.lng) > 0.00001;
 
     if (centerChanged) {
         map.setView([view.lat, view.lng], map.getZoom());
@@ -230,38 +251,59 @@ onBeforeUnmount(() => {
         <input type="hidden" :name="lngName" :value="normalizedLng" />
         <input type="hidden" :name="zoomName" :value="normalizedZoom" />
 
-        <div class="overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+        <div
+            class="overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+        >
             <div ref="mapElement" class="h-[280px] sm:h-[340px]" />
         </div>
 
         <div class="grid gap-3 md:grid-cols-[1fr_1fr_0.55fr]">
             <div>
                 <span class="journal-field-label">Latitude</span>
-                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">{{ normalizedLat }}</div>
-                <p v-if="errors.lat" class="mt-2 text-sm text-rose-600">{{ errors.lat }}</p>
+                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">
+                    {{ normalizedLat }}
+                </div>
+                <p v-if="errors.lat" class="mt-2 text-sm text-rose-600">
+                    {{ errors.lat }}
+                </p>
             </div>
 
             <div>
                 <span class="journal-field-label">Longitude</span>
-                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">{{ normalizedLng }}</div>
-                <p v-if="errors.lng" class="mt-2 text-sm text-rose-600">{{ errors.lng }}</p>
+                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">
+                    {{ normalizedLng }}
+                </div>
+                <p v-if="errors.lng" class="mt-2 text-sm text-rose-600">
+                    {{ errors.lng }}
+                </p>
             </div>
 
             <div>
                 <span class="journal-field-label">Zoom</span>
-                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">{{ normalizedZoom }}</div>
-                <p v-if="errors.zoom" class="mt-2 text-sm text-rose-600">{{ errors.zoom }}</p>
+                <div class="journal-input mt-2 bg-white/62 font-mono text-sm">
+                    {{ normalizedZoom }}
+                </div>
+                <p v-if="errors.zoom" class="mt-2 text-sm text-rose-600">
+                    {{ errors.zoom }}
+                </p>
             </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <button class="journal-utility-link" type="button" @click="placeAtMapCenter">
+            <button
+                class="journal-utility-link"
+                type="button"
+                @click="placeAtMapCenter"
+            >
                 Move pin to map centre
             </button>
             <button class="journal-primary-link" type="submit">
                 Save map view
             </button>
-            <span v-if="saved" class="journal-banner journal-banner--soft px-3 py-2 text-sm">
+            <span
+                v-if="saved"
+                class="journal-banner journal-banner--soft px-3 py-2 text-sm"
+            >
                 Map view saved.
             </span>
             <span class="journal-chip">Click or drag the pin</span>

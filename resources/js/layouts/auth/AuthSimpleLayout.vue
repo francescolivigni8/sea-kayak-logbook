@@ -31,7 +31,7 @@ defineProps<{
                     </Link>
                     <div class="space-y-2 text-center">
                         <p
-                            class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400"
+                            class="text-xs font-semibold tracking-[0.32em] text-orange-400 uppercase"
                         >
                             Sea kayak logbook
                         </p>

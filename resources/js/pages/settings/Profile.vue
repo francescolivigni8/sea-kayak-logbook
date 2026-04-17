@@ -75,40 +75,44 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
     <SettingsLayout>
         <div class="space-y-5">
-            <section
-                v-if="setupMode"
-                class="journal-panel px-5 py-5 md:px-6"
-            >
+            <section v-if="setupMode" class="journal-panel px-5 py-5 md:px-6">
                 <div class="space-y-3">
                     <p class="journal-kicker">First log-in</p>
-                    <h1 class="text-[clamp(2rem,4vw,2.8rem)] leading-[0.94] text-[color:var(--journal-text)]">
+                    <h1
+                        class="text-[clamp(2rem,4vw,2.8rem)] leading-[0.94] text-[color:var(--journal-text)]"
+                    >
                         Finish your paddler profile
                     </h1>
                     <p class="journal-copy max-w-3xl text-sm md:text-base">
-                        Before we drop you into the journal, let’s set the paddler name, club, and the gear you actually own.
+                        Before we drop you into the journal, let’s set the
+                        paddler name, club, and the gear you actually own.
                     </p>
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        Save this page once and the setup is done. You can always come back later and adjust the details.
+                        Save this page once and the setup is done. You can
+                        always come back later and adjust the details.
                     </div>
                 </div>
             </section>
 
-            <section
-                v-if="status"
-                class="journal-banner journal-banner--soft"
-            >
+            <section v-if="status" class="journal-banner journal-banner--soft">
                 {{ status }}
             </section>
 
-            <div class="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div
+                class="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]"
+            >
                 <section id="profile" class="journal-panel px-5 py-5 md:px-6">
                     <div class="space-y-2">
                         <p class="journal-kicker">Profile</p>
-                        <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                        <h2
+                            class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]"
+                        >
                             Paddler details
                         </h2>
                         <p class="journal-copy max-w-2xl text-sm md:text-base">
-                            Keep this part practical: account identity, club, and the kayaks and paddles you want available throughout the journal.
+                            Keep this part practical: account identity, club,
+                            and the kayaks and paddles you want available
+                            throughout the journal.
                         </p>
                     </div>
 
@@ -127,7 +131,9 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                         <div class="grid gap-5 md:grid-cols-2">
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="name">Account name</Label>
+                                <Label class="journal-field-label" for="name"
+                                    >Account name</Label
+                                >
                                 <input
                                     id="name"
                                     class="journal-input"
@@ -137,11 +143,16 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     :value="profile.name"
                                     placeholder="Full name"
                                 />
-                                <InputError class="mt-2" :message="errors.name" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.name"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="email">Email address</Label>
+                                <Label class="journal-field-label" for="email"
+                                    >Email address</Label
+                                >
                                 <input
                                     id="email"
                                     type="email"
@@ -152,26 +163,46 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     :value="profile.email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError class="mt-2" :message="errors.email" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.email"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="paddler_name">Paddler name</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="paddler_name"
+                                    >Paddler name</Label
+                                >
                                 <input
                                     id="paddler_name"
                                     class="journal-input"
                                     name="paddler_name"
-                                    :value="profile.settings.paddlerName || profile.name"
+                                    :value="
+                                        profile.settings.paddlerName ||
+                                        profile.name
+                                    "
                                     placeholder="Francesco Li Vigni"
                                 />
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    This is the name shown around the journal itself.
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    This is the name shown around the journal
+                                    itself.
                                 </p>
-                                <InputError class="mt-2" :message="errors.paddler_name" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.paddler_name"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="kayak_club">Kayak club affiliated</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="kayak_club"
+                                    >Kayak club affiliated</Label
+                                >
                                 <input
                                     id="kayak_club"
                                     class="journal-input"
@@ -179,14 +210,24 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     :value="profile.settings.kayakClub"
                                     placeholder="Manual text entry for now"
                                 />
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    Keep it flexible. This is just free text for now.
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Keep it flexible. This is just free text for
+                                    now.
                                 </p>
-                                <InputError class="mt-2" :message="errors.kayak_club" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.kayak_club"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="kayaks_owned_text">Kayaks owned</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="kayaks_owned_text"
+                                    >Kayaks owned</Label
+                                >
                                 <textarea
                                     id="kayaks_owned_text"
                                     class="journal-textarea min-h-[120px]"
@@ -194,14 +235,24 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     :value="profile.settings.kayaksOwnedText"
                                     placeholder="Valley Etain 17-7, P&H Scorpio MV"
                                 />
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    Add model names separated by commas. These become suggestions during session logging.
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Add model names separated by commas. These
+                                    become suggestions during session logging.
                                 </p>
-                                <InputError class="mt-2" :message="errors.kayaks_owned_text" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.kayaks_owned_text"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="paddles_owned_text">Paddles owned</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="paddles_owned_text"
+                                    >Paddles owned</Label
+                                >
                                 <textarea
                                     id="paddles_owned_text"
                                     class="journal-textarea min-h-[120px]"
@@ -209,16 +260,29 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     :value="profile.settings.paddlesOwnedText"
                                     placeholder="Werner Cyprus, Gearlab Kalleq"
                                 />
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    Add the actual paddle models you rotate between.
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Add the actual paddle models you rotate
+                                    between.
                                 </p>
-                                <InputError class="mt-2" :message="errors.paddles_owned_text" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.paddles_owned_text"
+                                />
                             </article>
 
                             <article class="journal-soft-card md:col-span-2">
-                                <Label class="journal-field-label">Default session map view</Label>
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    The Place session map opens here when a new session has no pin yet. Click the map or drag the pin to choose the default starting area.
+                                <Label class="journal-field-label"
+                                    >Default session map view</Label
+                                >
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    The Place session map opens here when a new
+                                    session has no pin yet. Click the map or
+                                    drag the pin to choose the default starting
+                                    area.
                                 </p>
 
                                 <DefaultMapViewPicker
@@ -238,14 +302,26 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     <button
                                         class="journal-chip"
                                         type="button"
-                                        @click="setDefaultMapPreset('64.167000', '-21.821000', '10')"
+                                        @click="
+                                            setDefaultMapPreset(
+                                                '64.167000',
+                                                '-21.821000',
+                                                '10',
+                                            )
+                                        "
                                     >
                                         Faxafloi
                                     </button>
                                     <button
                                         class="journal-chip"
                                         type="button"
-                                        @click="setDefaultMapPreset('64.146600', '-21.942600', '11')"
+                                        @click="
+                                            setDefaultMapPreset(
+                                                '64.146600',
+                                                '-21.942600',
+                                                '11',
+                                            )
+                                        "
                                     >
                                         Reykjavik
                                     </button>
@@ -260,27 +336,43 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                 :disabled="processing"
                                 data-test="update-profile-button"
                             >
-                                {{ processing ? 'Saving...' : (setupMode ? 'Finish setup' : 'Save profile') }}
+                                {{
+                                    processing
+                                        ? 'Saving...'
+                                        : setupMode
+                                          ? 'Finish setup'
+                                          : 'Save profile'
+                                }}
                             </button>
                             <p
                                 v-if="recentlySuccessful"
                                 class="journal-banner journal-banner--soft"
                             >
-                                {{ setupMode ? 'Profile setup saved.' : 'Profile saved.' }}
+                                {{
+                                    setupMode
+                                        ? 'Profile setup saved.'
+                                        : 'Profile saved.'
+                                }}
                             </p>
                         </div>
                     </Form>
                 </section>
 
                 <div class="space-y-5">
-                    <section id="security" class="journal-panel px-5 py-5 md:px-6">
+                    <section
+                        id="security"
+                        class="journal-panel px-5 py-5 md:px-6"
+                    >
                         <div class="space-y-2">
                             <p class="journal-kicker">Security</p>
-                            <h2 class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]">
+                            <h2
+                                class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]"
+                            >
                                 Password
                             </h2>
                             <p class="journal-copy text-sm md:text-base">
-                                Keep sign-in strong without making this page feel like an admin console.
+                                Keep sign-in strong without making this page
+                                feel like an admin console.
                             </p>
                         </div>
 
@@ -288,12 +380,20 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                             v-bind="updatePassword.form()"
                             :options="{ preserveScroll: true }"
                             reset-on-success
-                            :reset-on-error="['password', 'password_confirmation', 'current_password']"
+                            :reset-on-error="[
+                                'password',
+                                'password_confirmation',
+                                'current_password',
+                            ]"
                             class="mt-6 space-y-4"
                             v-slot="{ errors, processing, recentlySuccessful }"
                         >
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="current_password">Current password</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="current_password"
+                                    >Current password</Label
+                                >
                                 <PasswordInput
                                     id="current_password"
                                     name="current_password"
@@ -301,11 +401,18 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     autocomplete="current-password"
                                     placeholder="Current password"
                                 />
-                                <InputError class="mt-2" :message="errors.current_password" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.current_password"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="password">New password</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="password"
+                                    >New password</Label
+                                >
                                 <PasswordInput
                                     id="password"
                                     name="password"
@@ -313,14 +420,24 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     autocomplete="new-password"
                                     placeholder="New password"
                                 />
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    Use at least 12 characters with uppercase, lowercase, a number, and a symbol.
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Use at least 12 characters with uppercase,
+                                    lowercase, a number, and a symbol.
                                 </p>
-                                <InputError class="mt-2" :message="errors.password" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.password"
+                                />
                             </article>
 
                             <article class="journal-soft-card">
-                                <Label class="journal-field-label" for="password_confirmation">Confirm password</Label>
+                                <Label
+                                    class="journal-field-label"
+                                    for="password_confirmation"
+                                    >Confirm password</Label
+                                >
                                 <PasswordInput
                                     id="password_confirmation"
                                     name="password_confirmation"
@@ -328,7 +445,10 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     autocomplete="new-password"
                                     placeholder="Confirm new password"
                                 />
-                                <InputError class="mt-2" :message="errors.password_confirmation" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.password_confirmation"
+                                />
                             </article>
 
                             <div class="flex flex-wrap items-center gap-3">
@@ -338,7 +458,11 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                     class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70"
                                     data-test="update-password-button"
                                 >
-                                    {{ processing ? 'Saving...' : 'Save password' }}
+                                    {{
+                                        processing
+                                            ? 'Saving...'
+                                            : 'Save password'
+                                    }}
                                 </button>
 
                                 <p
@@ -351,14 +475,21 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                         </Form>
                     </section>
 
-                    <section id="appearance" class="journal-panel px-5 py-5 md:px-6">
+                    <section
+                        id="appearance"
+                        class="journal-panel px-5 py-5 md:px-6"
+                    >
                         <div class="space-y-2">
                             <p class="journal-kicker">Appearance</p>
-                            <h2 class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]">
+                            <h2
+                                class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]"
+                            >
                                 Themes
                             </h2>
                             <p class="journal-copy text-sm md:text-base">
-                                Choose the journal surface you want to work in. These themes now change the full workspace, not just a token switch.
+                                Choose the journal surface you want to work in.
+                                These themes now change the full workspace, not
+                                just a token switch.
                             </p>
                         </div>
 
@@ -375,11 +506,14 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
             >
                 <div class="space-y-2">
                     <p class="journal-kicker">Security</p>
-                    <h2 class="text-[1.75rem] leading-[0.98] text-[color:var(--journal-text)]">
+                    <h2
+                        class="text-[1.75rem] leading-[0.98] text-[color:var(--journal-text)]"
+                    >
                         Two-factor authentication
                     </h2>
                     <p class="journal-copy max-w-2xl text-sm md:text-base">
-                        Optional extra security when you want a second step at sign-in without making the normal journal flow heavier.
+                        Optional extra security when you want a second step at
+                        sign-in without making the normal journal flow heavier.
                     </p>
                 </div>
 
@@ -388,7 +522,8 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                     class="mt-6 flex flex-col items-start gap-4"
                 >
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        Enable an authenticator code if you want a second lock on the account.
+                        Enable an authenticator code if you want a second lock
+                        on the account.
                     </div>
 
                     <div>
@@ -407,7 +542,11 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                             @success="showSetupModal = true"
                             #default="{ processing }"
                         >
-                            <button type="submit" :disabled="processing" class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70">
+                            <button
+                                type="submit"
+                                :disabled="processing"
+                                class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70"
+                            >
                                 {{ processing ? 'Enabling...' : 'Enable 2FA' }}
                             </button>
                         </Form>
@@ -416,7 +555,8 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                 <div v-else class="mt-6 flex flex-col items-start gap-4">
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        Two-factor is active. You will be asked for an authenticator code after entering your password.
+                        Two-factor is active. You will be asked for an
+                        authenticator code after entering your password.
                     </div>
 
                     <Form v-bind="disable.form()" #default="{ processing }">

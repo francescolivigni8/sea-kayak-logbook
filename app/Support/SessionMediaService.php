@@ -2,9 +2,10 @@
 
 namespace App\Support;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Throwable;
 
 class SessionMediaService
 {
@@ -13,7 +14,7 @@ class SessionMediaService
         return (string) config('kayak.media_disk', 'public');
     }
 
-    public function disk(): Filesystem
+    public function disk(): FilesystemAdapter
     {
         return Storage::disk($this->diskName());
     }
@@ -39,6 +40,17 @@ class SessionMediaService
     {
         if (! $path) {
             return null;
+        }
+
+        if (config('kayak.media_temporary_urls')) {
+            try {
+                return $this->disk()->temporaryUrl(
+                    $path,
+                    now()->addMinutes((int) config('kayak.media_temporary_url_minutes', 30)),
+                );
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
 
         return $this->disk()->url($path);

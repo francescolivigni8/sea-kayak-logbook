@@ -104,6 +104,7 @@ class GarminImportService
                 if ($header && isset($header[0])) {
                     $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]);
                 }
+
                 continue;
             }
 
@@ -181,6 +182,7 @@ class GarminImportService
 
             if (! $summary) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 
@@ -188,6 +190,7 @@ class GarminImportService
 
             if (! $session) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 
@@ -196,6 +199,7 @@ class GarminImportService
 
             if ($contents === false) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 
@@ -232,6 +236,7 @@ class GarminImportService
 
             if (! $summary) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 
@@ -239,6 +244,7 @@ class GarminImportService
 
             if (! $session) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 
@@ -247,6 +253,7 @@ class GarminImportService
 
             if ($contents === false) {
                 $unmatched[] = basename($filePath);
+
                 continue;
             }
 

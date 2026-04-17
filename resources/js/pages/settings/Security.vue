@@ -52,11 +52,14 @@ onUnmounted(() => clearTwoFactorAuthData());
             <section class="journal-panel px-5 py-5 md:px-6">
                 <div class="space-y-2">
                     <p class="journal-kicker">Security</p>
-                    <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                    <h2
+                        class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]"
+                    >
                         Password
                     </h2>
                     <p class="journal-copy max-w-2xl text-sm md:text-base">
-                        Keep sign-in straightforward here with a strong password and a clean recovery path.
+                        Keep sign-in straightforward here with a strong password
+                        and a clean recovery path.
                     </p>
                 </div>
 
@@ -76,7 +79,11 @@ onUnmounted(() => clearTwoFactorAuthData());
                 >
                     <div class="grid gap-5 md:grid-cols-3">
                         <article class="journal-soft-card">
-                            <Label class="journal-field-label" for="current_password">Current password</Label>
+                            <Label
+                                class="journal-field-label"
+                                for="current_password"
+                                >Current password</Label
+                            >
                             <PasswordInput
                                 id="current_password"
                                 name="current_password"
@@ -84,11 +91,16 @@ onUnmounted(() => clearTwoFactorAuthData());
                                 autocomplete="current-password"
                                 placeholder="Current password"
                             />
-                            <InputError class="mt-2" :message="errors.current_password" />
+                            <InputError
+                                class="mt-2"
+                                :message="errors.current_password"
+                            />
                         </article>
 
                         <article class="journal-soft-card">
-                            <Label class="journal-field-label" for="password">New password</Label>
+                            <Label class="journal-field-label" for="password"
+                                >New password</Label
+                            >
                             <PasswordInput
                                 id="password"
                                 name="password"
@@ -96,11 +108,18 @@ onUnmounted(() => clearTwoFactorAuthData());
                                 autocomplete="new-password"
                                 placeholder="New password"
                             />
-                            <InputError class="mt-2" :message="errors.password" />
+                            <InputError
+                                class="mt-2"
+                                :message="errors.password"
+                            />
                         </article>
 
                         <article class="journal-soft-card">
-                            <Label class="journal-field-label" for="password_confirmation">Confirm password</Label>
+                            <Label
+                                class="journal-field-label"
+                                for="password_confirmation"
+                                >Confirm password</Label
+                            >
                             <PasswordInput
                                 id="password_confirmation"
                                 name="password_confirmation"
@@ -108,7 +127,10 @@ onUnmounted(() => clearTwoFactorAuthData());
                                 autocomplete="new-password"
                                 placeholder="Confirm password"
                             />
-                            <InputError class="mt-2" :message="errors.password_confirmation" />
+                            <InputError
+                                class="mt-2"
+                                :message="errors.password_confirmation"
+                            />
                         </article>
                     </div>
 
@@ -139,14 +161,20 @@ onUnmounted(() => clearTwoFactorAuthData());
                 </Form>
             </section>
 
-            <section v-if="canManageTwoFactor" class="journal-panel px-5 py-5 md:px-6">
+            <section
+                v-if="canManageTwoFactor"
+                class="journal-panel px-5 py-5 md:px-6"
+            >
                 <div class="space-y-2">
                     <p class="journal-kicker">Security</p>
-                    <h2 class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]">
+                    <h2
+                        class="text-[1.85rem] leading-[0.98] text-[color:var(--journal-text)]"
+                    >
                         Two-factor authentication
                     </h2>
                     <p class="journal-copy max-w-2xl text-sm md:text-base">
-                        Optional extra security when you want a second step at sign-in without complicating the normal journal flow.
+                        Optional extra security when you want a second step at
+                        sign-in without complicating the normal journal flow.
                     </p>
                 </div>
 
@@ -155,7 +183,8 @@ onUnmounted(() => clearTwoFactorAuthData());
                     class="mt-6 flex flex-col items-start gap-4"
                 >
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        Enable a time-based code from your authenticator app if you want a second lock on the account.
+                        Enable a time-based code from your authenticator app if
+                        you want a second lock on the account.
                     </div>
 
                     <div>
@@ -174,7 +203,11 @@ onUnmounted(() => clearTwoFactorAuthData());
                             @success="showSetupModal = true"
                             #default="{ processing }"
                         >
-                            <button type="submit" :disabled="processing" class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70">
+                            <button
+                                type="submit"
+                                :disabled="processing"
+                                class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70"
+                            >
                                 {{ processing ? 'Enabling...' : 'Enable 2FA' }}
                             </button>
                         </Form>
@@ -183,7 +216,8 @@ onUnmounted(() => clearTwoFactorAuthData());
 
                 <div v-else class="mt-6 flex flex-col items-start gap-4">
                     <div class="journal-banner journal-banner--soft max-w-3xl">
-                        Two-factor is active. You will be asked for an authenticator code after entering your password.
+                        Two-factor is active. You will be asked for an
+                        authenticator code after entering your password.
                     </div>
 
                     <Form v-bind="disable.form()" #default="{ processing }">
@@ -196,7 +230,9 @@ onUnmounted(() => clearTwoFactorAuthData());
                         </button>
                     </Form>
 
-                    <div class="w-full rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-5">
+                    <div
+                        class="w-full rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-5"
+                    >
                         <TwoFactorRecoveryCodes />
                     </div>
                 </div>

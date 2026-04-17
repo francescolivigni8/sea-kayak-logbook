@@ -29,11 +29,13 @@ class ImportGarminHistory extends Command
 
         if (! is_file($csvPath)) {
             $this->error("CSV file not found: {$csvPath}");
+
             return self::FAILURE;
         }
 
         if ($gpxDir && ! is_dir($gpxDir)) {
             $this->error("GPX directory not found: {$gpxDir}");
+
             return self::FAILURE;
         }
 

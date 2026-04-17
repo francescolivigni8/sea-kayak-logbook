@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { Button } from '@/components/ui/button';
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -102,7 +102,9 @@ const cards = computed(() => [
     {
         label: 'Public trips',
         value: props.place.tripCount.toString(),
-        detail: props.place.latestDate ? `Latest public trip ${props.place.latestDate}` : 'No latest date logged',
+        detail: props.place.latestDate
+            ? `Latest public trip ${props.place.latestDate}`
+            : 'No latest date logged',
     },
     {
         label: 'Mapped tracks',
@@ -115,12 +117,20 @@ const cards = computed(() => [
 <template>
     <Head :title="`${place.label} · Public expedition place`" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-6 md:px-6 md:py-10">
+    <div
+        class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-6 md:px-6 md:py-10"
+    >
         <div class="mx-auto flex max-w-7xl flex-col gap-6">
-            <section class="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-sm md:p-8">
-                <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <section
+                class="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-sm md:p-8"
+            >
+                <div
+                    class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between"
+                >
                     <div class="space-y-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.32em] text-orange-400 uppercase"
+                        >
                             Public expedition place
                         </p>
                         <Heading
@@ -128,11 +138,17 @@ const cards = computed(() => [
                             :description="`A shareable expedition-place view from ${profile.name}, rolling up public multiday paddles, route traces, and field notes.`"
                         />
 
-                        <div class="flex flex-wrap gap-3 text-sm text-slate-500">
-                            <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
+                        <div
+                            class="flex flex-wrap gap-3 text-sm text-slate-500"
+                        >
+                            <span
+                                class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2"
+                            >
                                 {{ profile.homeWater }}
                             </span>
-                            <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">
+                            <span
+                                class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2"
+                            >
                                 {{ place.tripCount }} trips
                             </span>
                             <span
@@ -145,7 +161,9 @@ const cards = computed(() => [
                     </div>
 
                     <Button as-child variant="outline">
-                        <Link :href="profile.publicPath">Back to public profile</Link>
+                        <Link :href="profile.publicPath"
+                            >Back to public profile</Link
+                        >
                     </Button>
                 </div>
             </section>
@@ -156,7 +174,9 @@ const cards = computed(() => [
                     :key="card.label"
                     class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
                 >
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
+                    <p
+                        class="text-xs font-semibold tracking-[0.24em] text-orange-400 uppercase"
+                    >
                         {{ card.label }}
                     </p>
                     <p class="mt-4 text-3xl font-semibold text-slate-900">
@@ -168,17 +188,23 @@ const cards = computed(() => [
                 </article>
             </section>
 
-            <section class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm">
+            <section
+                class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
+            >
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.28em] text-orange-400 uppercase"
+                        >
                             Public expedition atlas
                         </p>
                         <h2 class="mt-2 text-2xl font-semibold text-slate-900">
                             Shared tracks and launch points
                         </h2>
                     </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    <span
+                        class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500"
+                    >
                         Public expedition traces only
                     </span>
                 </div>
@@ -196,10 +222,16 @@ const cards = computed(() => [
                 </div>
             </section>
 
-            <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-                <article class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm">
+            <section
+                class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+            >
+                <article
+                    class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
+                >
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.28em] text-orange-400 uppercase"
+                        >
                             Public expedition sessions
                         </p>
                         <h2 class="mt-2 text-2xl font-semibold text-slate-900">
@@ -213,11 +245,17 @@ const cards = computed(() => [
                             :key="session.id"
                             class="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4"
                         >
-                            <div class="flex flex-wrap gap-2 text-xs font-medium">
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">
+                            <div
+                                class="flex flex-wrap gap-2 text-xs font-medium"
+                            >
+                                <span
+                                    class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600"
+                                >
                                     {{ session.routeCategoryLabel }}
                                 </span>
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">
+                                <span
+                                    class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600"
+                                >
                                     {{ session.daysOut }} days
                                 </span>
                                 <span
@@ -229,34 +267,51 @@ const cards = computed(() => [
                             </div>
 
                             <div class="mt-3">
-                                <h3 class="text-lg font-semibold text-slate-900">
+                                <h3
+                                    class="text-lg font-semibold text-slate-900"
+                                >
                                     {{ session.title }}
                                 </h3>
                                 <p class="mt-1 text-sm text-slate-500">
                                     {{ session.date ?? 'No date' }}
-                                    <span v-if="session.launchName">· {{ session.launchName }}</span>
+                                    <span v-if="session.launchName"
+                                        >· {{ session.launchName }}</span
+                                    >
                                 </p>
                             </div>
 
-                            <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
+                            <div
+                                class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600"
+                            >
+                                <span
+                                    class="rounded-full border border-slate-200 bg-white px-3 py-1"
+                                >
                                     {{ session.distanceKm.toFixed(1) }} km
                                 </span>
-                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1">
+                                <span
+                                    class="rounded-full border border-slate-200 bg-white px-3 py-1"
+                                >
                                     {{ session.durationMinutes }} min
                                 </span>
                             </div>
 
-                            <p v-if="session.notes" class="mt-3 text-sm leading-6 text-slate-500">
+                            <p
+                                v-if="session.notes"
+                                class="mt-3 text-sm leading-6 text-slate-500"
+                            >
                                 {{ session.notes }}
                             </p>
                         </article>
                     </div>
                 </article>
 
-                <article class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm">
+                <article
+                    class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
+                >
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.28em] text-orange-400 uppercase"
+                        >
                             Public expedition gallery
                         </p>
                         <h2 class="mt-2 text-2xl font-semibold text-slate-900">
@@ -270,17 +325,30 @@ const cards = computed(() => [
                             :key="photo.id"
                             class="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50/80"
                         >
-                            <img :src="photo.url" :alt="photo.name ?? photo.title" class="h-56 w-full object-cover" />
+                            <img
+                                :src="photo.url"
+                                :alt="photo.name ?? photo.title"
+                                class="h-56 w-full object-cover"
+                            />
                             <div class="p-4">
-                                <div class="flex items-center justify-between gap-3">
-                                    <h3 class="text-base font-semibold text-slate-900">
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
+                                    <h3
+                                        class="text-base font-semibold text-slate-900"
+                                    >
                                         {{ photo.title }}
                                     </h3>
-                                    <span class="text-xs font-medium text-slate-500">
+                                    <span
+                                        class="text-xs font-medium text-slate-500"
+                                    >
                                         {{ photo.date ?? 'No date' }}
                                     </span>
                                 </div>
-                                <p v-if="photo.notes" class="mt-3 text-sm leading-6 text-slate-500">
+                                <p
+                                    v-if="photo.notes"
+                                    class="mt-3 text-sm leading-6 text-slate-500"
+                                >
                                     {{ photo.notes }}
                                 </p>
                             </div>

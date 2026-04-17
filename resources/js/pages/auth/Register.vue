@@ -13,7 +13,8 @@ import { store } from '@/routes/register';
 defineOptions({
     layout: {
         title: 'Create your kayak workspace',
-        description: 'Start a personal sea-kayak logbook with your own profile, dashboard, and expedition history.',
+        description:
+            'Start a personal sea-kayak logbook with your own profile, dashboard, and expedition history.',
     },
 });
 </script>

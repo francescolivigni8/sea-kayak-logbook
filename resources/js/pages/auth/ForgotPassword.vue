@@ -12,7 +12,8 @@ import { email } from '@/routes/password';
 defineOptions({
     layout: {
         title: 'Reset your password',
-        description: 'Enter the email tied to your kayak workspace and we will send you a reset link.',
+        description:
+            'Enter the email tied to your kayak workspace and we will send you a reset link.',
     },
 });
 

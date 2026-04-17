@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use Carbon\Carbon;
 use adriangibbons\phpFITFileAnalysis;
+use Carbon\Carbon;
 
 class FitTrackService
 {

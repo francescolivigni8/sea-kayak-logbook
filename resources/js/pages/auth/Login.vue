@@ -15,7 +15,8 @@ import { request } from '@/routes/password';
 defineOptions({
     layout: {
         title: 'Open your kayak dashboard',
-        description: 'Sign in to continue your session log, expeditions, notes, and route files.',
+        description:
+            'Sign in to continue your session log, expeditions, notes, and route files.',
     },
 });
 

@@ -1,94 +1,33 @@
 <script setup lang="ts">
-import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
-import InputError from '@/components/InputError.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
+import InputError from '@/components/InputError.vue';
+import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
+import type {
+    SessionExistingAssets,
+    SessionFormDefaults,
+    SessionProfileSummary,
+} from '@/types/sessions';
 
-interface ProfileSummary {
-    name: string;
-    homeWater: string;
-    timezone: string;
-    defaultMapView?: {
-        lat: number;
-        lng: number;
-        zoom: number;
+interface FlashPageProps {
+    flash?: {
+        success?: string;
     };
-    kayaksOwned?: string[];
-    paddlesOwned?: string[];
-}
-
-interface ExistingAssets {
-    gpxName: string | null;
-    fitName: string | null;
-    photoName: string | null;
-    photoUrl: string | null;
-}
-
-interface SessionFormDefaults {
-    title: string;
-    session_date: string;
-    start_time_local: string;
-    launch_name: string;
-    launch_lat: string;
-    launch_lng: string;
-    landing_name: string;
-    landing_lat: string;
-    landing_lng: string;
-    area_name: string;
-    route_category: string;
-    body_of_water: string;
-    kayak_used: string;
-    paddle_used: string;
-    distance_km: string;
-    duration_minutes: string;
-    moving_minutes: string;
-    wind_avg_ms: string;
-    wind_gust_ms: string;
-    wind_direction_deg: string;
-    wind_beaufort: string;
-    tide_state: string;
-    current_knots: string;
-    current_direction_deg: string;
-    wave_height_m: string;
-    swell_height_m: string;
-    swell_period_s: string;
-    swell_direction_deg: string;
-    air_temp_c: string;
-    sea_temp_c: string;
-    rain_severity: string;
-    wind_severity: string;
-    temperature_severity: string;
-    forecast_severity: string;
-    visibility_code: string;
-    weather_summary: string;
-    route_summary: string;
-    route_tags_text: string;
-    partners_text: string;
-    skills_text: string;
-    manual_route_waypoints: string;
-    successful_rolls_count: string;
-    wet_exits_count: string;
-    tow_rescues_count: string;
-    what_went_well: string;
-    improve_next: string;
-    confidence_score: string;
-    fatigue_score: string;
-    decision_score: string;
-    notes_public: string;
-    notes_private: string;
-    is_expedition: boolean;
-    expedition_days: string;
-    expedition_notes: string;
-    autofill_weather: boolean;
-    is_public: boolean;
 }
 
 const props = defineProps<{
     mode: 'create' | 'edit';
-    profile: ProfileSummary;
+    profile: SessionProfileSummary;
     weatherAutofillAvailable: boolean;
     formDefaults: SessionFormDefaults;
-    existingAssets: ExistingAssets;
+    existingAssets: SessionExistingAssets;
     sessionId?: number;
     initialStep?: number;
 }>();
@@ -124,15 +63,36 @@ const steps = [
     },
 ] as const;
 
-const currentStep = ref(Math.max(0, Math.min(props.initialStep ?? 0, steps.length - 1)));
+const currentStep = ref(
+    Math.max(0, Math.min(props.initialStep ?? 0, steps.length - 1)),
+);
 const currentStepMeta = computed(() => steps[currentStep.value]);
 const notesTextarea = ref<HTMLTextAreaElement | null>(null);
-const weatherPreviewState = ref<'idle' | 'loading' | 'filled' | 'warning' | 'error'>('idle');
+const weatherPreviewState = ref<
+    'idle' | 'loading' | 'filled' | 'warning' | 'error'
+>('idle');
 const weatherPreviewMessage = ref<string | null>(null);
-const flashSuccessMessage = computed(() => page.props.flash?.success as string | undefined);
+const flashSuccessMessage = computed(
+    () => (page.props as FlashPageProps).flash?.success,
+);
 
-const routeCategoryOptions = ['journey', 'training', 'benchmark', 'navigation', 'rescue-practice', 'expedition'];
-const bodyOfWaterOptions = ['sea', 'ocean', 'fjord', 'lake', 'river', 'canal', 'other'];
+const routeCategoryOptions = [
+    'journey',
+    'training',
+    'benchmark',
+    'navigation',
+    'rescue-practice',
+    'expedition',
+];
+const bodyOfWaterOptions = [
+    'sea',
+    'ocean',
+    'fjord',
+    'lake',
+    'river',
+    'canal',
+    'other',
+];
 const severityOptions = ['low', 'moderate', 'high', 'extreme'];
 const tideStateOptions = ['slack', 'flooding', 'high', 'ebbing', 'low'];
 const visibilityOptions = ['clear', 'good', 'moderate', 'poor', 'fog'];
@@ -217,6 +177,7 @@ watch(
         if (file instanceof File) {
             activeObjectUrl = URL.createObjectURL(file);
             photoPreviewUrl.value = activeObjectUrl;
+
             return;
         }
 
@@ -247,6 +208,7 @@ watch(
 
             weatherPreviewAbortController?.abort();
             weatherPreviewAbortController = null;
+
             return;
         }
 
@@ -255,7 +217,14 @@ watch(
 );
 
 watch(
-    () => [form.session_date, form.start_time_local, form.launch_lat, form.launch_lng, form.landing_lat, form.landing_lng],
+    () => [
+        form.session_date,
+        form.start_time_local,
+        form.launch_lat,
+        form.launch_lng,
+        form.landing_lat,
+        form.landing_lng,
+    ],
     () => {
         if (!form.autofill_weather) {
             return;
@@ -291,24 +260,40 @@ onBeforeUnmount(() => {
     weatherPreviewAbortController?.abort();
 });
 
-const pageTitle = computed(() => (props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session'));
+const pageTitle = computed(() =>
+    props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session',
+);
 const pageDescription = computed(() =>
     props.mode === 'create'
         ? 'Capture the paddle, mark the sea state, and attach the files.'
         : 'Refine the paddle, notes, files, and expedition fields.',
 );
 
-const submitLabel = computed(() => (props.mode === 'create' ? 'Save session' : 'Update session'));
+const submitLabel = computed(() =>
+    props.mode === 'create' ? 'Save session' : 'Update session',
+);
 const fileInputClass =
     'journal-input file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium';
-const stepProgressLabel = computed(() => `Step ${currentStep.value + 1} of ${steps.length}`);
-const launchLatNumber = computed(() => (form.launch_lat === '' ? null : Number(form.launch_lat)));
-const launchLngNumber = computed(() => (form.launch_lng === '' ? null : Number(form.launch_lng)));
-const landingLatNumber = computed(() => (form.landing_lat === '' ? null : Number(form.landing_lat)));
-const landingLngNumber = computed(() => (form.landing_lng === '' ? null : Number(form.landing_lng)));
+const stepProgressLabel = computed(
+    () => `Step ${currentStep.value + 1} of ${steps.length}`,
+);
+const launchLatNumber = computed(() =>
+    form.launch_lat === '' ? null : Number(form.launch_lat),
+);
+const launchLngNumber = computed(() =>
+    form.launch_lng === '' ? null : Number(form.launch_lng),
+);
+const landingLatNumber = computed(() =>
+    form.landing_lat === '' ? null : Number(form.landing_lat),
+);
+const landingLngNumber = computed(() =>
+    form.landing_lng === '' ? null : Number(form.landing_lng),
+);
 const hasWeatherPreviewCoordinates = computed(() => {
-    const hasLaunchPoint = launchLatNumber.value !== null && launchLngNumber.value !== null;
-    const hasLandingPoint = landingLatNumber.value !== null && landingLngNumber.value !== null;
+    const hasLaunchPoint =
+        launchLatNumber.value !== null && launchLngNumber.value !== null;
+    const hasLandingPoint =
+        landingLatNumber.value !== null && landingLngNumber.value !== null;
 
     return hasLaunchPoint || hasLandingPoint;
 });
@@ -318,7 +303,9 @@ const durationHours = computed({
             return '';
         }
 
-        return String(Math.floor(Number.parseInt(form.duration_minutes, 10) / 60));
+        return String(
+            Math.floor(Number.parseInt(form.duration_minutes, 10) / 60),
+        );
     },
     set: (value: string) => {
         syncDuration(value, durationRemainingMinutes.value);
@@ -337,9 +324,16 @@ const durationRemainingMinutes = computed({
     },
 });
 const hasExpeditionMapPointSource = computed(() => {
-    const hasLaunchPoint = launchLatNumber.value !== null && launchLngNumber.value !== null;
-    const hasLandingPoint = landingLatNumber.value !== null && landingLngNumber.value !== null;
-    const hasRouteFile = Boolean(form.gpx_file || form.fit_file || props.existingAssets.gpxName || props.existingAssets.fitName);
+    const hasLaunchPoint =
+        launchLatNumber.value !== null && launchLngNumber.value !== null;
+    const hasLandingPoint =
+        landingLatNumber.value !== null && landingLngNumber.value !== null;
+    const hasRouteFile = Boolean(
+        form.gpx_file ||
+        form.fit_file ||
+        props.existingAssets.gpxName ||
+        props.existingAssets.fitName,
+    );
 
     return hasLaunchPoint || hasLandingPoint || hasRouteFile;
 });
@@ -379,7 +373,9 @@ function assignPreviewFields(fields: Record<string, string | number | null>) {
 function scheduleWeatherPreview() {
     if (!props.weatherAutofillAvailable) {
         weatherPreviewState.value = 'warning';
-        weatherPreviewMessage.value = 'Add your Stormglass API key first to preview weather on the form.';
+        weatherPreviewMessage.value =
+            'Add your Stormglass API key first to preview weather on the form.';
+
         return;
     }
 
@@ -399,20 +395,25 @@ async function previewWeatherNow() {
 
     if (!form.session_date) {
         weatherPreviewState.value = 'warning';
-        weatherPreviewMessage.value = 'Pick the session date first, then Stormglass can preview the sea state.';
+        weatherPreviewMessage.value =
+            'Pick the session date first, then Stormglass can preview the sea state.';
+
         return;
     }
 
     if (!hasWeatherPreviewCoordinates.value) {
         weatherPreviewState.value = 'warning';
-        weatherPreviewMessage.value = 'Add a launch or landing point first, then Stormglass can fill the weather right away.';
+        weatherPreviewMessage.value =
+            'Add a launch or landing point first, then Stormglass can fill the weather right away.';
+
         return;
     }
 
     weatherPreviewAbortController?.abort();
     weatherPreviewAbortController = new AbortController();
     weatherPreviewState.value = 'loading';
-    weatherPreviewMessage.value = 'Previewing the nearest Stormglass weather point...';
+    weatherPreviewMessage.value =
+        'Previewing the nearest Stormglass weather point...';
 
     const params = new URLSearchParams({
         session_date: form.session_date,
@@ -439,13 +440,16 @@ async function previewWeatherNow() {
     }
 
     try {
-        const response = await fetch(`/sessions/weather-preview?${params.toString()}`, {
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
+        const response = await fetch(
+            `/sessions/weather-preview?${params.toString()}`,
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                signal: weatherPreviewAbortController.signal,
             },
-            signal: weatherPreviewAbortController.signal,
-        });
+        );
 
         const payload = (await response.json()) as {
             status?: string;
@@ -456,29 +460,46 @@ async function previewWeatherNow() {
         };
 
         if (!response.ok) {
-            throw new Error(payload.message || payload.reason || 'Stormglass preview failed.');
+            throw new Error(
+                payload.message ||
+                    payload.reason ||
+                    'Stormglass preview failed.',
+            );
         }
 
         if (payload.status === 'filled' && payload.fields) {
             assignPreviewFields(payload.fields);
             weatherPreviewState.value = 'filled';
-            weatherPreviewMessage.value = payload.message ?? `Stormglass filled ${payload.filledFields ?? 0} fields on the form.`;
+            weatherPreviewMessage.value =
+                payload.message ??
+                `Stormglass filled ${payload.filledFields ?? 0} fields on the form.`;
+
             return;
         }
 
-        weatherPreviewState.value = payload.status === 'failed' ? 'error' : 'warning';
-        weatherPreviewMessage.value = payload.message || payload.reason || 'Stormglass could not fill the weather yet.';
+        weatherPreviewState.value =
+            payload.status === 'failed' ? 'error' : 'warning';
+        weatherPreviewMessage.value =
+            payload.message ||
+            payload.reason ||
+            'Stormglass could not fill the weather yet.';
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
             return;
         }
 
         weatherPreviewState.value = 'error';
-        weatherPreviewMessage.value = error instanceof Error ? error.message : 'Stormglass preview failed.';
+        weatherPreviewMessage.value =
+            error instanceof Error
+                ? error.message
+                : 'Stormglass preview failed.';
     }
 }
 
-function assignFile(key: 'gpx_file' | 'fit_file' | 'session_photo', event: Event) {
+function assignFile(
+    key: 'gpx_file' | 'fit_file' | 'session_photo',
+    event: Event,
+) {
     const target = event.target as HTMLInputElement;
     form[key] = target.files?.[0] ?? null;
 }
@@ -507,13 +528,17 @@ function syncDuration(hoursValue: string, minutesValue: string) {
 
     if (!hasHours && !hasMinutes) {
         form.duration_minutes = '';
+
         return;
     }
 
     const safeHours = Math.max(0, Number.parseInt(hoursValue || '0', 10) || 0);
-    const safeMinutes = Math.max(0, Math.min(59, Number.parseInt(minutesValue || '0', 10) || 0));
+    const safeMinutes = Math.max(
+        0,
+        Math.min(59, Number.parseInt(minutesValue || '0', 10) || 0),
+    );
 
-    form.duration_minutes = String((safeHours * 60) + safeMinutes);
+    form.duration_minutes = String(safeHours * 60 + safeMinutes);
 }
 
 function nextStep() {
@@ -526,15 +551,13 @@ function previousStep() {
 
 function submit() {
     if (props.mode === 'edit' && props.sessionId) {
-        form
-            .transform((data) => ({
-                ...data,
-                _method: 'patch',
-            }))
-            .post(`/sessions/${props.sessionId}`, {
-                forceFormData: true,
-                preserveScroll: true,
-            });
+        form.transform((data) => ({
+            ...data,
+            _method: 'patch',
+        })).post(`/sessions/${props.sessionId}`, {
+            forceFormData: true,
+            preserveScroll: true,
+        });
 
         return;
     }
@@ -557,19 +580,28 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-4 sm:space-y-5">
-        <section v-if="flashSuccessMessage" class="journal-banner journal-banner--success-strong">
+        <section
+            v-if="flashSuccessMessage"
+            class="journal-banner journal-banner--success-strong"
+        >
             <p class="journal-kicker text-[color:#256a48]">Session saved</p>
-            <p class="mt-2 text-sm font-semibold leading-6 md:text-base">
+            <p class="mt-2 text-sm leading-6 font-semibold md:text-base">
                 {{ flashSuccessMessage }}
             </p>
         </section>
 
-        <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
+        <section
+            class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6"
+        >
             <div class="space-y-3">
                 <div class="space-y-3">
-                    <p class="journal-kicker">{{ mode === 'create' ? 'Add session' : 'Edit session' }}</p>
+                    <p class="journal-kicker">
+                        {{ mode === 'create' ? 'Add session' : 'Edit session' }}
+                    </p>
                     <div class="space-y-2">
-                        <h2 class="text-[1.75rem] leading-[0.96] sm:text-[clamp(1.9rem,3vw,2.5rem)]">
+                        <h2
+                            class="text-[1.75rem] leading-[0.96] sm:text-[clamp(1.9rem,3vw,2.5rem)]"
+                        >
                             {{ pageTitle }}
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
@@ -581,59 +613,112 @@ onMounted(async () => {
         </section>
 
         <section class="journal-banner journal-banner--soft">
-            Keep this flow lightweight: journey first, sea next, then rescue and notes once the core paddle is captured.
+            Keep this flow lightweight: journey first, sea next, then rescue and
+            notes once the core paddle is captured.
         </section>
 
         <form class="space-y-5" @submit.prevent="submit">
             <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <p class="text-sm font-medium text-[color:var(--journal-muted)]">
+                    <p
+                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                    >
                         {{ stepProgressLabel }}
                     </p>
-                    <span class="w-full text-xs font-medium text-[color:var(--journal-muted)] sm:w-auto sm:text-sm">Required: title, date, launch, distance or route file</span>
+                    <span
+                        class="w-full text-xs font-medium text-[color:var(--journal-muted)] sm:w-auto sm:text-sm"
+                        >Required: title, date, launch, distance or route
+                        file</span
+                    >
                 </div>
 
-                <div class="mt-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:mt-5 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4">
+                <div
+                    class="mt-4 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:mt-5 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden"
+                >
                     <button
                         v-for="(step, index) in steps"
                         :key="step.key"
                         type="button"
-                        :class="['journal-step', 'min-w-[220px] shrink-0 md:min-w-0', currentStep === index ? 'journal-step--active' : '']"
+                        :class="[
+                            'journal-step',
+                            'min-w-[220px] shrink-0 md:min-w-0',
+                            currentStep === index ? 'journal-step--active' : '',
+                        ]"
                         @click="goToStep(index)"
                     >
-                        <span class="journal-kicker">{{ `Step ${index + 1}` }}</span>
-                        <strong class="text-[1rem] text-[color:var(--journal-text)]">{{ step.title }}</strong>
-                        <span class="text-sm leading-6 text-[color:var(--journal-muted)]">{{ step.description }}</span>
+                        <span class="journal-kicker">{{
+                            `Step ${index + 1}`
+                        }}</span>
+                        <strong
+                            class="text-[1rem] text-[color:var(--journal-text)]"
+                            >{{ step.title }}</strong
+                        >
+                        <span
+                            class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >{{ step.description }}</span
+                        >
                     </button>
                 </div>
             </section>
 
             <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
-                <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+                <div
+                    class="mb-6 flex flex-wrap items-start justify-between gap-3"
+                >
                     <div class="space-y-2">
-                        <p class="journal-kicker">{{ currentStepMeta.title }}</p>
-                        <h3 class="text-[1.5rem] leading-none sm:text-[1.9rem]">{{ currentStepMeta.title }}</h3>
+                        <p class="journal-kicker">
+                            {{ currentStepMeta.title }}
+                        </p>
+                        <h3 class="text-[1.5rem] leading-none sm:text-[1.9rem]">
+                            {{ currentStepMeta.title }}
+                        </h3>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
                             {{ currentStepMeta.description }}
                         </p>
                     </div>
 
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">
-                        {{ currentStep === steps.length - 1 ? 'Ready to save' : 'Keep going' }}
+                    <span
+                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                    >
+                        {{
+                            currentStep === steps.length - 1
+                                ? 'Ready to save'
+                                : 'Keep going'
+                        }}
                     </span>
                 </div>
 
-                <div v-show="currentStep === 0" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div
+                    v-show="currentStep === 0"
+                    class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                >
                     <div class="xl:col-span-2">
-                        <label class="journal-field-label" for="title">Title</label>
-                        <input id="title" v-model="form.title" class="journal-input" placeholder="Morning benchmark paddle" />
+                        <label class="journal-field-label" for="title"
+                            >Title</label
+                        >
+                        <input
+                            id="title"
+                            v-model="form.title"
+                            class="journal-input"
+                            placeholder="Morning benchmark paddle"
+                        />
                         <InputError :message="form.errors.title" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="route_category">Category</label>
-                        <select id="route_category" v-model="form.route_category" class="journal-select">
-                            <option v-for="option in routeCategoryOptions" :key="option" :value="option">
+                        <label class="journal-field-label" for="route_category"
+                            >Category</label
+                        >
+                        <select
+                            id="route_category"
+                            v-model="form.route_category"
+                            class="journal-select"
+                        >
+                            <option
+                                v-for="option in routeCategoryOptions"
+                                :key="option"
+                                :value="option"
+                            >
                                 {{ option }}
                             </option>
                         </select>
@@ -641,22 +726,48 @@ onMounted(async () => {
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="session_date">Date</label>
-                        <input id="session_date" v-model="form.session_date" type="date" class="journal-input" />
+                        <label class="journal-field-label" for="session_date"
+                            >Date</label
+                        >
+                        <input
+                            id="session_date"
+                            v-model="form.session_date"
+                            type="date"
+                            class="journal-input"
+                        />
                         <InputError :message="form.errors.session_date" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="start_time_local">Start time</label>
-                        <input id="start_time_local" v-model="form.start_time_local" type="time" class="journal-input" />
+                        <label
+                            class="journal-field-label"
+                            for="start_time_local"
+                            >Start time</label
+                        >
+                        <input
+                            id="start_time_local"
+                            v-model="form.start_time_local"
+                            type="time"
+                            class="journal-input"
+                        />
                         <InputError :message="form.errors.start_time_local" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="body_of_water">Body of water</label>
-                        <select id="body_of_water" v-model="form.body_of_water" class="journal-select">
+                        <label class="journal-field-label" for="body_of_water"
+                            >Body of water</label
+                        >
+                        <select
+                            id="body_of_water"
+                            v-model="form.body_of_water"
+                            class="journal-select"
+                        >
                             <option value="">Select...</option>
-                            <option v-for="option in bodyOfWaterOptions" :key="option" :value="option">
+                            <option
+                                v-for="option in bodyOfWaterOptions"
+                                :key="option"
+                                :value="option"
+                            >
                                 {{ option }}
                             </option>
                         </select>
@@ -664,25 +775,48 @@ onMounted(async () => {
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="launch_name">Launch</label>
-                        <input id="launch_name" v-model="form.launch_name" class="journal-input" placeholder="Reykjavik" />
+                        <label class="journal-field-label" for="launch_name"
+                            >Launch</label
+                        >
+                        <input
+                            id="launch_name"
+                            v-model="form.launch_name"
+                            class="journal-input"
+                            placeholder="Reykjavik"
+                        />
                         <InputError :message="form.errors.launch_name" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="landing_name">Landing</label>
-                        <input id="landing_name" v-model="form.landing_name" class="journal-input" placeholder="Reykjavik" />
+                        <label class="journal-field-label" for="landing_name"
+                            >Landing</label
+                        >
+                        <input
+                            id="landing_name"
+                            v-model="form.landing_name"
+                            class="journal-input"
+                            placeholder="Reykjavik"
+                        />
                         <InputError :message="form.errors.landing_name" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="area_name">Area</label>
-                        <input id="area_name" v-model="form.area_name" class="journal-input" placeholder="Faxafloi" />
+                        <label class="journal-field-label" for="area_name"
+                            >Area</label
+                        >
+                        <input
+                            id="area_name"
+                            v-model="form.area_name"
+                            class="journal-input"
+                            placeholder="Faxafloi"
+                        />
                         <InputError :message="form.errors.area_name" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="kayak_used">Kayak used</label>
+                        <label class="journal-field-label" for="kayak_used"
+                            >Kayak used</label
+                        >
                         <input
                             id="kayak_used"
                             v-model="form.kayak_used"
@@ -691,13 +825,19 @@ onMounted(async () => {
                             placeholder="Select or type kayak model"
                         />
                         <datalist id="kayaks-owned-options">
-                            <option v-for="kayak in profile.kayaksOwned ?? []" :key="kayak" :value="kayak" />
+                            <option
+                                v-for="kayak in profile.kayaksOwned ?? []"
+                                :key="kayak"
+                                :value="kayak"
+                            />
                         </datalist>
                         <InputError :message="form.errors.kayak_used" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="paddle_used">Paddle used</label>
+                        <label class="journal-field-label" for="paddle_used"
+                            >Paddle used</label
+                        >
                         <input
                             id="paddle_used"
                             v-model="form.paddle_used"
@@ -706,34 +846,72 @@ onMounted(async () => {
                             placeholder="Select or type paddle model"
                         />
                         <datalist id="paddles-owned-options">
-                            <option v-for="paddle in profile.paddlesOwned ?? []" :key="paddle" :value="paddle" />
+                            <option
+                                v-for="paddle in profile.paddlesOwned ?? []"
+                                :key="paddle"
+                                :value="paddle"
+                            />
                         </datalist>
                         <InputError :message="form.errors.paddle_used" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="distance_km">Distance (km)</label>
-                        <input id="distance_km" v-model="form.distance_km" type="number" step="0.1" min="0" class="journal-input" />
+                        <label class="journal-field-label" for="distance_km"
+                            >Distance (km)</label
+                        >
+                        <input
+                            id="distance_km"
+                            v-model="form.distance_km"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            class="journal-input"
+                        />
                         <InputError :message="form.errors.distance_km" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="duration_hours">Duration</label>
+                        <label class="journal-field-label" for="duration_hours"
+                            >Duration</label
+                        >
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-2">
-                                <span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--journal-faint)]">Hours</span>
-                                <input id="duration_hours" v-model="durationHours" type="number" min="0" class="journal-input" placeholder="1" />
+                                <span
+                                    class="text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                    >Hours</span
+                                >
+                                <input
+                                    id="duration_hours"
+                                    v-model="durationHours"
+                                    type="number"
+                                    min="0"
+                                    class="journal-input"
+                                    placeholder="1"
+                                />
                             </div>
                             <div class="space-y-2">
-                                <span class="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--journal-faint)]">Minutes</span>
-                                <input id="duration_minutes" v-model="durationRemainingMinutes" type="number" min="0" max="59" class="journal-input" placeholder="30" />
+                                <span
+                                    class="text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                    >Minutes</span
+                                >
+                                <input
+                                    id="duration_minutes"
+                                    v-model="durationRemainingMinutes"
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    class="journal-input"
+                                    placeholder="30"
+                                />
                             </div>
                         </div>
                         <InputError :message="form.errors.duration_minutes" />
                     </div>
 
                     <div class="sm:col-span-2 xl:col-span-2">
-                        <label class="journal-field-label" for="route_tags_text">Tags</label>
+                        <label class="journal-field-label" for="route_tags_text"
+                            >Tags</label
+                        >
                         <input
                             id="route_tags_text"
                             v-model="form.route_tags_text"
@@ -744,7 +922,9 @@ onMounted(async () => {
                     </div>
 
                     <div class="sm:col-span-2 xl:col-span-1">
-                        <label class="journal-field-label" for="partners_text">Partners</label>
+                        <label class="journal-field-label" for="partners_text"
+                            >Partners</label
+                        >
                         <input
                             id="partners_text"
                             v-model="form.partners_text"
@@ -766,43 +946,100 @@ onMounted(async () => {
                             @update:launch-lng="form.launch_lng = $event"
                             @update:landing-lat="form.landing_lat = $event"
                             @update:landing-lng="form.landing_lng = $event"
-                            @update:route-waypoints-json="form.manual_route_waypoints = $event"
+                            @update:route-waypoints-json="
+                                form.manual_route_waypoints = $event
+                            "
                         />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="launch_lat">Launch latitude</label>
-                        <input id="launch_lat" v-model="form.launch_lat" type="number" step="0.000001" min="-90" max="90" class="journal-input" placeholder="64.146600" />
+                        <label class="journal-field-label" for="launch_lat"
+                            >Launch latitude</label
+                        >
+                        <input
+                            id="launch_lat"
+                            v-model="form.launch_lat"
+                            type="number"
+                            step="0.000001"
+                            min="-90"
+                            max="90"
+                            class="journal-input"
+                            placeholder="64.146600"
+                        />
                         <InputError :message="form.errors.launch_lat" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="launch_lng">Launch longitude</label>
-                        <input id="launch_lng" v-model="form.launch_lng" type="number" step="0.000001" min="-180" max="180" class="journal-input" placeholder="-21.942600" />
+                        <label class="journal-field-label" for="launch_lng"
+                            >Launch longitude</label
+                        >
+                        <input
+                            id="launch_lng"
+                            v-model="form.launch_lng"
+                            type="number"
+                            step="0.000001"
+                            min="-180"
+                            max="180"
+                            class="journal-input"
+                            placeholder="-21.942600"
+                        />
                         <InputError :message="form.errors.launch_lng" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="landing_lat">Landing latitude</label>
-                        <input id="landing_lat" v-model="form.landing_lat" type="number" step="0.000001" min="-90" max="90" class="journal-input" placeholder="Optional" />
+                        <label class="journal-field-label" for="landing_lat"
+                            >Landing latitude</label
+                        >
+                        <input
+                            id="landing_lat"
+                            v-model="form.landing_lat"
+                            type="number"
+                            step="0.000001"
+                            min="-90"
+                            max="90"
+                            class="journal-input"
+                            placeholder="Optional"
+                        />
                         <InputError :message="form.errors.landing_lat" />
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="landing_lng">Landing longitude</label>
-                        <input id="landing_lng" v-model="form.landing_lng" type="number" step="0.000001" min="-180" max="180" class="journal-input" placeholder="Optional" />
+                        <label class="journal-field-label" for="landing_lng"
+                            >Landing longitude</label
+                        >
+                        <input
+                            id="landing_lng"
+                            v-model="form.landing_lng"
+                            type="number"
+                            step="0.000001"
+                            min="-180"
+                            max="180"
+                            class="journal-input"
+                            placeholder="Optional"
+                        />
                         <InputError :message="form.errors.landing_lng" />
                     </div>
 
-                    <div class="sm:col-span-2 xl:col-span-2 flex flex-wrap items-end gap-2">
-                        <button type="button" class="journal-utility-link" @click="copyLaunchToLanding">
+                    <div
+                        class="flex flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-2"
+                    >
+                        <button
+                            type="button"
+                            class="journal-utility-link"
+                            @click="copyLaunchToLanding"
+                        >
                             Use launch for landing
                         </button>
-                        <button type="button" class="journal-utility-link" @click="clearLandingCoordinates">
+                        <button
+                            type="button"
+                            class="journal-utility-link"
+                            @click="clearLandingCoordinates"
+                        >
                             Clear landing point
                         </button>
                         <p class="text-sm text-[color:var(--journal-muted)]">
-                            Manual coordinates are enough to add a pin on your maps, even without a Garmin file.
+                            Manual coordinates are enough to add a pin on your
+                            maps, even without a Garmin file.
                         </p>
                     </div>
                 </div>
@@ -810,8 +1047,10 @@ onMounted(async () => {
                 <div v-show="currentStep === 1" class="space-y-5">
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <label
-                            class="sm:col-span-2 xl:col-span-4 flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)]"
-                            :class="!weatherAutofillAvailable ? 'opacity-70' : ''"
+                            class="flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)] sm:col-span-2 xl:col-span-4"
+                            :class="
+                                !weatherAutofillAvailable ? 'opacity-70' : ''
+                            "
                         >
                             <input
                                 v-model="form.autofill_weather"
@@ -820,154 +1059,381 @@ onMounted(async () => {
                                 :disabled="!weatherAutofillAvailable"
                             />
                             <span class="space-y-1">
-                                <strong class="block font-medium">Fill weather from Stormglass now and on save</strong>
-                                <span class="block text-[color:var(--journal-muted)]">
-                                    Uses the current session point and time to preview wind, tide, swell, current, temperatures, Beaufort, and the environmental checklist before you save.
-                                    <template v-if="!weatherAutofillAvailable"> Add your Stormglass API key first to enable this.</template>
+                                <strong class="block font-medium"
+                                    >Fill weather from Stormglass now and on
+                                    save</strong
+                                >
+                                <span
+                                    class="block text-[color:var(--journal-muted)]"
+                                >
+                                    Uses the current session point and time to
+                                    preview wind, tide, swell, current,
+                                    temperatures, Beaufort, and the
+                                    environmental checklist before you save.
+                                    <template v-if="!weatherAutofillAvailable">
+                                        Add your Stormglass API key first to
+                                        enable this.</template
+                                    >
                                 </span>
                             </span>
                         </label>
 
                         <div
-                            v-if="weatherPreviewState !== 'idle' && weatherPreviewMessage"
-                            class="sm:col-span-2 xl:col-span-4 journal-banner text-sm"
+                            v-if="
+                                weatherPreviewState !== 'idle' &&
+                                weatherPreviewMessage
+                            "
+                            class="journal-banner text-sm sm:col-span-2 xl:col-span-4"
                             :class="{
-                                'journal-banner--soft': weatherPreviewState === 'loading',
-                                'journal-banner--danger': weatherPreviewState === 'warning' || weatherPreviewState === 'error',
+                                'journal-banner--soft':
+                                    weatherPreviewState === 'loading',
+                                'journal-banner--danger':
+                                    weatherPreviewState === 'warning' ||
+                                    weatherPreviewState === 'error',
                             }"
                         >
                             {{ weatherPreviewMessage }}
                         </div>
 
                         <div>
-                            <label class="journal-field-label" for="wind_avg_ms">Wind avg (m/s)</label>
-                            <input id="wind_avg_ms" v-model="form.wind_avg_ms" type="number" step="0.1" min="0" class="journal-input" />
+                            <label class="journal-field-label" for="wind_avg_ms"
+                                >Wind avg (m/s)</label
+                            >
+                            <input
+                                id="wind_avg_ms"
+                                v-model="form.wind_avg_ms"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.wind_avg_ms" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="wind_gust_ms">Wind gust (m/s)</label>
-                            <input id="wind_gust_ms" v-model="form.wind_gust_ms" type="number" step="0.1" min="0" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="wind_gust_ms"
+                                >Wind gust (m/s)</label
+                            >
+                            <input
+                                id="wind_gust_ms"
+                                v-model="form.wind_gust_ms"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.wind_gust_ms" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="wind_direction_deg">Wind direction</label>
-                            <input id="wind_direction_deg" v-model="form.wind_direction_deg" type="number" min="0" max="360" class="journal-input" />
-                            <InputError :message="form.errors.wind_direction_deg" />
+                            <label
+                                class="journal-field-label"
+                                for="wind_direction_deg"
+                                >Wind direction</label
+                            >
+                            <input
+                                id="wind_direction_deg"
+                                v-model="form.wind_direction_deg"
+                                type="number"
+                                min="0"
+                                max="360"
+                                class="journal-input"
+                            />
+                            <InputError
+                                :message="form.errors.wind_direction_deg"
+                            />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="wind_beaufort">Beaufort</label>
-                            <input id="wind_beaufort" v-model="form.wind_beaufort" type="number" min="0" max="12" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="wind_beaufort"
+                                >Beaufort</label
+                            >
+                            <input
+                                id="wind_beaufort"
+                                v-model="form.wind_beaufort"
+                                type="number"
+                                min="0"
+                                max="12"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.wind_beaufort" />
                         </div>
 
                         <div>
-                            <label class="journal-field-label" for="tide_state">Tide</label>
-                            <select id="tide_state" v-model="form.tide_state" class="journal-select">
+                            <label class="journal-field-label" for="tide_state"
+                                >Tide</label
+                            >
+                            <select
+                                id="tide_state"
+                                v-model="form.tide_state"
+                                class="journal-select"
+                            >
                                 <option value="">Select...</option>
-                                <option v-for="option in tideStateOptions" :key="option" :value="option">
+                                <option
+                                    v-for="option in tideStateOptions"
+                                    :key="option"
+                                    :value="option"
+                                >
                                     {{ option }}
                                 </option>
                             </select>
                             <InputError :message="form.errors.tide_state" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="current_knots">Current (kt)</label>
-                            <input id="current_knots" v-model="form.current_knots" type="number" step="0.1" min="0" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="current_knots"
+                                >Current (kt)</label
+                            >
+                            <input
+                                id="current_knots"
+                                v-model="form.current_knots"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.current_knots" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="wave_height_m">Wave (m)</label>
-                            <input id="wave_height_m" v-model="form.wave_height_m" type="number" step="0.1" min="0" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="wave_height_m"
+                                >Wave (m)</label
+                            >
+                            <input
+                                id="wave_height_m"
+                                v-model="form.wave_height_m"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.wave_height_m" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="swell_height_m">Swell (m)</label>
-                            <input id="swell_height_m" v-model="form.swell_height_m" type="number" step="0.1" min="0" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="swell_height_m"
+                                >Swell (m)</label
+                            >
+                            <input
+                                id="swell_height_m"
+                                v-model="form.swell_height_m"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.swell_height_m" />
                         </div>
 
                         <div>
-                            <label class="journal-field-label" for="swell_period_s">Swell period (s)</label>
-                            <input id="swell_period_s" v-model="form.swell_period_s" type="number" step="0.1" min="0" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="swell_period_s"
+                                >Swell period (s)</label
+                            >
+                            <input
+                                id="swell_period_s"
+                                v-model="form.swell_period_s"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.swell_period_s" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="air_temp_c">Air temp (C)</label>
-                            <input id="air_temp_c" v-model="form.air_temp_c" type="number" step="0.1" class="journal-input" />
+                            <label class="journal-field-label" for="air_temp_c"
+                                >Air temp (C)</label
+                            >
+                            <input
+                                id="air_temp_c"
+                                v-model="form.air_temp_c"
+                                type="number"
+                                step="0.1"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.air_temp_c" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="sea_temp_c">Sea temp (C)</label>
-                            <input id="sea_temp_c" v-model="form.sea_temp_c" type="number" step="0.1" class="journal-input" />
+                            <label class="journal-field-label" for="sea_temp_c"
+                                >Sea temp (C)</label
+                            >
+                            <input
+                                id="sea_temp_c"
+                                v-model="form.sea_temp_c"
+                                type="number"
+                                step="0.1"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.sea_temp_c" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="visibility_code">Visibility</label>
-                            <select id="visibility_code" v-model="form.visibility_code" class="journal-select">
+                            <label
+                                class="journal-field-label"
+                                for="visibility_code"
+                                >Visibility</label
+                            >
+                            <select
+                                id="visibility_code"
+                                v-model="form.visibility_code"
+                                class="journal-select"
+                            >
                                 <option value="">Select...</option>
-                                <option v-for="option in visibilityOptions" :key="option" :value="option">
+                                <option
+                                    v-for="option in visibilityOptions"
+                                    :key="option"
+                                    :value="option"
+                                >
                                     {{ option }}
                                 </option>
                             </select>
-                            <InputError :message="form.errors.visibility_code" />
+                            <InputError
+                                :message="form.errors.visibility_code"
+                            />
                         </div>
                     </div>
 
-                    <section class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-4">
+                    <section
+                        class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-4"
+                    >
                         <div class="space-y-2">
-                            <p class="journal-kicker">Environmental conditions</p>
-                            <h4 class="text-[1.35rem] leading-none">Session checklist</h4>
+                            <p class="journal-kicker">
+                                Environmental conditions
+                            </p>
+                            <h4 class="text-[1.35rem] leading-none">
+                                Session checklist
+                            </h4>
                         </div>
 
-                        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div
+                            class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                        >
                             <div>
-                                <label class="journal-field-label" for="rain_severity">Rain</label>
-                                <select id="rain_severity" v-model="form.rain_severity" class="journal-select">
+                                <label
+                                    class="journal-field-label"
+                                    for="rain_severity"
+                                    >Rain</label
+                                >
+                                <select
+                                    id="rain_severity"
+                                    v-model="form.rain_severity"
+                                    class="journal-select"
+                                >
                                     <option value="">Not set</option>
-                                    <option v-for="option in severityOptions" :key="option" :value="option">{{ option }}</option>
+                                    <option
+                                        v-for="option in severityOptions"
+                                        :key="option"
+                                        :value="option"
+                                    >
+                                        {{ option }}
+                                    </option>
                                 </select>
-                                <InputError :message="form.errors.rain_severity" />
+                                <InputError
+                                    :message="form.errors.rain_severity"
+                                />
                             </div>
                             <div>
-                                <label class="journal-field-label" for="wind_severity">Wind</label>
-                                <select id="wind_severity" v-model="form.wind_severity" class="journal-select">
+                                <label
+                                    class="journal-field-label"
+                                    for="wind_severity"
+                                    >Wind</label
+                                >
+                                <select
+                                    id="wind_severity"
+                                    v-model="form.wind_severity"
+                                    class="journal-select"
+                                >
                                     <option value="">Not set</option>
-                                    <option v-for="option in severityOptions" :key="option" :value="option">{{ option }}</option>
+                                    <option
+                                        v-for="option in severityOptions"
+                                        :key="option"
+                                        :value="option"
+                                    >
+                                        {{ option }}
+                                    </option>
                                 </select>
-                                <InputError :message="form.errors.wind_severity" />
+                                <InputError
+                                    :message="form.errors.wind_severity"
+                                />
                             </div>
                             <div>
-                                <label class="journal-field-label" for="temperature_severity">Temperature</label>
-                                <select id="temperature_severity" v-model="form.temperature_severity" class="journal-select">
+                                <label
+                                    class="journal-field-label"
+                                    for="temperature_severity"
+                                    >Temperature</label
+                                >
+                                <select
+                                    id="temperature_severity"
+                                    v-model="form.temperature_severity"
+                                    class="journal-select"
+                                >
                                     <option value="">Not set</option>
-                                    <option v-for="option in severityOptions" :key="option" :value="option">{{ option }}</option>
+                                    <option
+                                        v-for="option in severityOptions"
+                                        :key="option"
+                                        :value="option"
+                                    >
+                                        {{ option }}
+                                    </option>
                                 </select>
-                                <InputError :message="form.errors.temperature_severity" />
+                                <InputError
+                                    :message="form.errors.temperature_severity"
+                                />
                             </div>
                             <div>
-                                <label class="journal-field-label" for="forecast_severity">Forecast</label>
-                                <select id="forecast_severity" v-model="form.forecast_severity" class="journal-select">
+                                <label
+                                    class="journal-field-label"
+                                    for="forecast_severity"
+                                    >Forecast</label
+                                >
+                                <select
+                                    id="forecast_severity"
+                                    v-model="form.forecast_severity"
+                                    class="journal-select"
+                                >
                                     <option value="">Not set</option>
-                                    <option v-for="option in severityOptions" :key="option" :value="option">{{ option }}</option>
+                                    <option
+                                        v-for="option in severityOptions"
+                                        :key="option"
+                                        :value="option"
+                                    >
+                                        {{ option }}
+                                    </option>
                                 </select>
-                                <InputError :message="form.errors.forecast_severity" />
+                                <InputError
+                                    :message="form.errors.forecast_severity"
+                                />
                             </div>
                         </div>
                     </section>
 
                     <div class="grid gap-4 lg:grid-cols-2">
                         <div>
-                            <label class="journal-field-label" for="weather_summary">Conditions summary</label>
+                            <label
+                                class="journal-field-label"
+                                for="weather_summary"
+                                >Conditions summary</label
+                            >
                             <textarea
                                 id="weather_summary"
                                 v-model="form.weather_summary"
                                 class="journal-textarea"
                                 placeholder="Cold water, light chop, onshore breeze, forecast held steady."
                             />
-                            <InputError :message="form.errors.weather_summary" />
+                            <InputError
+                                :message="form.errors.weather_summary"
+                            />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="route_summary">Route summary</label>
+                            <label
+                                class="journal-field-label"
+                                for="route_summary"
+                                >Route summary</label
+                            >
                             <textarea
                                 id="route_summary"
                                 v-model="form.route_summary"
@@ -982,55 +1448,149 @@ onMounted(async () => {
                 <div v-show="currentStep === 2" class="space-y-5">
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <div>
-                            <label class="journal-field-label" for="successful_rolls_count">Successful rolls</label>
-                            <input id="successful_rolls_count" v-model="form.successful_rolls_count" type="number" min="0" class="journal-input" />
-                            <InputError :message="form.errors.successful_rolls_count" />
+                            <label
+                                class="journal-field-label"
+                                for="successful_rolls_count"
+                                >Successful rolls</label
+                            >
+                            <input
+                                id="successful_rolls_count"
+                                v-model="form.successful_rolls_count"
+                                type="number"
+                                min="0"
+                                class="journal-input"
+                            />
+                            <InputError
+                                :message="form.errors.successful_rolls_count"
+                            />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="wet_exits_count">Wet exits (swims)</label>
-                            <input id="wet_exits_count" v-model="form.wet_exits_count" type="number" min="0" class="journal-input" />
-                            <InputError :message="form.errors.wet_exits_count" />
+                            <label
+                                class="journal-field-label"
+                                for="wet_exits_count"
+                                >Wet exits (swims)</label
+                            >
+                            <input
+                                id="wet_exits_count"
+                                v-model="form.wet_exits_count"
+                                type="number"
+                                min="0"
+                                class="journal-input"
+                            />
+                            <InputError
+                                :message="form.errors.wet_exits_count"
+                            />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="tow_rescues_count">Tow rescues</label>
-                            <input id="tow_rescues_count" v-model="form.tow_rescues_count" type="number" min="0" class="journal-input" />
-                            <InputError :message="form.errors.tow_rescues_count" />
+                            <label
+                                class="journal-field-label"
+                                for="tow_rescues_count"
+                                >Tow rescues</label
+                            >
+                            <input
+                                id="tow_rescues_count"
+                                v-model="form.tow_rescues_count"
+                                type="number"
+                                min="0"
+                                class="journal-input"
+                            />
+                            <InputError
+                                :message="form.errors.tow_rescues_count"
+                            />
                         </div>
                     </div>
 
                     <div>
-                        <label class="journal-field-label" for="skills_text">Skills practiced</label>
-                        <input id="skills_text" v-model="form.skills_text" class="journal-input" placeholder="rolling, surf launch, navigation, towing" />
+                        <label class="journal-field-label" for="skills_text"
+                            >Skills practiced</label
+                        >
+                        <input
+                            id="skills_text"
+                            v-model="form.skills_text"
+                            class="journal-input"
+                            placeholder="rolling, surf launch, navigation, towing"
+                        />
                         <InputError :message="form.errors.skills_text" />
                     </div>
 
                     <div class="grid gap-4 lg:grid-cols-2">
                         <div>
-                            <label class="journal-field-label" for="what_went_well">What went well</label>
-                            <textarea id="what_went_well" v-model="form.what_went_well" class="journal-textarea" />
+                            <label
+                                class="journal-field-label"
+                                for="what_went_well"
+                                >What went well</label
+                            >
+                            <textarea
+                                id="what_went_well"
+                                v-model="form.what_went_well"
+                                class="journal-textarea"
+                            />
                             <InputError :message="form.errors.what_went_well" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="improve_next">Improve next time</label>
-                            <textarea id="improve_next" v-model="form.improve_next" class="journal-textarea" />
+                            <label
+                                class="journal-field-label"
+                                for="improve_next"
+                                >Improve next time</label
+                            >
+                            <textarea
+                                id="improve_next"
+                                v-model="form.improve_next"
+                                class="journal-textarea"
+                            />
                             <InputError :message="form.errors.improve_next" />
                         </div>
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <label class="journal-field-label" for="confidence_score">Confidence (1-5)</label>
-                            <input id="confidence_score" v-model="form.confidence_score" type="number" min="1" max="5" class="journal-input" />
-                            <InputError :message="form.errors.confidence_score" />
+                            <label
+                                class="journal-field-label"
+                                for="confidence_score"
+                                >Confidence (1-5)</label
+                            >
+                            <input
+                                id="confidence_score"
+                                v-model="form.confidence_score"
+                                type="number"
+                                min="1"
+                                max="5"
+                                class="journal-input"
+                            />
+                            <InputError
+                                :message="form.errors.confidence_score"
+                            />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="fatigue_score">Fatigue (1-5)</label>
-                            <input id="fatigue_score" v-model="form.fatigue_score" type="number" min="1" max="5" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="fatigue_score"
+                                >Fatigue (1-5)</label
+                            >
+                            <input
+                                id="fatigue_score"
+                                v-model="form.fatigue_score"
+                                type="number"
+                                min="1"
+                                max="5"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.fatigue_score" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="decision_score">Decision quality (1-5)</label>
-                            <input id="decision_score" v-model="form.decision_score" type="number" min="1" max="5" class="journal-input" />
+                            <label
+                                class="journal-field-label"
+                                for="decision_score"
+                                >Decision quality (1-5)</label
+                            >
+                            <input
+                                id="decision_score"
+                                v-model="form.decision_score"
+                                type="number"
+                                min="1"
+                                max="5"
+                                class="journal-input"
+                            />
                             <InputError :message="form.errors.decision_score" />
                         </div>
                     </div>
@@ -1038,25 +1598,47 @@ onMounted(async () => {
 
                 <div v-show="currentStep === 3" class="space-y-5">
                     <div class="grid gap-4 lg:grid-cols-2">
-                        <label class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]">
-                            <input v-model="form.is_expedition" type="checkbox" class="size-4 rounded border-[color:var(--journal-line)]" />
+                        <label
+                            class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]"
+                        >
+                            <input
+                                v-model="form.is_expedition"
+                                type="checkbox"
+                                class="size-4 rounded border-[color:var(--journal-line)]"
+                            />
                             Tag as expedition / multiday
                         </label>
                     </div>
 
                     <div v-if="form.is_expedition" class="max-w-sm">
-                        <label class="journal-field-label" for="expedition_days">Days out</label>
-                        <input id="expedition_days" v-model="form.expedition_days" type="number" min="2" max="100" class="journal-input" />
+                        <label class="journal-field-label" for="expedition_days"
+                            >Days out</label
+                        >
+                        <input
+                            id="expedition_days"
+                            v-model="form.expedition_days"
+                            type="number"
+                            min="2"
+                            max="100"
+                            class="journal-input"
+                        />
                         <InputError :message="form.errors.expedition_days" />
                     </div>
 
-                    <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger">
+                    <section
+                        v-if="expeditionMapWarning"
+                        class="journal-banner journal-banner--danger"
+                    >
                         {{ expeditionMapWarning }}
                     </section>
 
                     <div class="grid gap-4 xl:grid-cols-2">
                         <div>
-                            <label class="journal-field-label" for="notes_public">Observations</label>
+                            <label
+                                class="journal-field-label"
+                                for="notes_public"
+                                >Observations</label
+                            >
                             <textarea
                                 id="notes_public"
                                 ref="notesTextarea"
@@ -1067,41 +1649,94 @@ onMounted(async () => {
                             <InputError :message="form.errors.notes_public" />
                         </div>
                         <div>
-                            <label class="journal-field-label" for="expedition_notes">Expedition notes</label>
+                            <label
+                                class="journal-field-label"
+                                for="expedition_notes"
+                                >Expedition notes</label
+                            >
                             <textarea
                                 id="expedition_notes"
                                 v-model="form.expedition_notes"
                                 class="journal-textarea"
                                 placeholder="Food, gear, camp, and multiday notes for next time."
                             />
-                            <InputError :message="form.errors.expedition_notes" />
+                            <InputError
+                                :message="form.errors.expedition_notes"
+                            />
                         </div>
                     </div>
 
                     <div class="grid gap-4 lg:grid-cols-3">
                         <div>
-                            <label class="journal-field-label" for="gpx_file">GPX file</label>
-                            <input id="gpx_file" type="file" accept=".gpx,.xml" :class="fileInputClass" @change="assignFile('gpx_file', $event)" />
-                            <p v-if="form.gpx_file || existingAssets.gpxName" class="mt-2 text-xs text-[color:var(--journal-muted)]">
-                                {{ form.gpx_file?.name ?? existingAssets.gpxName }}
+                            <label class="journal-field-label" for="gpx_file"
+                                >GPX file</label
+                            >
+                            <input
+                                id="gpx_file"
+                                type="file"
+                                accept=".gpx,.xml"
+                                :class="fileInputClass"
+                                @change="assignFile('gpx_file', $event)"
+                            />
+                            <p
+                                v-if="form.gpx_file || existingAssets.gpxName"
+                                class="mt-2 text-xs text-[color:var(--journal-muted)]"
+                            >
+                                {{
+                                    form.gpx_file?.name ??
+                                    existingAssets.gpxName
+                                }}
                             </p>
                             <InputError :message="form.errors.gpx_file" />
                         </div>
 
                         <div>
-                            <label class="journal-field-label" for="fit_file">FIT file</label>
-                            <input id="fit_file" type="file" accept=".fit" :class="fileInputClass" @change="assignFile('fit_file', $event)" />
-                            <p v-if="form.fit_file || existingAssets.fitName" class="mt-2 text-xs text-[color:var(--journal-muted)]">
-                                {{ form.fit_file?.name ?? existingAssets.fitName }}
+                            <label class="journal-field-label" for="fit_file"
+                                >FIT file</label
+                            >
+                            <input
+                                id="fit_file"
+                                type="file"
+                                accept=".fit"
+                                :class="fileInputClass"
+                                @change="assignFile('fit_file', $event)"
+                            />
+                            <p
+                                v-if="form.fit_file || existingAssets.fitName"
+                                class="mt-2 text-xs text-[color:var(--journal-muted)]"
+                            >
+                                {{
+                                    form.fit_file?.name ??
+                                    existingAssets.fitName
+                                }}
                             </p>
                             <InputError :message="form.errors.fit_file" />
                         </div>
 
                         <div>
-                            <label class="journal-field-label" for="session_photo">Session photo</label>
-                            <input id="session_photo" type="file" accept="image/*" :class="fileInputClass" @change="assignFile('session_photo', $event)" />
-                            <p v-if="form.session_photo || existingAssets.photoName" class="mt-2 text-xs text-[color:var(--journal-muted)]">
-                                {{ form.session_photo?.name ?? existingAssets.photoName }}
+                            <label
+                                class="journal-field-label"
+                                for="session_photo"
+                                >Session photo</label
+                            >
+                            <input
+                                id="session_photo"
+                                type="file"
+                                accept="image/*"
+                                :class="fileInputClass"
+                                @change="assignFile('session_photo', $event)"
+                            />
+                            <p
+                                v-if="
+                                    form.session_photo ||
+                                    existingAssets.photoName
+                                "
+                                class="mt-2 text-xs text-[color:var(--journal-muted)]"
+                            >
+                                {{
+                                    form.session_photo?.name ??
+                                    existingAssets.photoName
+                                }}
                             </p>
                             <InputError :message="form.errors.session_photo" />
                         </div>
@@ -1111,17 +1746,26 @@ onMounted(async () => {
                         v-if="photoPreviewUrl"
                         class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/72"
                     >
-                        <img :src="photoPreviewUrl" alt="Session photo preview" class="h-52 w-full object-cover sm:h-64" />
+                        <img
+                            :src="photoPreviewUrl"
+                            alt="Session photo preview"
+                            class="h-52 w-full object-cover sm:h-64"
+                        />
                     </div>
                 </div>
             </section>
 
-            <section class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5">
+            <section
+                class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5"
+            >
                 <p class="text-sm text-[color:var(--journal-muted)]">
-                    Minimum save requirement: title, date, launch, and distance or a route file.
+                    Minimum save requirement: title, date, launch, and distance
+                    or a route file.
                 </p>
 
-                <div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center md:w-auto">
+                <div
+                    class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center md:w-auto"
+                >
                     <button
                         type="button"
                         class="journal-utility-link w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"

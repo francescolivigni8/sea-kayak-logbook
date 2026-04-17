@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\EnsureJournalOwner;
 use App\Http\Middleware\AddNoindexHeader;
+use App\Http\Middleware\EnsureJournalOwner;
+use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;

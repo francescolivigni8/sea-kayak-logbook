@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 
 interface ProfileSummary {
     name: string;
@@ -98,7 +98,9 @@ const cards = computed(() => [
     {
         label: 'Trips',
         value: props.place.tripCount.toString(),
-        detail: props.place.latestDate ? `Latest trip ${props.place.latestDate}` : 'No latest date logged',
+        detail: props.place.latestDate
+            ? `Latest trip ${props.place.latestDate}`
+            : 'No latest date logged',
     },
     {
         label: 'Tracked routes',
@@ -113,24 +115,35 @@ const cards = computed(() => [
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div
+                class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+            >
                 <div class="space-y-3">
                     <p class="journal-kicker">Expedition place</p>
                     <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                        <h2
+                            class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]"
+                        >
                             {{ place.label }}
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Repeated visits, tracks, photos, and expedition notes gathered in one place.
+                            Repeated visits, tracks, photos, and expedition
+                            notes gathered in one place.
                         </p>
                     </div>
                 </div>
 
                 <div class="flex flex-col items-start gap-3 xl:items-end">
                     <div class="flex flex-wrap gap-2">
-                        <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
-                        <span class="journal-chip">{{ place.tripCount }} trips</span>
-                        <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
+                        <span class="journal-chip journal-chip--primary">{{
+                            profile.homeWater
+                        }}</span>
+                        <span class="journal-chip"
+                            >{{ place.tripCount }} trips</span
+                        >
+                        <span v-if="place.latestDate" class="journal-chip">{{
+                            place.latestDate
+                        }}</span>
                     </div>
 
                     <img
@@ -160,8 +173,16 @@ const cards = computed(() => [
                 }"
             >
                 <p class="journal-kicker">{{ card.label }}</p>
-                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ card.value }}</p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">{{ card.detail }}</p>
+                <p
+                    class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]"
+                >
+                    {{ card.value }}
+                </p>
+                <p
+                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                >
+                    {{ card.detail }}
+                </p>
             </article>
         </section>
 
@@ -169,9 +190,16 @@ const cards = computed(() => [
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <p class="journal-kicker">Expedition atlas</p>
-                    <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Tracks and launch points</h2>
+                    <h2
+                        class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                    >
+                        Tracks and launch points
+                    </h2>
                 </div>
-                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ mapData.routes.length }} tracked routes</span>
+                <span
+                    class="text-sm font-medium text-[color:var(--journal-muted)]"
+                    >{{ mapData.routes.length }} tracked routes</span
+                >
             </div>
 
             <div class="mt-6">
@@ -190,11 +218,17 @@ const cards = computed(() => [
             </div>
         </section>
 
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+        <section
+            class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+        >
             <article class="journal-card px-5 py-5 md:px-6">
                 <div>
                     <p class="journal-kicker">Expedition sessions</p>
-                    <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Trip log</h2>
+                    <h2
+                        class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                    >
+                        Trip log
+                    </h2>
                 </div>
 
                 <div class="mt-6 grid gap-3">
@@ -211,19 +245,36 @@ const cards = computed(() => [
                         <div class="flex flex-col gap-4">
                             <div class="flex items-start justify-between gap-4">
                                 <div class="space-y-3">
-                                    <div class="flex flex-wrap gap-2 text-xs font-medium">
-                                        <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
-                                        <span class="journal-chip">{{ session.daysOut }} days</span>
-                                        <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
+                                    <div
+                                        class="flex flex-wrap gap-2 text-xs font-medium"
+                                    >
+                                        <span class="journal-chip">{{
+                                            session.routeCategoryLabel
+                                        }}</span>
+                                        <span class="journal-chip"
+                                            >{{ session.daysOut }} days</span
+                                        >
+                                        <span
+                                            v-if="session.beaufort !== null"
+                                            class="journal-chip"
+                                            >F{{ session.beaufort }}</span
+                                        >
                                     </div>
 
                                     <div>
-                                        <h3 class="text-lg font-semibold text-[color:var(--journal-text)]">
+                                        <h3
+                                            class="text-lg font-semibold text-[color:var(--journal-text)]"
+                                        >
                                             {{ session.title }}
                                         </h3>
-                                        <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
+                                        <p
+                                            class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                                        >
                                             {{ session.date ?? 'No date' }}
-                                            <span v-if="session.launchName">· {{ session.launchName }}</span>
+                                            <span v-if="session.launchName"
+                                                >·
+                                                {{ session.launchName }}</span
+                                            >
                                         </p>
                                     </div>
                                 </div>
@@ -237,31 +288,63 @@ const cards = computed(() => [
                             </div>
 
                             <div class="grid gap-3 sm:grid-cols-3">
-                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Distance</p>
-                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                <div
+                                    class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3"
+                                >
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Distance
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
                                         {{ session.distanceKm.toFixed(1) }} km
                                     </p>
                                 </div>
-                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Time</p>
-                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                <div
+                                    class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3"
+                                >
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Time
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
                                         {{ session.durationMinutes }} min
                                     </p>
                                 </div>
-                                <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Launch</p>
-                                    <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                                <div
+                                    class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3"
+                                >
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Launch
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
                                         {{ session.launchName ?? 'Unknown' }}
                                     </p>
                                 </div>
                             </div>
 
-                            <p v-if="session.notes" class="text-sm leading-6 text-[color:var(--journal-muted)]">
+                            <p
+                                v-if="session.notes"
+                                class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
                                 {{ session.notes }}
                             </p>
 
-                            <Link v-if="session.path" :href="session.path" class="journal-utility-link w-full justify-center">Open session</Link>
+                            <Link
+                                v-if="session.path"
+                                :href="session.path"
+                                class="journal-utility-link w-full justify-center"
+                                >Open session</Link
+                            >
                         </div>
                     </article>
                 </div>
@@ -270,7 +353,11 @@ const cards = computed(() => [
             <article class="journal-card px-5 py-5 md:px-6">
                 <div>
                     <p class="journal-kicker">Expedition gallery</p>
-                    <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Photos and notes</h2>
+                    <h2
+                        class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                    >
+                        Photos and notes
+                    </h2>
                 </div>
 
                 <div v-if="photos.length" class="mt-6 grid gap-4">
@@ -279,17 +366,30 @@ const cards = computed(() => [
                         :key="photo.id"
                         class="overflow-hidden rounded-[1.25rem] border border-[color:var(--journal-line)] bg-white/74"
                     >
-                        <img :src="photo.url" :alt="photo.name ?? photo.title" class="h-56 w-full object-cover" />
+                        <img
+                            :src="photo.url"
+                            :alt="photo.name ?? photo.title"
+                            class="h-56 w-full object-cover"
+                        />
                         <div class="p-4">
-                            <div class="flex items-center justify-between gap-3">
-                                <h3 class="text-base font-semibold text-[color:var(--journal-text)]">
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <h3
+                                    class="text-base font-semibold text-[color:var(--journal-text)]"
+                                >
                                     {{ photo.title }}
                                 </h3>
-                                <span class="text-xs font-medium text-[color:var(--journal-muted)]">
+                                <span
+                                    class="text-xs font-medium text-[color:var(--journal-muted)]"
+                                >
                                     {{ photo.date ?? 'No date' }}
                                 </span>
                             </div>
-                            <p v-if="photo.notes" class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+                            <p
+                                v-if="photo.notes"
+                                class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
                                 {{ photo.notes }}
                             </p>
                         </div>
@@ -300,7 +400,8 @@ const cards = computed(() => [
                     v-else
                     class="mt-6 rounded-[1.25rem] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-10 text-sm text-[color:var(--journal-muted)]"
                 >
-                    No expedition photos here yet. Add session photos while logging to build the place gallery.
+                    No expedition photos here yet. Add session photos while
+                    logging to build the place gallery.
                 </div>
             </article>
         </section>

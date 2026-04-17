@@ -31,7 +31,8 @@ const passwordInput = useTemplateRef('passwordInput');
             />
 
             <div class="journal-banner journal-banner--danger">
-                Deleting the account removes the profile, sessions, notes, and uploaded media permanently.
+                Deleting the account removes the profile, sessions, notes, and
+                uploaded media permanently.
             </div>
 
             <Dialog>
@@ -44,7 +45,9 @@ const passwordInput = useTemplateRef('passwordInput');
                         Delete account
                     </button>
                 </DialogTrigger>
-                <DialogContent class="border-[color:var(--journal-line)] bg-white/95 text-[color:var(--journal-text)] shadow-[var(--journal-shadow)] sm:rounded-[28px]">
+                <DialogContent
+                    class="border-[color:var(--journal-line)] bg-white/95 text-[color:var(--journal-text)] shadow-[var(--journal-shadow)] sm:rounded-[28px]"
+                >
                     <Form
                         v-bind="ProfileController.destroy.form()"
                         reset-on-success
@@ -58,12 +61,17 @@ const passwordInput = useTemplateRef('passwordInput');
                         <DialogHeader class="space-y-3">
                             <DialogTitle>Delete this account?</DialogTitle>
                             <DialogDescription>
-                                Once removed, the account, sessions, notes, and media attached to it are gone. Enter your password only if you want to confirm the permanent delete.
+                                Once removed, the account, sessions, notes, and
+                                media attached to it are gone. Enter your
+                                password only if you want to confirm the
+                                permanent delete.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div class="grid gap-2">
-                            <Label for="password" class="sr-only">Password</Label>
+                            <Label for="password" class="sr-only"
+                                >Password</Label
+                            >
                             <PasswordInput
                                 id="password"
                                 name="password"
@@ -95,7 +103,11 @@ const passwordInput = useTemplateRef('passwordInput');
                                 class="inline-flex items-center justify-center rounded-full bg-[#cf6157] px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-[#c4534a] disabled:cursor-not-allowed disabled:opacity-60"
                                 data-test="confirm-delete-user-button"
                             >
-                                {{ processing ? 'Deleting...' : 'Delete account' }}
+                                {{
+                                    processing
+                                        ? 'Deleting...'
+                                        : 'Delete account'
+                                }}
                             </button>
                         </DialogFooter>
                     </Form>

@@ -22,12 +22,19 @@ const { appearance, updateAppearance } = useAppearance();
             <div class="flex items-start justify-between gap-4">
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
-                        <Monitor v-if="theme.value === 'system'" class="h-4 w-4 text-[color:var(--journal-muted)]" />
-                        <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                        <Monitor
+                            v-if="theme.value === 'system'"
+                            class="h-4 w-4 text-[color:var(--journal-muted)]"
+                        />
+                        <p
+                            class="text-sm font-semibold text-[color:var(--journal-text)]"
+                        >
                             {{ theme.label }}
                         </p>
                     </div>
-                    <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
+                    <p
+                        class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
                         {{ theme.description }}
                     </p>
                 </div>

@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { dashboard } from '@/routes';
 import { Head } from '@inertiajs/vue3';
+import { dashboard } from '@/routes';
+import type {
+    SessionExistingAssets,
+    SessionFormDefaults,
+    SessionProfileSummary,
+} from '@/types/sessions';
 import SessionForm from './Partials/SessionForm.vue';
 
 defineOptions({
@@ -23,24 +28,10 @@ defineOptions({
 });
 
 defineProps<{
-    profile: {
-        name: string;
-        homeWater: string;
-        timezone: string;
-        defaultMapView?: {
-            lat: number;
-            lng: number;
-            zoom: number;
-        };
-    };
+    profile: SessionProfileSummary;
     weatherAutofillAvailable: boolean;
-    formDefaults: Record<string, string | boolean>;
-    existingAssets: {
-        gpxName: string | null;
-        fitName: string | null;
-        photoName: string | null;
-        photoUrl: string | null;
-    };
+    formDefaults: SessionFormDefaults;
+    existingAssets: SessionExistingAssets;
 }>();
 </script>
 

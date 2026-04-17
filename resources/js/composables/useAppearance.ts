@@ -13,9 +13,8 @@ type AppearanceTheme = {
     swatches: [string, string, string];
 };
 
-const systemThemeName = (): ThemeName => prefersDark()
-    ? 'midnight-chart'
-    : 'journal';
+const systemThemeName = (): ThemeName =>
+    prefersDark() ? 'midnight-chart' : 'journal';
 
 const themeModes: Record<ThemeName, ResolvedAppearance> = {
     journal: 'light',
@@ -70,9 +69,8 @@ export type UseAppearanceReturn = {
     updateAppearance: (value: Appearance) => void;
 };
 
-const resolveTheme = (value: Appearance): ThemeName => value === 'system'
-    ? systemThemeName()
-    : value;
+const resolveTheme = (value: Appearance): ThemeName =>
+    value === 'system' ? systemThemeName() : value;
 
 const applyResolvedTheme = (theme: ThemeName): void => {
     if (typeof window === 'undefined') {
@@ -80,7 +78,10 @@ const applyResolvedTheme = (theme: ThemeName): void => {
     }
 
     document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle('dark', themeModes[theme] === 'dark');
+    document.documentElement.classList.toggle(
+        'dark',
+        themeModes[theme] === 'dark',
+    );
 };
 
 export function updateTheme(value: Appearance): void {
@@ -120,8 +121,10 @@ const getStoredAppearance = () => {
         return null;
     }
 
-    return (localStorage.getItem('appearance') as Appearance | null)
-        || getStoredAppearanceFromCookie();
+    return (
+        (localStorage.getItem('appearance') as Appearance | null) ||
+        getStoredAppearanceFromCookie()
+    );
 };
 
 const prefersDark = (): boolean => {

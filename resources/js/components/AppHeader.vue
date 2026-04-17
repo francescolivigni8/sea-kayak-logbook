@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CalendarDays, LayoutGrid, Map, Menu, Upload } from 'lucide-vue-next';
+import {
+    BookOpen,
+    CalendarDays,
+    LayoutGrid,
+    Map,
+    Menu,
+    Upload,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';

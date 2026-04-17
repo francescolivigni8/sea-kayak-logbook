@@ -1,6 +1,6 @@
+const { spawnSync } = require('child_process');
 const { existsSync } = require('fs');
 const { dirname, join } = require('path');
-const { spawnSync } = require('child_process');
 
 const root = dirname(__dirname);
 const localNode = join(root, 'node_modules', 'node', 'bin', 'node');

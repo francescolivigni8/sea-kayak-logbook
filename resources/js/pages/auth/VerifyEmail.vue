@@ -7,7 +7,8 @@ import { Head, Link } from '@inertiajs/vue3';
 
     <div class="space-y-6 text-center">
         <p class="text-sm leading-7 text-slate-600">
-            Email verification is currently disabled in this environment while live auth and deployment are being stabilized.
+            Email verification is currently disabled in this environment while
+            live auth and deployment are being stabilized.
         </p>
 
         <Link

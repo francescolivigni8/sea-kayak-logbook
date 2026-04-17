@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 
 type MapTarget = 'launch' | 'landing' | 'route';
 
@@ -15,25 +22,28 @@ interface RouteWaypoint {
     lng: number;
 }
 
-const props = withDefaults(defineProps<{
-    launchLat?: number | null;
-    launchLng?: number | null;
-    landingLat?: number | null;
-    landingLng?: number | null;
-    routeWaypointsJson?: string;
-    defaultView?: DefaultView;
-}>(), {
-    launchLat: null,
-    launchLng: null,
-    landingLat: null,
-    landingLng: null,
-    routeWaypointsJson: '',
-    defaultView: () => ({
-        lat: 64.1466,
-        lng: -21.9426,
-        zoom: 10,
-    }),
-});
+const props = withDefaults(
+    defineProps<{
+        launchLat?: number | null;
+        launchLng?: number | null;
+        landingLat?: number | null;
+        landingLng?: number | null;
+        routeWaypointsJson?: string;
+        defaultView?: DefaultView;
+    }>(),
+    {
+        launchLat: null,
+        launchLng: null,
+        landingLat: null,
+        landingLng: null,
+        routeWaypointsJson: '',
+        defaultView: () => ({
+            lat: 64.1466,
+            lng: -21.9426,
+            zoom: 10,
+        }),
+    },
+);
 
 const emit = defineEmits<{
     'update:launchLat': [value: string];
@@ -86,7 +96,11 @@ const routeWaypoints = computed<RouteWaypoint[]>(() => {
         }
 
         return parsed
-            .filter((point): point is { lat: number; lng: number } => typeof point?.lat === 'number' && typeof point?.lng === 'number')
+            .filter(
+                (point): point is { lat: number; lng: number } =>
+                    typeof point?.lat === 'number' &&
+                    typeof point?.lng === 'number',
+            )
             .map((point) => ({
                 lat: Number(point.lat.toFixed(6)),
                 lng: Number(point.lng.toFixed(6)),
@@ -101,9 +115,11 @@ const renderedRoutePoints = computed(() => {
         return [];
     }
 
-    return [launchPoint.value, ...routeWaypoints.value, landingPoint.value].filter(
-        (point): point is { lat: number; lng: number } => point !== null,
-    );
+    return [
+        launchPoint.value,
+        ...routeWaypoints.value,
+        landingPoint.value,
+    ].filter((point): point is { lat: number; lng: number } => point !== null);
 });
 
 function buildBaseLayer() {
@@ -113,7 +129,10 @@ function buildBaseLayer() {
     });
 }
 
-function sessionMarkerIcon(tone: 'launch' | 'landing' | 'route', label: string) {
+function sessionMarkerIcon(
+    tone: 'launch' | 'landing' | 'route',
+    label: string,
+) {
     return L.divIcon({
         className: 'journal-session-map-marker-shell',
         html: `<span class="journal-session-map-marker journal-session-map-marker--${tone}">${label}</span>`,
@@ -127,26 +146,40 @@ function fitToPoints() {
         return;
     }
 
-    const points = renderedRoutePoints.value.length > 1
-        ? renderedRoutePoints.value
-        : [launchPoint.value, landingPoint.value].filter((point): point is { lat: number; lng: number } => point !== null);
+    const points =
+        renderedRoutePoints.value.length > 1
+            ? renderedRoutePoints.value
+            : [launchPoint.value, landingPoint.value].filter(
+                  (point): point is { lat: number; lng: number } =>
+                      point !== null,
+              );
 
     if (!points.length) {
-        map.setView([props.defaultView.lat, props.defaultView.lng], props.defaultView.zoom);
+        map.setView(
+            [props.defaultView.lat, props.defaultView.lng],
+            props.defaultView.zoom,
+        );
+
         return;
     }
 
     if (points.length === 1) {
         map.setView([points[0].lat, points[0].lng], 12);
+
         return;
     }
 
-    const bounds = L.latLngBounds(points.map((point) => [point.lat, point.lng] as [number, number]));
+    const bounds = L.latLngBounds(
+        points.map((point) => [point.lat, point.lng] as [number, number]),
+    );
     map.fitBounds(bounds.pad(0.18));
 }
 
 function emitWaypoints(points: RouteWaypoint[]) {
-    emit('update:routeWaypointsJson', points.length ? JSON.stringify(points) : '');
+    emit(
+        'update:routeWaypointsJson',
+        points.length ? JSON.stringify(points) : '',
+    );
 }
 
 function updateTargetPoint(lat: number, lng: number) {
@@ -156,12 +189,14 @@ function updateTargetPoint(lat: number, lng: number) {
     if (activeTarget.value === 'launch') {
         emit('update:launchLat', formattedLat);
         emit('update:launchLng', formattedLng);
+
         return;
     }
 
     if (activeTarget.value === 'landing') {
         emit('update:landingLat', formattedLat);
         emit('update:landingLng', formattedLng);
+
         return;
     }
 
@@ -188,7 +223,9 @@ function updateWaypoint(index: number, lat: number, lng: number) {
 }
 
 function removeWaypoint(index: number) {
-    emitWaypoints(routeWaypoints.value.filter((_, pointIndex) => pointIndex !== index));
+    emitWaypoints(
+        routeWaypoints.value.filter((_, pointIndex) => pointIndex !== index),
+    );
 }
 
 function clearRouteTrace() {
@@ -200,7 +237,10 @@ function renderMarkers() {
         return;
     }
 
-    markerLayer.clearLayers();
+    const leafletMap = map;
+    const markers = markerLayer;
+
+    markers.clearLayers();
 
     if (lineLayer) {
         map.removeLayer(lineLayer);
@@ -208,12 +248,15 @@ function renderMarkers() {
     }
 
     if (launchPoint.value) {
-        const launchMarker = L.marker([launchPoint.value.lat, launchPoint.value.lng], {
-            draggable: true,
-            icon: sessionMarkerIcon('launch', 'L'),
-        })
+        const launchMarker = L.marker(
+            [launchPoint.value.lat, launchPoint.value.lng],
+            {
+                draggable: true,
+                icon: sessionMarkerIcon('launch', 'L'),
+            },
+        )
             .bindTooltip('Launch')
-            .addTo(markerLayer);
+            .addTo(markers);
 
         launchMarker.on('dragend', () => {
             const point = launchMarker.getLatLng();
@@ -223,12 +266,15 @@ function renderMarkers() {
     }
 
     if (landingPoint.value) {
-        const landingMarker = L.marker([landingPoint.value.lat, landingPoint.value.lng], {
-            draggable: true,
-            icon: sessionMarkerIcon('landing', 'F'),
-        })
+        const landingMarker = L.marker(
+            [landingPoint.value.lat, landingPoint.value.lng],
+            {
+                draggable: true,
+                icon: sessionMarkerIcon('landing', 'F'),
+            },
+        )
             .bindTooltip('Landing')
-            .addTo(markerLayer);
+            .addTo(markers);
 
         landingMarker.on('dragend', () => {
             const point = landingMarker.getLatLng();
@@ -243,7 +289,7 @@ function renderMarkers() {
             icon: sessionMarkerIcon('route', String(index + 1)),
         })
             .bindTooltip(`Route point ${index + 1}`)
-            .addTo(markerLayer);
+            .addTo(markers);
 
         routeMarker.on('dragend', () => {
             const markerPoint = routeMarker.getLatLng();
@@ -257,13 +303,15 @@ function renderMarkers() {
 
     if (renderedRoutePoints.value.length > 1) {
         lineLayer = L.polyline(
-            renderedRoutePoints.value.map((point) => [point.lat, point.lng] as [number, number]),
+            renderedRoutePoints.value.map(
+                (point) => [point.lat, point.lng] as [number, number],
+            ),
             {
                 color: '#6772ff',
                 weight: 4,
                 opacity: 0.9,
             },
-        ).addTo(map);
+        ).addTo(leafletMap);
     }
 
     fitToPoints();
@@ -295,7 +343,13 @@ async function initializeMap() {
 }
 
 watch(
-    () => [props.launchLat, props.launchLng, props.landingLat, props.landingLng, props.routeWaypointsJson],
+    () => [
+        props.launchLat,
+        props.launchLng,
+        props.landingLat,
+        props.landingLng,
+        props.routeWaypointsJson,
+    ],
     () => {
         renderMarkers();
     },
@@ -313,23 +367,38 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <section class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-4">
-        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <section
+        class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-4"
+    >
+        <div
+            class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+        >
             <div class="space-y-2">
                 <p class="journal-kicker">Geolocation</p>
-                <h4 class="text-[1.2rem] leading-none text-[color:var(--journal-text)] sm:text-[1.35rem]">Place the session</h4>
+                <h4
+                    class="text-[1.2rem] leading-none text-[color:var(--journal-text)] sm:text-[1.35rem]"
+                >
+                    Place the session
+                </h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Pins alone save the place. If you want a visible route, switch to
-                    <strong class="text-[color:var(--journal-text)]">trace route</strong>
+                    Pins alone save the place. If you want a visible route,
+                    switch to
+                    <strong class="text-[color:var(--journal-text)]"
+                        >trace route</strong
+                    >
                     and click the map to add editable route points.
                 </p>
             </div>
 
-            <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+            <div
+                class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            >
                 <button
                     type="button"
                     class="journal-utility-link shrink-0"
-                    :class="activeTarget === 'launch' ? 'journal-chip--primary' : ''"
+                    :class="
+                        activeTarget === 'launch' ? 'journal-chip--primary' : ''
+                    "
                     @click="activeTarget = 'launch'"
                 >
                     Place launch
@@ -337,7 +406,11 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="journal-utility-link shrink-0"
-                    :class="activeTarget === 'landing' ? 'journal-chip--primary' : ''"
+                    :class="
+                        activeTarget === 'landing'
+                            ? 'journal-chip--primary'
+                            : ''
+                    "
                     @click="activeTarget = 'landing'"
                 >
                     Place landing
@@ -345,7 +418,9 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="journal-utility-link shrink-0"
-                    :class="activeTarget === 'route' ? 'journal-chip--primary' : ''"
+                    :class="
+                        activeTarget === 'route' ? 'journal-chip--primary' : ''
+                    "
                     @click="activeTarget = 'route'"
                 >
                     Trace route
@@ -361,16 +436,22 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+        <div
+            class="mt-4 overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+        >
             <div ref="mapElement" class="h-[260px] sm:h-[320px]" />
         </div>
 
-        <div class="mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium text-[color:var(--journal-muted)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+        <div
+            class="mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium text-[color:var(--journal-muted)] [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+        >
             <span class="journal-chip shrink-0">Launch = green</span>
             <span class="journal-chip shrink-0">Landing = orange</span>
             <span class="journal-chip shrink-0">Trace route = blue points</span>
             <span class="journal-chip shrink-0">Drag markers to refine</span>
-            <span class="journal-chip shrink-0">Double-click a route point to remove it</span>
+            <span class="journal-chip shrink-0"
+                >Double-click a route point to remove it</span
+            >
         </div>
     </section>
 </template>

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 
 interface LatLngPoint {
     lat: number;
@@ -45,39 +52,43 @@ type SessionKind = 'all' | 'day' | 'expedition';
 type GeometryKind = 'all' | 'routes' | 'pins';
 type PinPresentation = 'dot' | 'pin' | 'expedition';
 
-const props = withDefaults(defineProps<{
-    routes?: AtlasRouteItem[];
-    pins?: AtlasPinItem[];
-    defaultView?: DefaultView;
-    heightClass?: string;
-    showLegend?: boolean;
-    showFilters?: boolean;
-    showGeometryFilter?: boolean;
-    showKindFilter?: boolean;
-    allowPinView?: boolean;
-    storageKey?: string | null;
-    emptyMessage?: string;
-    pinPresentation?: PinPresentation;
-    autoFitToGeometry?: boolean;
-}>(), {
-    routes: () => [],
-    pins: () => [],
-    defaultView: () => ({
-        lat: 64.1466,
-        lng: -21.9426,
-        zoom: 10,
-    }),
-    heightClass: 'h-[420px]',
-    showLegend: true,
-    showFilters: true,
-    showGeometryFilter: true,
-    showKindFilter: true,
-    allowPinView: true,
-    storageKey: null,
-    emptyMessage: 'No mapped geometry yet. Attach GPX files or add launch coordinates to start building the route atlas.',
-    pinPresentation: 'dot',
-    autoFitToGeometry: true,
-});
+const props = withDefaults(
+    defineProps<{
+        routes?: AtlasRouteItem[];
+        pins?: AtlasPinItem[];
+        defaultView?: DefaultView;
+        heightClass?: string;
+        showLegend?: boolean;
+        showFilters?: boolean;
+        showGeometryFilter?: boolean;
+        showKindFilter?: boolean;
+        allowPinView?: boolean;
+        storageKey?: string | null;
+        emptyMessage?: string;
+        pinPresentation?: PinPresentation;
+        autoFitToGeometry?: boolean;
+    }>(),
+    {
+        routes: () => [],
+        pins: () => [],
+        defaultView: () => ({
+            lat: 64.1466,
+            lng: -21.9426,
+            zoom: 10,
+        }),
+        heightClass: 'h-[420px]',
+        showLegend: true,
+        showFilters: true,
+        showGeometryFilter: true,
+        showKindFilter: true,
+        allowPinView: true,
+        storageKey: null,
+        emptyMessage:
+            'No mapped geometry yet. Attach GPX files or add launch coordinates to start building the route atlas.',
+        pinPresentation: 'dot',
+        autoFitToGeometry: true,
+    },
+);
 
 const mapElement = ref<HTMLElement | null>(null);
 const selectedStyle = ref<MapStyle>('chart');
@@ -94,16 +105,21 @@ let currentBaseLayer: L.TileLayer | null = null;
 let pinFeedbackTimeout: number | null = null;
 let initialViewportApplied = false;
 
-const styleOptions: Record<MapStyle, { label: string; url: string; attribution: string }> = {
+const styleOptions: Record<
+    MapStyle,
+    { label: string; url: string; attribution: string }
+> = {
     chart: {
         label: 'Chart',
         url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-        attribution: 'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap',
+        attribution:
+            'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap',
     },
     clean: {
         label: 'Clean',
         url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        attribution: 'Map data © OpenStreetMap contributors | Map style © CARTO',
+        attribution:
+            'Map data © OpenStreetMap contributors | Map style © CARTO',
     },
     activity: {
         label: 'Activity',
@@ -148,12 +164,16 @@ const yearOptions = computed(() => {
     return Array.from(years).sort((left, right) => right - left);
 });
 
-function itemMatchesYear(item: { year?: number | null; years?: number[] }, selected: string): boolean {
+function itemMatchesYear(
+    item: { year?: number | null; years?: number[] },
+    selected: string,
+): boolean {
     if (selected === 'all') {
         return true;
     }
 
     const targetYear = Number(selected);
+
     if (!Number.isFinite(targetYear)) {
         return true;
     }
@@ -165,7 +185,10 @@ function itemMatchesYear(item: { year?: number | null; years?: number[] }, selec
     return Array.isArray(item.years) ? item.years.includes(targetYear) : false;
 }
 
-function itemMatchesKind(item: { isExpedition?: boolean }, selected: SessionKind): boolean {
+function itemMatchesKind(
+    item: { isExpedition?: boolean },
+    selected: SessionKind,
+): boolean {
     if (selected === 'all') {
         return true;
     }
@@ -174,7 +197,7 @@ function itemMatchesKind(item: { isExpedition?: boolean }, selected: SessionKind
         return Boolean(item.isExpedition);
     }
 
-    return ! item.isExpedition;
+    return !item.isExpedition;
 }
 
 function pinCountForSelection(pin: AtlasPinItem): number {
@@ -183,6 +206,7 @@ function pinCountForSelection(pin: AtlasPinItem): number {
     }
 
     const byYear = pin.countsByYear ?? {};
+
     if (byYear[selectedYear.value] !== undefined) {
         return byYear[selectedYear.value];
     }
@@ -195,9 +219,10 @@ const filteredRoutes = computed(() => {
         return [];
     }
 
-    return props.routes.filter((route) =>
-        itemMatchesYear(route, selectedYear.value) &&
-        itemMatchesKind(route, selectedKind.value)
+    return props.routes.filter(
+        (route) =>
+            itemMatchesYear(route, selectedYear.value) &&
+            itemMatchesKind(route, selectedKind.value),
     );
 });
 
@@ -206,13 +231,16 @@ const filteredPins = computed(() => {
         return [];
     }
 
-    return props.pins.filter((pin) =>
-        itemMatchesYear(pin, selectedYear.value) &&
-        itemMatchesKind(pin, selectedKind.value)
+    return props.pins.filter(
+        (pin) =>
+            itemMatchesYear(pin, selectedYear.value) &&
+            itemMatchesKind(pin, selectedKind.value),
     );
 });
 
-const hasGeometry = computed(() => filteredRoutes.value.length > 0 || filteredPins.value.length > 0);
+const hasGeometry = computed(
+    () => filteredRoutes.value.length > 0 || filteredPins.value.length > 0,
+);
 
 const legendRoutes = computed(() => filteredRoutes.value.slice(0, 10));
 
@@ -225,7 +253,10 @@ function createTileLayer(style: MapStyle) {
     });
 }
 
-function persistState(key: 'style' | 'year' | 'kind' | 'geometry', value: string) {
+function persistState(
+    key: 'style' | 'year' | 'kind' | 'geometry',
+    value: string,
+) {
     if (!storageKeys.value || typeof window === 'undefined') {
         return;
     }
@@ -238,11 +269,19 @@ function readPersistedState() {
         return;
     }
 
-    const persistedStyle = window.localStorage.getItem(storageKeys.value.style) as MapStyle | null;
+    const persistedStyle = window.localStorage.getItem(
+        storageKeys.value.style,
+    ) as MapStyle | null;
     const persistedYear = window.localStorage.getItem(storageKeys.value.year);
-    const persistedKind = window.localStorage.getItem(storageKeys.value.kind) as SessionKind | null;
-    const persistedGeometry = window.localStorage.getItem(storageKeys.value.geometry) as GeometryKind | null;
-    const persistedView = window.localStorage.getItem(storageKeys.value.pinnedView);
+    const persistedKind = window.localStorage.getItem(
+        storageKeys.value.kind,
+    ) as SessionKind | null;
+    const persistedGeometry = window.localStorage.getItem(
+        storageKeys.value.geometry,
+    ) as GeometryKind | null;
+    const persistedView = window.localStorage.getItem(
+        storageKeys.value.pinnedView,
+    );
 
     if (persistedStyle && persistedStyle in styleOptions) {
         selectedStyle.value = persistedStyle;
@@ -256,7 +295,10 @@ function readPersistedState() {
         selectedKind.value = persistedKind;
     }
 
-    if (persistedGeometry && ['all', 'routes', 'pins'].includes(persistedGeometry)) {
+    if (
+        persistedGeometry &&
+        ['all', 'routes', 'pins'].includes(persistedGeometry)
+    ) {
         selectedGeometry.value = persistedGeometry;
     }
 
@@ -322,7 +364,11 @@ function fitMapToGeometry() {
 
     if (pinnedView.value && !initialViewportApplied) {
         initialViewportApplied = true;
-        map.setView([pinnedView.value.lat, pinnedView.value.lng], pinnedView.value.zoom);
+        map.setView(
+            [pinnedView.value.lat, pinnedView.value.lng],
+            pinnedView.value.zoom,
+        );
+
         return;
     }
 
@@ -339,6 +385,7 @@ function fitMapToGeometry() {
     if (bounds.isValid()) {
         initialViewportApplied = true;
         map.fitBounds(bounds.pad(0.18));
+
         return;
     }
 
@@ -351,6 +398,9 @@ function renderGeometry() {
         return;
     }
 
+    const routeLayers = routeLayerGroup;
+    const pinLayers = pinLayerGroup;
+
     resetGeometry();
 
     filteredRoutes.value.forEach((route) => {
@@ -358,20 +408,24 @@ function renderGeometry() {
             return;
         }
 
-        const latLngs = route.points.map((point) => [point.lat, point.lng] as [number, number]);
+        const latLngs = route.points.map(
+            (point) => [point.lat, point.lng] as [number, number],
+        );
         const baseWeight = route.isExpedition ? 5 : 4;
         const hoverWeight = route.isExpedition ? 8 : 7;
         const baseOpacity = 0.9;
         const hoverOpacity = 1;
 
         const polyline = L.polyline(latLngs, {
-            className: route.path ? 'journal-map-route journal-map-route--interactive' : 'journal-map-route',
+            className: route.path
+                ? 'journal-map-route journal-map-route--interactive'
+                : 'journal-map-route',
             color: route.color,
             weight: baseWeight,
             opacity: baseOpacity,
         })
             .bindTooltip(route.label)
-            .addTo(routeLayerGroup);
+            .addTo(routeLayers);
 
         polyline.on('mouseover', () => {
             polyline.setStyle({
@@ -403,7 +457,7 @@ function renderGeometry() {
             weight: 2,
             fillColor: '#10b981',
             fillOpacity: 1,
-        }).addTo(routeLayerGroup);
+        }).addTo(routeLayers);
 
         L.circleMarker([endPoint.lat, endPoint.lng], {
             radius: 5,
@@ -411,41 +465,45 @@ function renderGeometry() {
             weight: 2,
             fillColor: '#f97316',
             fillOpacity: 1,
-        }).addTo(routeLayerGroup);
+        }).addTo(routeLayers);
     });
 
     filteredPins.value.forEach((pin) => {
         const count = Math.max(pinCountForSelection(pin), 1);
-        const marker = props.pinPresentation === 'pin' || props.pinPresentation === 'expedition'
-            ? L.marker([pin.lat, pin.lng], {
-                icon: L.divIcon({
-                    className: 'journal-map-pin-wrapper',
-                    html: `
+        const marker =
+            props.pinPresentation === 'pin' ||
+            props.pinPresentation === 'expedition'
+                ? L.marker([pin.lat, pin.lng], {
+                      icon: L.divIcon({
+                          className: 'journal-map-pin-wrapper',
+                          html: `
                         <div class="journal-map-pin journal-map-pin--minimal ${props.pinPresentation === 'expedition' ? 'journal-map-pin--expedition' : ''}" style="--pin-color: ${pin.color}">
                             <span class="journal-map-pin__core">
-                                ${count > 1
-                                    ? `<span class="journal-map-pin__count">${count}</span>`
-                                    : props.pinPresentation === 'expedition'
-                                        ? '<span class="journal-map-pin__glyph">✦</span>'
-                                        : '<span class="journal-map-pin__dot"></span>'}
+                                ${
+                                    count > 1
+                                        ? `<span class="journal-map-pin__count">${count}</span>`
+                                        : props.pinPresentation === 'expedition'
+                                          ? '<span class="journal-map-pin__glyph">✦</span>'
+                                          : '<span class="journal-map-pin__dot"></span>'
+                                }
                             </span>
                         </div>
                     `,
-                    iconSize: [26, 34],
-                    iconAnchor: [13, 33],
-                    tooltipAnchor: [0, -24],
-                }),
-            })
-            : L.circleMarker([pin.lat, pin.lng], {
-                radius: Math.min(7 + Math.max(count - 1, 0), 14),
-                color: '#ffffff',
-                weight: 2,
-                fillColor: pin.color,
-                fillOpacity: 0.95,
-            });
+                          iconSize: [26, 34],
+                          iconAnchor: [13, 33],
+                          tooltipAnchor: [0, -24],
+                      }),
+                  })
+                : L.circleMarker([pin.lat, pin.lng], {
+                      radius: Math.min(7 + Math.max(count - 1, 0), 14),
+                      color: '#ffffff',
+                      weight: 2,
+                      fillColor: pin.color,
+                      fillOpacity: 0.95,
+                  });
 
         const label = count > 1 ? `${pin.label} · ${count} trips` : pin.label;
-        marker.bindTooltip(label).addTo(pinLayerGroup);
+        marker.bindTooltip(label).addTo(pinLayers);
 
         if (pin.path && typeof window !== 'undefined') {
             marker.on('click', () => {
@@ -470,7 +528,10 @@ function pinCurrentView() {
     };
 
     pinnedView.value = payload;
-    window.localStorage.setItem(storageKeys.value.pinnedView, JSON.stringify(payload));
+    window.localStorage.setItem(
+        storageKeys.value.pinnedView,
+        JSON.stringify(payload),
+    );
     pinFeedback.value = 'saved';
 
     if (pinFeedbackTimeout) {
@@ -487,7 +548,10 @@ function goToPinnedView() {
         return;
     }
 
-    map.setView([pinnedView.value.lat, pinnedView.value.lng], pinnedView.value.zoom);
+    map.setView(
+        [pinnedView.value.lat, pinnedView.value.lng],
+        pinnedView.value.zoom,
+    );
 }
 
 function openPath(path?: string | null) {
@@ -541,7 +605,10 @@ watch(selectedGeometry, (value) => {
 watch(
     yearOptions,
     (years) => {
-        if (selectedYear.value !== 'all' && !years.includes(Number(selectedYear.value))) {
+        if (
+            selectedYear.value !== 'all' &&
+            !years.includes(Number(selectedYear.value))
+        ) {
             selectedYear.value = 'all';
         }
     },
@@ -584,16 +651,22 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="space-y-3 sm:space-y-4">
-        <div class="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:justify-between">
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+        <div
+            class="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:justify-between"
+        >
+            <div
+                class="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            >
                 <button
                     v-for="(style, key) in styleOptions"
                     :key="key"
                     type="button"
                     class="shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs"
-                    :class="selectedStyle === key
-                        ? 'border-[color:var(--journal-line-strong)] bg-[rgba(103,114,255,0.14)] text-[color:var(--journal-text)]'
-                        : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
+                    :class="
+                        selectedStyle === key
+                            ? 'border-[color:var(--journal-line-strong)] bg-[rgba(103,114,255,0.14)] text-[color:var(--journal-text)]'
+                            : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'
+                    "
                     @click="switchStyle(key)"
                 >
                     {{ style.label }}
@@ -603,12 +676,18 @@ onBeforeUnmount(() => {
                     v-if="allowPinView"
                     type="button"
                     class="shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs"
-                    :class="pinFeedback === 'saved'
-                        ? 'border-[rgba(137,223,171,0.5)] bg-[rgba(241,255,245,0.9)] text-[#256a48]'
-                        : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'"
+                    :class="
+                        pinFeedback === 'saved'
+                            ? 'border-[rgba(137,223,171,0.5)] bg-[rgba(241,255,245,0.9)] text-[#256a48]'
+                            : 'border-[color:var(--journal-line)] bg-white/85 text-[color:var(--journal-muted)] hover:border-[color:var(--journal-line-strong)]'
+                    "
                     @click="pinCurrentView"
                 >
-                    {{ pinFeedback === 'saved' ? 'Pinned view saved' : 'Pin current view' }}
+                    {{
+                        pinFeedback === 'saved'
+                            ? 'Pinned view saved'
+                            : 'Pin current view'
+                    }}
                 </button>
 
                 <button
@@ -622,7 +701,10 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <div v-if="showFilters" class="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+            <div
+                v-if="showFilters"
+                class="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            >
                 <select
                     v-model="selectedYear"
                     class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/85 px-2.5 py-1.5 text-[11px] font-medium text-[color:var(--journal-muted)] sm:px-3 sm:text-xs"
@@ -659,7 +741,9 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]">
+        <div
+            class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
+        >
             <div ref="mapElement" :class="props.heightClass" />
         </div>
 
@@ -667,7 +751,11 @@ onBeforeUnmount(() => {
             v-if="allowPinView && (pinnedView || pinFeedback === 'saved')"
             class="flex flex-wrap items-center justify-end gap-2 text-xs text-[color:var(--journal-muted)]"
         >
-            <span>{{ pinFeedback === 'saved' ? 'Pinned view saved.' : 'Pinned view ready.' }}</span>
+            <span>{{
+                pinFeedback === 'saved'
+                    ? 'Pinned view saved.'
+                    : 'Pinned view ready.'
+            }}</span>
         </div>
 
         <div
@@ -677,7 +765,10 @@ onBeforeUnmount(() => {
             {{ emptyMessage }}
         </div>
 
-        <div v-if="props.showLegend && legendRoutes.length" class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:pb-0">
+        <div
+            v-if="props.showLegend && legendRoutes.length"
+            class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+        >
             <button
                 v-for="route in legendRoutes"
                 :key="route.id"
@@ -686,7 +777,10 @@ onBeforeUnmount(() => {
                 :disabled="!route.path"
                 @click="openPath(route.path)"
             >
-                <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: route.color }" />
+                <span
+                    class="h-2.5 w-2.5 rounded-full"
+                    :style="{ backgroundColor: route.color }"
+                />
                 {{ route.label }}
             </button>
         </div>

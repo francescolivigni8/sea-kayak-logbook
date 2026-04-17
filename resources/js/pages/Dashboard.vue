@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -40,8 +40,12 @@ interface MonthlyDistanceRow {
 
 interface SeaState {
     beaufortBands: Array<{ label: string; count: number }>;
+    averageBeaufort: number | null;
     tideStates: Array<{ label: string; count: number }>;
-    conditionMatrix: Array<{ label: string; values: Array<{ key: string; count: number }> }>;
+    conditionMatrix: Array<{
+        label: string;
+        values: Array<{ key: string; count: number }>;
+    }>;
     rescueTotals: Array<{ label: string; count: number }>;
     temperatureAverages: {
         air: number | null;
@@ -88,6 +92,12 @@ interface ExpeditionSummary {
     missingMapPointCount: number;
 }
 
+interface FlashPageProps {
+    flash?: {
+        success?: string;
+    };
+}
+
 const props = defineProps<{
     profile: ProfileSummary;
     headline: HeadlineStats;
@@ -101,7 +111,9 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
-const successMessage = computed(() => page.props.flash?.success as string | undefined);
+const successMessage = computed(
+    () => (page.props as FlashPageProps).flash?.success,
+);
 
 const expeditionCards = computed(() => [
     {
@@ -122,9 +134,7 @@ const expeditionCards = computed(() => [
 ]);
 
 const expeditionSessionChips = computed(() =>
-    props.expeditionMapData.pins
-        .filter((pin) => Boolean(pin.path))
-        .slice(0, 8),
+    props.expeditionMapData.pins.filter((pin) => Boolean(pin.path)).slice(0, 8),
 );
 const expeditionMapWarning = computed(() => {
     const count = props.expeditionSummary.missingMapPointCount;
@@ -165,9 +175,15 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Map</p>
-                    <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">Route map</h3>
+                    <h3
+                        class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
+                    >
+                        Route map
+                    </h3>
                 </div>
-                <span class="journal-chip">{{ mapData.routes.length }} routes</span>
+                <span class="journal-chip"
+                    >{{ mapData.routes.length }} routes</span
+                >
             </div>
 
             <div class="mt-6">
@@ -186,17 +202,30 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Expeditions</p>
-                    <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">Expeditions and multiday</h3>
+                    <h3
+                        class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
+                    >
+                        Expeditions and multiday
+                    </h3>
                 </div>
                 <span class="journal-chip">Checklist tagged</span>
             </div>
 
-            <div class="mt-5 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:mt-6 sm:px-5 sm:py-5">
-                <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                    Longer journeys, kept separate and still counted in the full logbook totals.
+            <div
+                class="mt-5 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
+            >
+                <p
+                    class="text-base font-semibold text-[color:var(--journal-text)]"
+                >
+                    Longer journeys, kept separate and still counted in the full
+                    logbook totals.
                 </p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Tag a session as expedition and optionally log the days out in the checklist. Each tagged session drops its own world pin here.
+                <p
+                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                >
+                    Tag a session as expedition and optionally log the days out
+                    in the checklist. Each tagged session drops its own world
+                    pin here.
                 </p>
             </div>
 
@@ -207,26 +236,42 @@ const expeditionMapWarning = computed(() => {
                     class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                 >
                     <p class="journal-kicker">{{ card.label }}</p>
-                    <p class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]">
+                    <p
+                        class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]"
+                    >
                         {{ card.value }}
                     </p>
-                    <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                    <p
+                        class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
                         {{ card.detail }}
                     </p>
                 </article>
             </div>
 
-            <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger mt-6">
+            <section
+                v-if="expeditionMapWarning"
+                class="journal-banner journal-banner--danger mt-6"
+            >
                 {{ expeditionMapWarning }}
             </section>
 
             <div class="mt-6">
-                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div
+                    class="mb-4 flex flex-wrap items-start justify-between gap-3"
+                >
                     <div>
                         <p class="journal-kicker">Expeditions</p>
-                        <h4 class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]">I paddled here</h4>
+                        <h4
+                            class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
+                        >
+                            I paddled here
+                        </h4>
                     </div>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
+                    <span
+                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                        >{{ expeditionMapData.pins.length }} pins</span
+                    >
                 </div>
 
                 <RouteAtlasMap
@@ -245,7 +290,10 @@ const expeditionMapWarning = computed(() => {
                 />
             </div>
 
-            <div v-if="expeditionSessionChips.length" class="mt-5 flex flex-wrap gap-2">
+            <div
+                v-if="expeditionSessionChips.length"
+                class="mt-5 flex flex-wrap gap-2"
+            >
                 <Link
                     v-for="pin in expeditionSessionChips"
                     :key="pin.id"
@@ -255,7 +303,10 @@ const expeditionMapWarning = computed(() => {
                     {{ pin.label }}
                 </Link>
             </div>
-            <p v-if="expeditionSessionChips.length" class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+            <p
+                v-if="expeditionSessionChips.length"
+                class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+            >
                 Session chips below jump straight into the expedition log entry.
             </p>
         </section>

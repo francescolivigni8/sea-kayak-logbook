@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { Button } from '@/components/ui/button';
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -91,12 +91,20 @@ const expeditionMapWarning = computed(() => {
 <template>
     <Head :title="`${profile.name} · Expedition atlas`" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-6 md:px-6 md:py-10">
+    <div
+        class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-4 py-6 md:px-6 md:py-10"
+    >
         <div class="mx-auto flex max-w-7xl flex-col gap-6">
-            <section class="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-sm md:p-8">
-                <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <section
+                class="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-sm md:p-8"
+            >
+                <div
+                    class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between"
+                >
                     <div class="space-y-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.32em] text-orange-400 uppercase"
+                        >
                             Public expedition atlas
                         </p>
                         <Heading
@@ -106,7 +114,9 @@ const expeditionMapWarning = computed(() => {
                     </div>
 
                     <Button as-child variant="outline">
-                        <Link :href="profile.publicPath">Back to public profile</Link>
+                        <Link :href="profile.publicPath"
+                            >Back to public profile</Link
+                        >
                     </Button>
                 </div>
             </section>
@@ -117,7 +127,9 @@ const expeditionMapWarning = computed(() => {
                     :key="card.label"
                     class="rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
                 >
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">
+                    <p
+                        class="text-xs font-semibold tracking-[0.24em] text-orange-400 uppercase"
+                    >
                         {{ card.label }}
                     </p>
                     <p class="mt-4 text-3xl font-semibold text-slate-900">
@@ -129,18 +141,25 @@ const expeditionMapWarning = computed(() => {
                 </article>
             </section>
 
-            <section class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm">
+            <section
+                class="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm"
+            >
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-orange-400">
+                        <p
+                            class="text-xs font-semibold tracking-[0.28em] text-orange-400 uppercase"
+                        >
                             I paddled here
                         </p>
                         <h2 class="mt-2 text-2xl font-semibold text-slate-900">
                             Global public expedition footprint
                         </h2>
                     </div>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                        {{ expeditionMapData.pins.length }} public expedition pins
+                    <span
+                        class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500"
+                    >
+                        {{ expeditionMapData.pins.length }} public expedition
+                        pins
                     </span>
                 </div>
 
@@ -161,12 +180,19 @@ const expeditionMapWarning = computed(() => {
                     />
                 </div>
 
-                <section v-if="expeditionMapWarning" class="mt-5 rounded-[1.35rem] border border-rose-200 bg-rose-50/90 px-4 py-4 text-sm leading-6 text-rose-700">
+                <section
+                    v-if="expeditionMapWarning"
+                    class="mt-5 rounded-[1.35rem] border border-rose-200 bg-rose-50/90 px-4 py-4 text-sm leading-6 text-rose-700"
+                >
                     {{ expeditionMapWarning }}
                 </section>
 
-                <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-slate-500">
-                    The map shows one pin per public expedition session. The cards below group repeated places together.
+                <p
+                    v-if="expeditionPlaces.length"
+                    class="mt-4 text-sm leading-6 text-slate-500"
+                >
+                    The map shows one pin per public expedition session. The
+                    cards below group repeated places together.
                 </p>
             </section>
 
@@ -185,11 +211,14 @@ const expeditionMapWarning = computed(() => {
                     <div class="p-5">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <h3 class="text-lg font-semibold text-slate-900">
+                                <h3
+                                    class="text-lg font-semibold text-slate-900"
+                                >
                                     {{ place.label }}
                                 </h3>
                                 <p class="mt-1 text-sm text-slate-500">
-                                    {{ place.tripCount }} trips · {{ place.daysOut }} days out
+                                    {{ place.tripCount }} trips ·
+                                    {{ place.daysOut }} days out
                                 </p>
                             </div>
                             <Button as-child variant="outline" size="sm">
@@ -197,8 +226,12 @@ const expeditionMapWarning = computed(() => {
                             </Button>
                         </div>
 
-                        <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                        <div
+                            class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600"
+                        >
+                            <span
+                                class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+                            >
                                 {{ place.distanceKm.toFixed(1) }} km
                             </span>
                             <span

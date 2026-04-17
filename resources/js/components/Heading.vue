@@ -15,13 +15,16 @@ withDefaults(defineProps<Props>(), {
         <h2
             :class="
                 variant === 'small'
-                    ? 'text-[1.2rem] font-semibold leading-none text-[color:var(--journal-text)]'
-                    : 'text-[clamp(1.8rem,3vw,2.45rem)] font-semibold leading-[0.96] text-[color:var(--journal-text)]'
+                    ? 'text-[1.2rem] leading-none font-semibold text-[color:var(--journal-text)]'
+                    : 'text-[clamp(1.8rem,3vw,2.45rem)] leading-[0.96] font-semibold text-[color:var(--journal-text)]'
             "
         >
             {{ title }}
         </h2>
-        <p v-if="description" class="text-sm leading-7 text-[color:var(--journal-muted)]">
+        <p
+            v-if="description"
+            class="text-sm leading-7 text-[color:var(--journal-muted)]"
+        >
             {{ description }}
         </p>
     </header>

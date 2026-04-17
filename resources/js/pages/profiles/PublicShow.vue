@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -41,8 +41,12 @@ interface MonthlyDistanceRow {
 
 interface SeaState {
     beaufortBands: Array<{ label: string; count: number }>;
+    averageBeaufort: number | null;
     tideStates: Array<{ label: string; count: number }>;
-    conditionMatrix: Array<{ label: string; values: Array<{ key: string; count: number }> }>;
+    conditionMatrix: Array<{
+        label: string;
+        values: Array<{ key: string; count: number }>;
+    }>;
     rescueTotals: Array<{ label: string; count: number }>;
     temperatureAverages: {
         air: number | null;
@@ -127,9 +131,21 @@ const props = defineProps<{
 }>();
 
 const expeditionCards = computed(() => [
-    { label: 'Expedition distance', value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`, detail: 'Public expedition distance' },
-    { label: 'Days out', value: String(props.expeditionSummary.daysOut), detail: 'Public multiday days logged' },
-    { label: 'Multiday trips', value: String(props.expeditionSummary.tripCount), detail: 'Public expedition sessions' },
+    {
+        label: 'Expedition distance',
+        value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
+        detail: 'Public expedition distance',
+    },
+    {
+        label: 'Days out',
+        value: String(props.expeditionSummary.daysOut),
+        detail: 'Public multiday days logged',
+    },
+    {
+        label: 'Multiday trips',
+        value: String(props.expeditionSummary.tripCount),
+        detail: 'Public expedition sessions',
+    },
 ]);
 
 const featuredPlaces = computed(() => props.expeditionPlaces.slice(0, 3));
@@ -151,20 +167,28 @@ const expeditionMapWarning = computed(() => {
 
     <div class="journal-page">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div
+                class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+            >
                 <div class="space-y-3">
                     <p class="journal-kicker">Public profile</p>
                     <div class="space-y-2">
-                        <h1 class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94]">
+                        <h1
+                            class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94]"
+                        >
                             {{ profile.name }}’s Sea Kayak Logbook
                         </h1>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            A shareable sea-kayak journal showing only public paddles, mapped routes, expedition places, and logged exposure.
+                            A shareable sea-kayak journal showing only public
+                            paddles, mapped routes, expedition places, and
+                            logged exposure.
                         </p>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <span class="journal-chip journal-chip--primary">{{ profile.homeWater }}</span>
+                        <span class="journal-chip journal-chip--primary">{{
+                            profile.homeWater
+                        }}</span>
                         <span class="journal-chip">{{ profile.timezone }}</span>
                         <span class="journal-chip">Public logbook</span>
                     </div>
@@ -179,7 +203,8 @@ const expeditionMapWarning = computed(() => {
         </section>
 
         <section class="journal-banner journal-banner--soft">
-            This public view stays lighter on purpose: only shared sessions, public expedition places, and public route stories.
+            This public view stays lighter on purpose: only shared sessions,
+            public expedition places, and public route stories.
         </section>
 
         <HeadlineMetricCards
@@ -200,9 +225,13 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Map</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Public route map</h3>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">
+                        Public route map
+                    </h3>
                 </div>
-                <span class="journal-chip">{{ mapData.routes.length }} routes</span>
+                <span class="journal-chip"
+                    >{{ mapData.routes.length }} routes</span
+                >
             </div>
 
             <div class="mt-6">
@@ -222,17 +251,27 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Expeditions</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Expeditions and multiday</h3>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">
+                        Expeditions and multiday
+                    </h3>
                 </div>
                 <span class="journal-chip">Public expedition places</span>
             </div>
 
-            <div class="mt-6 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5">
-                <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                    Longer journeys, kept separate and still counted in the public logbook totals.
+            <div
+                class="mt-6 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5"
+            >
+                <p
+                    class="text-base font-semibold text-[color:var(--journal-text)]"
+                >
+                    Longer journeys, kept separate and still counted in the
+                    public logbook totals.
                 </p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Public expedition routes stay on the main map while each public expedition session drops its own world pin here.
+                <p
+                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                >
+                    Public expedition routes stay on the main map while each
+                    public expedition session drops its own world pin here.
                 </p>
             </div>
 
@@ -243,26 +282,42 @@ const expeditionMapWarning = computed(() => {
                     class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                 >
                     <p class="journal-kicker">{{ card.label }}</p>
-                    <p class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]">
+                    <p
+                        class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]"
+                    >
                         {{ card.value }}
                     </p>
-                    <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                    <p
+                        class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
                         {{ card.detail }}
                     </p>
                 </article>
             </div>
 
-            <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger mt-6">
+            <section
+                v-if="expeditionMapWarning"
+                class="journal-banner journal-banner--danger mt-6"
+            >
                 {{ expeditionMapWarning }}
             </section>
 
             <div class="mt-6">
-                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div
+                    class="mb-4 flex flex-wrap items-start justify-between gap-3"
+                >
                     <div>
                         <p class="journal-kicker">Expeditions</p>
-                        <h4 class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]">I paddled here</h4>
+                        <h4
+                            class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]"
+                        >
+                            I paddled here
+                        </h4>
                     </div>
-                    <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
+                    <span
+                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                        >{{ expeditionMapData.pins.length }} pins</span
+                    >
                 </div>
 
                 <RouteAtlasMap
@@ -281,7 +336,10 @@ const expeditionMapWarning = computed(() => {
                 />
             </div>
 
-            <div v-if="featuredPlaces.length" class="mt-6 grid gap-4 lg:grid-cols-3">
+            <div
+                v-if="featuredPlaces.length"
+                class="mt-6 grid gap-4 lg:grid-cols-3"
+            >
                 <article
                     v-for="place in featuredPlaces"
                     :key="place.slug"
@@ -302,23 +360,41 @@ const expeditionMapWarning = computed(() => {
                     <div class="space-y-3 p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <h4 class="text-lg font-semibold text-[color:var(--journal-text)]">
+                                <h4
+                                    class="text-lg font-semibold text-[color:var(--journal-text)]"
+                                >
                                     {{ place.label }}
                                 </h4>
-                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                    {{ place.tripCount }} trips · {{ place.daysOut }} days
+                                <p
+                                    class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                                >
+                                    {{ place.tripCount }} trips ·
+                                    {{ place.daysOut }} days
                                 </p>
                             </div>
 
-                            <span class="journal-chip">{{ place.tripCount }} trips</span>
+                            <span class="journal-chip"
+                                >{{ place.tripCount }} trips</span
+                            >
                         </div>
 
-                        <div class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-                            <span class="journal-chip">{{ place.distanceKm.toFixed(1) }} km</span>
-                            <span v-if="place.latestDate" class="journal-chip">{{ place.latestDate }}</span>
+                        <div
+                            class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
+                        >
+                            <span class="journal-chip"
+                                >{{ place.distanceKm.toFixed(1) }} km</span
+                            >
+                            <span
+                                v-if="place.latestDate"
+                                class="journal-chip"
+                                >{{ place.latestDate }}</span
+                            >
                         </div>
 
-                        <Link :href="place.path" class="journal-utility-link w-full justify-center">
+                        <Link
+                            :href="place.path"
+                            class="journal-utility-link w-full justify-center"
+                        >
                             Open place
                         </Link>
                     </div>
@@ -330,7 +406,9 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Recent public paddles</p>
-                    <h3 class="mt-2 text-[1.8rem] leading-none">Latest sessions</h3>
+                    <h3 class="mt-2 text-[1.8rem] leading-none">
+                        Latest sessions
+                    </h3>
                 </div>
             </div>
 
@@ -346,42 +424,91 @@ const expeditionMapWarning = computed(() => {
                     }"
                 >
                     <div class="flex flex-wrap gap-2 text-xs font-medium">
-                        <span class="journal-chip">{{ session.routeCategoryLabel }}</span>
-                        <span v-if="session.beaufort !== null" class="journal-chip">F{{ session.beaufort }}</span>
-                        <span v-if="session.hasTrack" class="journal-chip">Track</span>
+                        <span class="journal-chip">{{
+                            session.routeCategoryLabel
+                        }}</span>
+                        <span
+                            v-if="session.beaufort !== null"
+                            class="journal-chip"
+                            >F{{ session.beaufort }}</span
+                        >
+                        <span v-if="session.hasTrack" class="journal-chip"
+                            >Track</span
+                        >
                     </div>
 
                     <div class="mt-4 space-y-2">
-                        <h4 class="text-xl font-semibold text-[color:var(--journal-text)]">
+                        <h4
+                            class="text-xl font-semibold text-[color:var(--journal-text)]"
+                        >
                             {{ session.title }}
                         </h4>
                         <p class="text-sm text-[color:var(--journal-muted)]">
                             {{ session.date ?? 'No date' }}
-                            <span v-if="session.launchName">· {{ session.launchName }}</span>
+                            <span v-if="session.launchName"
+                                >· {{ session.launchName }}</span
+                            >
                         </p>
                     </div>
 
-                    <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]">
-                        <span class="journal-chip">{{ session.distanceKm.toFixed(1) }} km</span>
-                        <span class="journal-chip">{{ session.durationMinutes }} min</span>
-                        <span v-if="session.isExpedition" class="journal-chip journal-chip--primary">Expedition</span>
+                    <div
+                        class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
+                    >
+                        <span class="journal-chip"
+                            >{{ session.distanceKm.toFixed(1) }} km</span
+                        >
+                        <span class="journal-chip"
+                            >{{ session.durationMinutes }} min</span
+                        >
+                        <span
+                            v-if="session.isExpedition"
+                            class="journal-chip journal-chip--primary"
+                            >Expedition</span
+                        >
                     </div>
 
-                    <p class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
-                        {{ session.launchName ?? profile.homeWater }} · {{ session.routeCategoryLabel.toLowerCase() }} day{{ session.isExpedition ? ' with expedition tagging' : '' }}.
+                    <p
+                        class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
+                        {{ session.launchName ?? profile.homeWater }} ·
+                        {{ session.routeCategoryLabel.toLowerCase() }} day{{
+                            session.isExpedition
+                                ? ' with expedition tagging'
+                                : ''
+                        }}.
                     </p>
 
                     <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Place</p>
-                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
+                        <div
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3"
+                        >
+                            <p
+                                class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                            >
+                                Place
+                            </p>
+                            <p
+                                class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                            >
                                 {{ session.launchName ?? profile.homeWater }}
                             </p>
                         </div>
-                        <div class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--journal-faint)]">Session</p>
-                            <p class="mt-2 text-base font-semibold text-[color:var(--journal-text)]">
-                                {{ session.hasTrack ? 'Track attached' : 'Manual entry' }}
+                        <div
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/74 px-3 py-3"
+                        >
+                            <p
+                                class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                            >
+                                Session
+                            </p>
+                            <p
+                                class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                            >
+                                {{
+                                    session.hasTrack
+                                        ? 'Track attached'
+                                        : 'Manual entry'
+                                }}
                             </p>
                         </div>
                     </div>

@@ -92,5 +92,4 @@ class DashboardTest extends TestCase
                 ->has('expeditionMapData.pins', 2)
                 ->has('expeditionPlaces', 1));
     }
-
 }

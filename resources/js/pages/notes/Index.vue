@@ -37,15 +37,27 @@ defineProps<{
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="space-y-3">
-                <p class="journal-kicker">{{ mode === 'observations' ? 'Observations' : 'Expedition notes' }}</p>
+                <p class="journal-kicker">
+                    {{
+                        mode === 'observations'
+                            ? 'Observations'
+                            : 'Expedition notes'
+                    }}
+                </p>
                 <div class="space-y-2">
-                    <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96] text-[color:var(--journal-text)]">
+                    <h2
+                        class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96] text-[color:var(--journal-text)]"
+                    >
                         {{ title }}
                     </h2>
                     <p class="journal-copy max-w-3xl text-sm md:text-base">
                         {{ description }}
                     </p>
-                    <p class="text-sm font-medium text-[color:var(--journal-muted)]">{{ count }} notes</p>
+                    <p
+                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                    >
+                        {{ count }} notes
+                    </p>
                 </div>
             </div>
         </section>
@@ -63,16 +75,24 @@ defineProps<{
             >
                 <div class="flex flex-col gap-4">
                     <div class="flex flex-wrap gap-2 text-xs font-medium">
-                        <span class="journal-kicker">{{ item.date ?? 'No date' }}</span>
+                        <span class="journal-kicker">{{
+                            item.date ?? 'No date'
+                        }}</span>
                         <span class="journal-chip">{{ item.category }}</span>
-                        <span v-if="item.beaufort !== null" class="journal-chip">F{{ item.beaufort }}</span>
+                        <span v-if="item.beaufort !== null" class="journal-chip"
+                            >F{{ item.beaufort }}</span
+                        >
                     </div>
 
                     <div class="space-y-2">
-                        <p class="text-[1.28rem] leading-[1.3] text-[color:var(--journal-text)] md:text-[1.38rem]">
+                        <p
+                            class="text-[1.28rem] leading-[1.3] text-[color:var(--journal-text)] md:text-[1.38rem]"
+                        >
                             {{ item.summary }}
                         </p>
-                        <h3 class="text-sm font-medium leading-6 text-[color:var(--journal-muted)]">
+                        <h3
+                            class="text-sm leading-6 font-medium text-[color:var(--journal-muted)]"
+                        >
                             {{ item.title }}
                         </h3>
                     </div>
@@ -87,11 +107,21 @@ defineProps<{
                         </span>
                     </div>
 
-                    <div v-if="item.photoUrl" class="overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/70">
-                        <img :src="item.photoUrl" :alt="item.title" class="h-44 w-full object-cover" />
+                    <div
+                        v-if="item.photoUrl"
+                        class="overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/70"
+                    >
+                        <img
+                            :src="item.photoUrl"
+                            :alt="item.title"
+                            class="h-44 w-full object-cover"
+                        />
                     </div>
 
-                    <Link :href="item.path" class="journal-utility-link w-full justify-center">
+                    <Link
+                        :href="item.path"
+                        class="journal-utility-link w-full justify-center"
+                    >
                         Open session
                     </Link>
                 </div>
@@ -101,7 +131,8 @@ defineProps<{
                 v-if="!items.length"
                 class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
             >
-                No notes yet on this surface. Add observations or expedition notes while editing a session and they will appear here.
+                No notes yet on this surface. Add observations or expedition
+                notes while editing a session and they will appear here.
             </article>
         </section>
     </div>

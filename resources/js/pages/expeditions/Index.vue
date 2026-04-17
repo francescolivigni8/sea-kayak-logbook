@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 
 interface ProfileSummary {
     name: string;
@@ -89,28 +89,38 @@ const expeditionMapWarning = computed(() => {
 
     <div class="space-y-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div
+                class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+            >
                 <div class="space-y-3">
                     <p class="journal-kicker">Expeditions</p>
                     <div class="space-y-2">
-                        <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                        <h2
+                            class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]"
+                        >
                             Expeditions and multiday
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Longer journeys, kept separate and still counted in the full logbook totals.
+                            Longer journeys, kept separate and still counted in
+                            the full logbook totals.
                         </p>
                     </div>
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <span class="journal-chip journal-chip--primary">Checklist tagged</span>
-                    <Link href="/sessions/create" class="journal-primary-link">Add expedition session</Link>
+                    <span class="journal-chip journal-chip--primary"
+                        >Checklist tagged</span
+                    >
+                    <Link href="/sessions/create" class="journal-primary-link"
+                        >Add expedition session</Link
+                    >
                 </div>
             </div>
         </section>
 
         <section class="journal-banner journal-banner--soft">
-            Tag a session as expedition in the checklist and optionally log the days out to build this area automatically.
+            Tag a session as expedition in the checklist and optionally log the
+            days out to build this area automatically.
         </section>
 
         <section class="grid gap-4 md:grid-cols-3">
@@ -128,8 +138,16 @@ const expeditionMapWarning = computed(() => {
                 }"
             >
                 <p class="journal-kicker">{{ card.label }}</p>
-                <p class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]">{{ card.value }}</p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">{{ card.detail }}</p>
+                <p
+                    class="mt-4 text-3xl font-semibold text-[color:var(--journal-text)]"
+                >
+                    {{ card.value }}
+                </p>
+                <p
+                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                >
+                    {{ card.detail }}
+                </p>
             </article>
         </section>
 
@@ -137,9 +155,16 @@ const expeditionMapWarning = computed(() => {
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <p class="journal-kicker">I paddled here</p>
-                    <h2 class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]">Global expedition footprint</h2>
+                    <h2
+                        class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                    >
+                        Global expedition footprint
+                    </h2>
                 </div>
-                <span class="text-sm font-medium text-[color:var(--journal-muted)]">{{ expeditionMapData.pins.length }} pins</span>
+                <span
+                    class="text-sm font-medium text-[color:var(--journal-muted)]"
+                    >{{ expeditionMapData.pins.length }} pins</span
+                >
             </div>
 
             <div class="mt-6">
@@ -159,12 +184,19 @@ const expeditionMapWarning = computed(() => {
                 />
             </div>
 
-            <section v-if="expeditionMapWarning" class="journal-banner journal-banner--danger mt-5">
+            <section
+                v-if="expeditionMapWarning"
+                class="journal-banner journal-banner--danger mt-5"
+            >
                 {{ expeditionMapWarning }}
             </section>
 
-            <p v-if="expeditionPlaces.length" class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
-                The map shows one pin per expedition session. The cards below group those pins back into named places.
+            <p
+                v-if="expeditionPlaces.length"
+                class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
+            >
+                The map shows one pin per expedition session. The cards below
+                group those pins back into named places.
             </p>
         </section>
 
@@ -188,30 +220,38 @@ const expeditionMapWarning = computed(() => {
                 <div class="p-5">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-lg font-semibold text-[color:var(--journal-text)]">
+                            <h3
+                                class="text-lg font-semibold text-[color:var(--journal-text)]"
+                            >
                                 {{ place.label }}
                             </h3>
-                            <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                {{ place.tripCount }} trips · {{ place.daysOut }} days out
+                            <p
+                                class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                            >
+                                {{ place.tripCount }} trips ·
+                                {{ place.daysOut }} days out
                             </p>
                         </div>
-                        <span class="journal-chip">{{ place.tripCount }} trips</span>
+                        <span class="journal-chip"
+                            >{{ place.tripCount }} trips</span
+                        >
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span class="journal-chip">
                             {{ place.distanceKm.toFixed(1) }} km
                         </span>
-                        <span
-                            v-if="place.latestDate"
-                            class="journal-chip"
-                        >
+                        <span v-if="place.latestDate" class="journal-chip">
                             {{ place.latestDate }}
                         </span>
                     </div>
 
                     <div class="mt-5">
-                        <Link :href="place.path" class="journal-utility-link w-full justify-center">Open place</Link>
+                        <Link
+                            :href="place.path"
+                            class="journal-utility-link w-full justify-center"
+                            >Open place</Link
+                        >
                     </div>
                 </div>
             </article>

@@ -69,8 +69,12 @@ const availableMonths = computed(() => {
     return months.sort().reverse();
 });
 
-const activeMonth = ref(availableMonths.value[0] ?? new Date().toISOString().slice(0, 7));
-const selectedDate = ref<string | null>(props.entries.find((entry) => entry.date)?.date ?? null);
+const activeMonth = ref(
+    availableMonths.value[0] ?? new Date().toISOString().slice(0, 7),
+);
+const selectedDate = ref<string | null>(
+    props.entries.find((entry) => entry.date)?.date ?? null,
+);
 
 watch(
     availableMonths,
@@ -84,6 +88,7 @@ watch(
 
 const currentMonthDate = computed(() => {
     const [year, month] = activeMonth.value.split('-').map(Number);
+
     return new Date(year, (month || 1) - 1, 1);
 });
 
@@ -111,29 +116,43 @@ const monthDays = computed(() => {
             day: cellDate.getDate(),
             inMonth: cellDate.getMonth() === currentMonthDate.value.getMonth(),
             entries,
-            distanceKm: entries.reduce((total, entry) => total + entry.distanceKm, 0),
+            distanceKm: entries.reduce(
+                (total, entry) => total + entry.distanceKm,
+                0,
+            ),
         };
     });
 });
 
 const monthSummary = computed(() => {
-    const visibleEntries = props.entries.filter((entry) => entry.date?.startsWith(activeMonth.value));
+    const visibleEntries = props.entries.filter((entry) =>
+        entry.date?.startsWith(activeMonth.value),
+    );
 
     return {
         sessions: visibleEntries.length,
         days: new Set(visibleEntries.map((entry) => entry.date)).size,
-        distanceKm: visibleEntries.reduce((total, entry) => total + entry.distanceKm, 0),
+        distanceKm: visibleEntries.reduce(
+            (total, entry) => total + entry.distanceKm,
+            0,
+        ),
     };
 });
 
 watch(
     monthDays,
     (days) => {
-        if (selectedDate.value && days.some((day) => day.iso === selectedDate.value && day.entries.length)) {
+        if (
+            selectedDate.value &&
+            days.some(
+                (day) => day.iso === selectedDate.value && day.entries.length,
+            )
+        ) {
             return;
         }
 
-        selectedDate.value = days.find((day) => day.entries.length)?.iso ?? null;
+        selectedDate.value =
+            days.find((day) => day.entries.length)?.iso ?? null;
     },
     { immediate: true },
 );
@@ -154,12 +173,15 @@ const selectedLabel = computed(() => {
         return 'No day selected';
     }
 
-    return new Date(`${selectedDate.value}T12:00:00`).toLocaleDateString('en-US', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
+    return new Date(`${selectedDate.value}T12:00:00`).toLocaleDateString(
+        'en-US',
+        {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        },
+    );
 });
 
 function stepMonth(direction: -1 | 1) {
@@ -185,39 +207,59 @@ function stepMonth(direction: -1 | 1) {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="journal-kicker">Diary</p>
-                    <h2 class="mt-2 text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
+                    <h2
+                        class="mt-2 text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]"
+                    >
                         Paddle days
                     </h2>
                 </div>
-                <p class="text-sm font-medium text-[color:var(--journal-muted)]">
+                <p
+                    class="text-sm font-medium text-[color:var(--journal-muted)]"
+                >
                     Pick a day.
                 </p>
             </div>
 
-            <div class="mt-5 journal-banner journal-banner--soft">
-                The diary keeps the calendar compact and lets the selected day open into a clearer reading layout on the right.
+            <div class="journal-banner journal-banner--soft mt-5">
+                The diary keeps the calendar compact and lets the selected day
+                open into a clearer reading layout on the right.
             </div>
 
             <div class="mt-6 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-                <aside class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/76 px-4 py-4">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
+                <aside
+                    class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/76 px-4 py-4"
+                >
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3"
+                    >
                         <div>
                             <p class="journal-kicker">{{ monthLabel }}</p>
-                            <h3 class="mt-2 text-[1.75rem] leading-none">Paddle calendar</h3>
+                            <h3 class="mt-2 text-[1.75rem] leading-none">
+                                Paddle calendar
+                            </h3>
                         </div>
-                        <span class="journal-chip">{{ monthSummary.sessions }} paddles</span>
+                        <span class="journal-chip"
+                            >{{ monthSummary.sessions }} paddles</span
+                        >
                     </div>
 
                     <div class="mt-4 grid gap-2">
-                        <span class="journal-chip">{{ monthSummary.distanceKm.toFixed(1) }} km</span>
-                        <span class="journal-chip">{{ props.stats.paddledDays }} paddled days</span>
+                        <span class="journal-chip"
+                            >{{ monthSummary.distanceKm.toFixed(1) }} km</span
+                        >
+                        <span class="journal-chip"
+                            >{{ props.stats.paddledDays }} paddled days</span
+                        >
                     </div>
 
                     <div class="mt-5 flex items-center gap-2">
                         <button
                             type="button"
                             class="journal-utility-link disabled:cursor-not-allowed disabled:opacity-50"
-                            :disabled="availableMonths.indexOf(activeMonth) === availableMonths.length - 1"
+                            :disabled="
+                                availableMonths.indexOf(activeMonth) ===
+                                availableMonths.length - 1
+                            "
                             @click="stepMonth(-1)"
                         >
                             Prev
@@ -225,19 +267,36 @@ function stepMonth(direction: -1 | 1) {
                         <button
                             type="button"
                             class="journal-utility-link disabled:cursor-not-allowed disabled:opacity-50"
-                            :disabled="availableMonths.indexOf(activeMonth) <= 0"
+                            :disabled="
+                                availableMonths.indexOf(activeMonth) <= 0
+                            "
                             @click="stepMonth(1)"
                         >
                             Next
                         </button>
                     </div>
 
-                    <div class="mt-5 text-xs font-medium text-[color:var(--journal-muted)]">
+                    <div
+                        class="mt-5 text-xs font-medium text-[color:var(--journal-muted)]"
+                    >
                         Dots mark paddled days.
                     </div>
 
-                    <div class="mt-6 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--journal-faint)]">
-                        <span v-for="label in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="label">
+                    <div
+                        class="mt-6 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold tracking-[0.24em] text-[color:var(--journal-faint)] uppercase"
+                    >
+                        <span
+                            v-for="label in [
+                                'Mon',
+                                'Tue',
+                                'Wed',
+                                'Thu',
+                                'Fri',
+                                'Sat',
+                                'Sun',
+                            ]"
+                            :key="label"
+                        >
                             {{ label }}
                         </span>
                     </div>
@@ -252,145 +311,334 @@ function stepMonth(direction: -1 | 1) {
                                 day.inMonth
                                     ? 'border-[color:var(--journal-line)] bg-white/78'
                                     : 'border-[rgba(103,114,255,0.08)] bg-white/38 text-[color:var(--journal-faint)]',
-                                selectedDate === day.iso ? 'shadow-[0_0_0_3px_rgba(255,156,107,0.18)]' : '',
-                                day.entries.length ? 'hover:border-[color:var(--journal-line-strong)] hover:bg-white/88' : '',
+                                selectedDate === day.iso
+                                    ? 'shadow-[0_0_0_3px_rgba(255,156,107,0.18)]'
+                                    : '',
+                                day.entries.length
+                                    ? 'hover:border-[color:var(--journal-line-strong)] hover:bg-white/88'
+                                    : '',
                             ]"
-                            @click="selectedDate = day.entries.length ? day.iso : selectedDate"
+                            @click="
+                                selectedDate = day.entries.length
+                                    ? day.iso
+                                    : selectedDate
+                            "
                         >
                             <div class="grid justify-items-center gap-1">
-                                <span class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                <span
+                                    class="text-sm font-semibold text-[color:var(--journal-text)]"
+                                >
                                     {{ day.day }}
                                 </span>
                                 <span
                                     v-if="day.entries.length"
                                     class="h-2 w-2 rounded-full"
-                                    :style="{ background: day.entries.some((entry) => entry.isExpedition) ? '#948dff' : '#ff9c6b' }"
+                                    :style="{
+                                        background: day.entries.some(
+                                            (entry) => entry.isExpedition,
+                                        )
+                                            ? '#948dff'
+                                            : '#ff9c6b',
+                                    }"
                                 />
                             </div>
                         </button>
                     </div>
                 </aside>
 
-                <article class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/82 px-5 py-5">
+                <article
+                    class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/82 px-5 py-5"
+                >
                     <div v-if="selectedPrimaryEntry" class="space-y-5">
-                        <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div
+                            class="flex flex-wrap items-start justify-between gap-3"
+                        >
                             <div class="space-y-3">
-                                <p class="journal-kicker">{{ selectedLabel }}</p>
+                                <p class="journal-kicker">
+                                    {{ selectedLabel }}
+                                </p>
                                 <div>
-                                    <h3 class="text-[1.95rem] leading-none text-[color:var(--journal-text)]">
+                                    <h3
+                                        class="text-[1.95rem] leading-none text-[color:var(--journal-text)]"
+                                    >
                                         {{ selectedPrimaryEntry.title }}
                                     </h3>
-                                    <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                        {{ selectedPrimaryEntry.notesPreview || selectedPrimaryEntry.weatherSummary || 'A paddle day in the logbook.' }}
+                                    <p
+                                        class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                    >
+                                        {{
+                                            selectedPrimaryEntry.notesPreview ||
+                                            selectedPrimaryEntry.weatherSummary ||
+                                            'A paddle day in the logbook.'
+                                        }}
                                     </p>
                                 </div>
                             </div>
 
-                            <span v-if="selectedPrimaryEntry.isExpedition" class="journal-chip journal-chip--primary">
+                            <span
+                                v-if="selectedPrimaryEntry.isExpedition"
+                                class="journal-chip journal-chip--primary"
+                            >
                                 Expedition
                             </span>
                         </div>
 
                         <div class="flex flex-wrap gap-2">
-                            <span class="journal-chip">{{ selectedPrimaryEntry.routeCategoryLabel }}</span>
-                            <span v-if="selectedPrimaryEntry.launchName" class="journal-chip">{{ selectedPrimaryEntry.launchName }}</span>
-                            <span v-if="selectedPrimaryEntry.beaufort !== null" class="journal-chip">F{{ selectedPrimaryEntry.beaufort }}</span>
-                            <span v-if="selectedPrimaryEntry.isExpedition" class="journal-chip journal-chip--primary">Expedition</span>
-                            <span v-if="selectedPrimaryEntry.hasTrack" class="journal-chip">Track attached</span>
+                            <span class="journal-chip">{{
+                                selectedPrimaryEntry.routeCategoryLabel
+                            }}</span>
+                            <span
+                                v-if="selectedPrimaryEntry.launchName"
+                                class="journal-chip"
+                                >{{ selectedPrimaryEntry.launchName }}</span
+                            >
+                            <span
+                                v-if="selectedPrimaryEntry.beaufort !== null"
+                                class="journal-chip"
+                                >F{{ selectedPrimaryEntry.beaufort }}</span
+                            >
+                            <span
+                                v-if="selectedPrimaryEntry.isExpedition"
+                                class="journal-chip journal-chip--primary"
+                                >Expedition</span
+                            >
+                            <span
+                                v-if="selectedPrimaryEntry.hasTrack"
+                                class="journal-chip"
+                                >Track attached</span
+                            >
                         </div>
 
                         <div class="grid gap-3 md:grid-cols-4">
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Distance</p>
-                                <p class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                    {{ selectedPrimaryEntry.distanceKm.toFixed(1) }} km
+                                <p
+                                    class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]"
+                                >
+                                    {{
+                                        selectedPrimaryEntry.distanceKm.toFixed(
+                                            1,
+                                        )
+                                    }}
+                                    km
                                 </p>
                             </article>
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Time</p>
-                                <p class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                    {{ selectedPrimaryEntry.durationMinutes }} min
+                                <p
+                                    class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]"
+                                >
+                                    {{ selectedPrimaryEntry.durationMinutes }}
+                                    min
                                 </p>
                             </article>
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Wind</p>
-                                <p class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                    {{ selectedPrimaryEntry.beaufort !== null ? `F${selectedPrimaryEntry.beaufort}` : '—' }}
+                                <p
+                                    class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]"
+                                >
+                                    {{
+                                        selectedPrimaryEntry.beaufort !== null
+                                            ? `F${selectedPrimaryEntry.beaufort}`
+                                            : '—'
+                                    }}
                                 </p>
                             </article>
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Place</p>
-                                <p class="mt-3 text-lg font-semibold text-[color:var(--journal-text)]">
-                                    {{ selectedPrimaryEntry.launchName ?? profile.homeWater }}
+                                <p
+                                    class="mt-3 text-lg font-semibold text-[color:var(--journal-text)]"
+                                >
+                                    {{
+                                        selectedPrimaryEntry.launchName ??
+                                        profile.homeWater
+                                    }}
                                 </p>
                             </article>
                         </div>
 
-                        <div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.82fr)]">
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                        <div
+                            class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.82fr)]"
+                        >
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Journey</p>
                                 <div class="mt-4 grid gap-3">
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Distance</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.distanceKm.toFixed(1) }} km</p>
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Distance
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.distanceKm.toFixed(
+                                                    1,
+                                                )
+                                            }}
+                                            km
+                                        </p>
                                     </div>
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Duration</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.durationMinutes }} min</p>
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Duration
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.durationMinutes
+                                            }}
+                                            min
+                                        </p>
                                     </div>
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Launch</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.launchName ?? profile.homeWater }}</p>
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Launch
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.launchName ??
+                                                profile.homeWater
+                                            }}
+                                        </p>
                                     </div>
                                 </div>
                             </article>
 
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Session</p>
                                 <div class="mt-4 grid gap-3">
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Category</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.routeCategoryLabel }}</p>
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Category
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.routeCategoryLabel
+                                            }}
+                                        </p>
                                     </div>
                                     <div>
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Session type</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.isExpedition ? 'Expedition' : 'Day session' }}</p>
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Session type
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.isExpedition
+                                                    ? 'Expedition'
+                                                    : 'Day session'
+                                            }}
+                                        </p>
                                     </div>
-                                    <div v-if="selectedPrimaryEntry.isExpedition && selectedPrimaryEntry.expeditionDays">
-                                        <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--journal-faint)]">Days out</p>
-                                        <p class="mt-1 text-base font-semibold text-[color:var(--journal-text)]">{{ selectedPrimaryEntry.expeditionDays }}</p>
+                                    <div
+                                        v-if="
+                                            selectedPrimaryEntry.isExpedition &&
+                                            selectedPrimaryEntry.expeditionDays
+                                        "
+                                    >
+                                        <p
+                                            class="text-xs tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                        >
+                                            Days out
+                                        </p>
+                                        <p
+                                            class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{
+                                                selectedPrimaryEntry.expeditionDays
+                                            }}
+                                        </p>
                                     </div>
                                 </div>
                             </article>
 
-                            <article class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4">
+                            <article
+                                class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
+                            >
                                 <p class="journal-kicker">Notes</p>
-                                <p class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    {{ selectedPrimaryEntry.notesPreview || selectedPrimaryEntry.weatherSummary || 'No notes for this day yet.' }}
+                                <p
+                                    class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    {{
+                                        selectedPrimaryEntry.notesPreview ||
+                                        selectedPrimaryEntry.weatherSummary ||
+                                        'No notes for this day yet.'
+                                    }}
                                 </p>
                             </article>
                         </div>
 
                         <div class="flex flex-wrap gap-2">
-                            <Link :href="selectedPrimaryEntry.path" class="journal-utility-link">
+                            <Link
+                                :href="selectedPrimaryEntry.path"
+                                class="journal-utility-link"
+                            >
                                 Open session
                             </Link>
                         </div>
 
-                        <div v-if="selectedExtraEntries.length" class="grid gap-3">
+                        <div
+                            v-if="selectedExtraEntries.length"
+                            class="grid gap-3"
+                        >
                             <article
                                 v-for="entry in selectedExtraEntries"
                                 :key="entry.id"
                                 class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/76 px-4 py-4"
                             >
-                                <div class="flex items-center justify-between gap-3">
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
                                     <div>
-                                        <h4 class="text-lg font-semibold text-[color:var(--journal-text)]">{{ entry.title }}</h4>
-                                        <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                            {{ entry.launchName ?? profile.homeWater }} · {{ entry.distanceKm.toFixed(1) }} km
+                                        <h4
+                                            class="text-lg font-semibold text-[color:var(--journal-text)]"
+                                        >
+                                            {{ entry.title }}
+                                        </h4>
+                                        <p
+                                            class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                                        >
+                                            {{
+                                                entry.launchName ??
+                                                profile.homeWater
+                                            }}
+                                            ·
+                                            {{ entry.distanceKm.toFixed(1) }} km
                                         </p>
                                     </div>
-                                    <Link :href="entry.path" class="journal-utility-link">Open</Link>
+                                    <Link
+                                        :href="entry.path"
+                                        class="journal-utility-link"
+                                        >Open</Link
+                                    >
                                 </div>
                             </article>
                         </div>

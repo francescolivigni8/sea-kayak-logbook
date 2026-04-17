@@ -31,6 +31,8 @@ QUEUE_CONNECTION=database
 
 FILESYSTEM_DISK=s3
 KAYAK_MEDIA_DISK=s3
+KAYAK_MEDIA_TEMPORARY_URLS=true
+KAYAK_MEDIA_TEMPORARY_URL_MINUTES=30
 
 KAYAK_PUBLIC_PROFILES_ENABLED=false
 KAYAK_NOINDEX=true
@@ -44,6 +46,7 @@ Important:
 - Do **not** set `SESSION_DOMAIN` for the Laravel Cloud staging domain. We already confirmed that forcing this value can break login/session cookies.
 - Keep `KAYAK_NOINDEX=true` while this is staging/private-feedback.
 - Keep `KAYAK_PUBLIC_PROFILES_ENABLED=false` until the public read-only surface is deliberately relaunched.
+- Use private object storage for GPX, FIT, and photos. `KAYAK_MEDIA_TEMPORARY_URLS=true` makes generated media links expire instead of behaving like permanent public URLs.
 
 ## 3. Mail requirement
 
@@ -114,9 +117,10 @@ Run these on the real staging/live URL after every launch candidate deploy:
 7. Import Garmin CSV plus GPX/FIT when available.
 8. Use Stormglass autofill and confirm wind, Beaufort, tide, and environmental checklist fields populate.
 9. Upload a photo and confirm the media URL resolves.
-10. Confirm `/insights/users` is visible only to the email in `KAYAK_OWNER_EMAILS`.
-11. Confirm `/p/{slug}` and public expedition URLs return `404` while `KAYAK_PUBLIC_PROFILES_ENABLED=false`.
-12. Confirm responses include `X-Robots-Tag: noindex, nofollow, noarchive` while `KAYAK_NOINDEX=true`.
+10. Delete a test account with uploaded media and confirm the related GPX/FIT/photo objects are removed from storage.
+11. Confirm `/insights/users` is visible only to the email in `KAYAK_OWNER_EMAILS`.
+12. Confirm `/p/{slug}` and public expedition URLs return `404` while `KAYAK_PUBLIC_PROFILES_ENABLED=false`.
+13. Confirm responses include `X-Robots-Tag: noindex, nofollow, noarchive` while `KAYAK_NOINDEX=true`.
 
 ## 7. Useful private routes
 

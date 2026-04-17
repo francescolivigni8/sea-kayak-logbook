@@ -4,6 +4,7 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -118,6 +119,44 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
+    }
+
+    public function test_user_account_deletion_removes_owned_session_media()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $session = $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-16',
+            'title' => 'Media cleanup test',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'journey',
+            'distance_km' => 4.2,
+            'duration_minutes' => 50,
+            'gpx_path' => 'gpx/manual/test-route.gpx',
+            'fit_path' => 'fit/manual/test-route.fit',
+            'session_photo_path' => 'session-photos/test-route.jpg',
+        ]);
+
+        collect([
+            $session->gpx_path,
+            $session->fit_path,
+            $session->session_photo_path,
+        ])->each(fn (string $path) => Storage::disk('public')->put($path, 'test'));
+
+        $this
+            ->actingAs($user)
+            ->delete(route('profile.destroy'), [
+                'password' => 'JournalPass123!',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('home'));
+
+        Storage::disk('public')->assertMissing('gpx/manual/test-route.gpx');
+        Storage::disk('public')->assertMissing('fit/manual/test-route.fit');
+        Storage::disk('public')->assertMissing('session-photos/test-route.jpg');
     }
 
     public function test_correct_password_must_be_provided_to_delete_account()

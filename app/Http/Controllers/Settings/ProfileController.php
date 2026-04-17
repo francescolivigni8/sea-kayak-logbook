@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\PaddleSession;
+use App\Support\SessionMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
@@ -120,6 +122,22 @@ class ProfileController extends Controller
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $media = app(SessionMediaService::class);
+
+        $user->ownedProfiles()
+            ->with(['sessions:id,profile_id,gpx_path,fit_path,session_photo_path'])
+            ->get()
+            ->flatMap(fn ($profile) => $profile->sessions)
+            ->each(function (PaddleSession $session) use ($media): void {
+                collect([
+                    $session->gpx_path,
+                    $session->fit_path,
+                    $session->session_photo_path,
+                ])
+                    ->filter()
+                    ->unique()
+                    ->each(fn (string $path) => $media->delete($path));
+            });
 
         Auth::logout();
 
