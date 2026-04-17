@@ -123,6 +123,30 @@ const renderedRoutePoints = computed(() =>
     ),
 );
 
+const routeLegs = computed(() =>
+    renderedRoutePoints.value.slice(0, -1).map((point, index) => {
+        const nextPoint = renderedRoutePoints.value[index + 1];
+
+        return {
+            key: `${point.lat}-${point.lng}-${nextPoint.lat}-${nextPoint.lng}`,
+            fromLabel:
+                index === 0
+                    ? 'L'
+                    : String(Math.min(index, routeWaypoints.value.length)),
+            toLabel:
+                index === renderedRoutePoints.value.length - 2
+                    ? 'F'
+                    : String(index + 1),
+            distanceKm: haversineKm(point, nextPoint),
+            bearingDeg: bearingDeg(point, nextPoint),
+        };
+    }),
+);
+
+const totalDistanceKm = computed(() =>
+    routeLegs.value.reduce((sum, leg) => sum + leg.distanceKm, 0),
+);
+
 function buildBaseLayer() {
     return L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
         maxZoom: 17,
@@ -249,6 +273,20 @@ function haversineKm(left: RouteWaypoint, right: RouteWaypoint): number {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return earthRadiusKm * c;
+}
+
+function bearingDeg(left: RouteWaypoint, right: RouteWaypoint): number {
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+    const lat1 = toRadians(left.lat);
+    const lat2 = toRadians(right.lat);
+    const dLng = toRadians(right.lng - left.lng);
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x =
+        Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+    return (toDegrees(Math.atan2(y, x)) + 360) % 360;
 }
 
 function renderMarkers() {
@@ -498,9 +536,46 @@ onBeforeUnmount(() => {
         </div>
 
         <div
-            class="mt-4 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white"
+            class="relative mt-4 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white"
         >
             <div ref="mapElement" :class="heightClass" />
+            <div
+                v-if="routeLegs.length"
+                class="pointer-events-none absolute right-3 bottom-3 left-3 z-[500] sm:right-auto sm:left-4 sm:max-w-[520px]"
+            >
+                <div
+                    class="pointer-events-auto rounded-[22px] border border-white/78 bg-white/90 p-3 shadow-[0_18px_42px_rgba(34,40,78,0.18)] backdrop-blur"
+                >
+                    <div
+                        class="flex items-center justify-between gap-4 border-b border-[color:var(--journal-line)] pb-2"
+                    >
+                        <div>
+                            <p class="journal-kicker">Course estimate</p>
+                            <p
+                                class="mt-1 text-[1.35rem] leading-none font-semibold text-[color:var(--journal-text)]"
+                            >
+                                {{ totalDistanceKm.toFixed(1) }} km
+                            </p>
+                        </div>
+                        <span class="journal-chip"
+                            >{{ routeLegs.length }} legs</span
+                        >
+                    </div>
+                    <div
+                        class="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    >
+                        <span
+                            v-for="leg in routeLegs"
+                            :key="leg.key"
+                            class="shrink-0 rounded-full border border-[color:var(--journal-line)] bg-white/84 px-3 py-1.5 font-mono text-xs text-[color:var(--journal-text)]"
+                        >
+                            {{ leg.fromLabel }}→{{ leg.toLabel }}
+                            {{ leg.distanceKm.toFixed(1) }} km ·
+                            {{ leg.bearingDeg.toFixed(0) }}°
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 </template>

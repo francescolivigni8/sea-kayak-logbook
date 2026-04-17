@@ -878,57 +878,6 @@ watch(
                         </div>
                     </div>
                 </section>
-
-                <section class="journal-card p-5">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="journal-kicker">Route legs</p>
-                            <h3 class="mt-2 text-[1.35rem] leading-none">
-                                Course estimate
-                            </h3>
-                        </div>
-                        <span class="journal-chip"
-                            >{{ routeLegs.length }} legs</span
-                        >
-                    </div>
-
-                    <div v-if="routeLegs.length" class="mt-4 space-y-2">
-                        <div
-                            v-for="leg in routeLegs"
-                            :key="leg.key"
-                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
-                        >
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <p
-                                    class="text-sm font-semibold text-[color:var(--journal-text)]"
-                                >
-                                    {{ leg.from.shortLabel }} →
-                                    {{ leg.to.shortLabel }}
-                                </p>
-                                <p
-                                    class="font-mono text-sm text-[color:var(--journal-text)]"
-                                >
-                                    {{ leg.distanceKm.toFixed(1) }} km
-                                </p>
-                            </div>
-                            <p
-                                class="mt-1 text-xs text-[color:var(--journal-muted)]"
-                            >
-                                Bearing {{ leg.bearingDeg.toFixed(0) }}°
-                            </p>
-                        </div>
-                    </div>
-
-                    <p
-                        v-else
-                        class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
-                    >
-                        Add at least two points on the map to get distance and
-                        leg bearings.
-                    </p>
-                </section>
             </aside>
         </section>
 
