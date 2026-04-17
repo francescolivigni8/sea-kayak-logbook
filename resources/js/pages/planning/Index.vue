@@ -108,6 +108,8 @@ interface RouteLeg {
     bearingDeg: number;
 }
 
+const AREA_FORECAST_KEY = 'area';
+
 const props = defineProps<{
     profile: ProfileSummary;
     weatherAutofillAvailable: boolean;
@@ -156,7 +158,7 @@ const forecastStatus = ref<
 >(Object.keys(initialForecastByPoint).length ? 'filled' : 'idle');
 const forecastMessage = ref<string | null>(
     Object.keys(initialForecastByPoint).length
-        ? 'Saved waypoint forecast loaded. Refresh conditions if the plan changes.'
+        ? 'Saved area forecast loaded. Refresh conditions if the plan changes.'
         : null,
 );
 const forecastByPoint = ref<Record<string, ForecastResult>>(
@@ -288,50 +290,69 @@ const estimatedMinutes = computed(() => {
     return Math.round((totalDistanceKm.value / speedKmh.value) * 60);
 });
 
-const routePointOffsets = computed<Record<string, number>>(() => {
-    const offsets: Record<string, number> = {};
-    let cumulativeDistanceKm = 0;
+const forecastAreaPoint = computed<RoutePoint | null>(() => {
+    if (!routePoints.value.length) {
+        return null;
+    }
 
-    routePoints.value.forEach((point, index) => {
-        offsets[point.key] =
-            speedKmh.value > 0
-                ? Math.round((cumulativeDistanceKm / speedKmh.value) * 60)
-                : 0;
+    const lats = routePoints.value.map((point) => point.lat);
+    const lngs = routePoints.value.map((point) => point.lng);
 
-        if (routeLegs.value[index]) {
-            cumulativeDistanceKm += routeLegs.value[index].distanceKm;
-        }
-    });
-
-    return offsets;
+    return {
+        key: AREA_FORECAST_KEY,
+        label: 'Route area',
+        shortLabel: 'A',
+        lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+        lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+    };
 });
 
-const estimatedStormglassRequests = computed(
-    () => routePoints.value.length * 2,
+const forecastAreaOffsetMinutes = computed(() =>
+    estimatedMinutes.value ? Math.round(estimatedMinutes.value / 2) : 0,
+);
+
+const areaForecast = computed<ForecastResult>(() => {
+    const savedArea = forecastByPoint.value[AREA_FORECAST_KEY];
+
+    if (savedArea) {
+        return savedArea;
+    }
+
+    return (
+        Object.values(forecastByPoint.value).find((forecast) =>
+            hasForecastFields(forecast),
+        ) ??
+        Object.values(forecastByPoint.value)[0] ?? { status: 'idle' }
+    );
+});
+
+const estimatedStormglassRequests = computed(() =>
+    forecastAreaPoint.value ? 2 : 0,
 );
 
 const forecastRequestEstimate = computed(() => {
-    if (!routePoints.value.length) {
+    if (!forecastAreaPoint.value) {
         return 'Add route points to estimate Stormglass usage.';
     }
 
-    const requests =
-        estimatedStormglassRequests.value === 1 ? 'request' : 'requests';
-
-    return `About ${estimatedStormglassRequests.value} Stormglass ${requests}: ${routePoints.value.length} weather + ${routePoints.value.length} tide.`;
+    return `About ${estimatedStormglassRequests.value} Stormglass requests: 1 area weather + 1 tide.`;
 });
 
-const conditionGridStyle = computed(() => ({
-    gridTemplateColumns: `140px repeat(${Math.max(routePoints.value.length, 1)}, minmax(112px, 1fr))`,
-}));
+const areaSampleTimeLabel = computed(() => {
+    const offset = forecastAreaOffsetMinutes.value;
+
+    return offset === 0
+        ? startTimeLocal.value || 'Start'
+        : `${startTimeLocal.value || 'Start'} + ${formatMinutes(offset)}`;
+});
 
 const forecastProgressLabel = computed(() => {
     if (forecastStatus.value === 'loading') {
-        return 'Loading waypoint forecast';
+        return 'Loading area forecast';
     }
 
     if (forecastStatus.value === 'filled') {
-        return `${Object.keys(forecastByPoint.value).length} points checked`;
+        return 'Area checked';
     }
 
     if (forecastStatus.value === 'stale') {
@@ -437,10 +458,6 @@ function formatCoordinate(value: number): string {
     return value.toFixed(5);
 }
 
-function pointForecast(point: RoutePoint): ForecastResult {
-    return forecastByPoint.value[point.key] ?? { status: 'idle' };
-}
-
 function hasForecastFields(forecast: ForecastResult): boolean {
     if (!forecast.fields) {
         return false;
@@ -451,17 +468,7 @@ function hasForecastFields(forecast: ForecastResult): boolean {
     );
 }
 
-function pointOffsetLabel(point: RoutePoint): string {
-    const offset = routePointOffsets.value[point.key] ?? 0;
-
-    return offset === 0
-        ? startTimeLocal.value || 'Start'
-        : `+${formatMinutes(offset)}`;
-}
-
-function forecastCellMessage(point: RoutePoint): string {
-    const forecast = pointForecast(point);
-
+function forecastCellMessage(forecast: ForecastResult): string {
     if (forecast.status === 'loading') {
         return 'Loading...';
     }
@@ -473,9 +480,7 @@ function forecastCellMessage(point: RoutePoint): string {
     return forecast.message || 'No forecast data.';
 }
 
-function tideLabel(point: RoutePoint): string {
-    const forecast = pointForecast(point);
-
+function tideLabel(forecast: ForecastResult): string {
     if (!hasForecastFields(forecast)) {
         return '—';
     }
@@ -537,7 +542,7 @@ function markForecastStale() {
 
     forecastByPoint.value = {};
     forecastStatus.value = 'stale';
-    forecastMessage.value = `Route, timing, or speed changed. Refresh conditions once the line is stable. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
+    forecastMessage.value = `Route, timing, or speed changed. Refresh the area forecast once the line is stable. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
 }
 
 async function refreshForecasts() {
@@ -548,10 +553,10 @@ async function refreshForecasts() {
         return;
     }
 
-    if (!routePoints.value.length) {
+    if (!forecastAreaPoint.value) {
         forecastStatus.value = 'warning';
         forecastMessage.value =
-            'Place at least one point before checking conditions.';
+            'Place at least one point before checking the route area.';
 
         return;
     }
@@ -559,87 +564,79 @@ async function refreshForecasts() {
     forecastAbortController?.abort();
     forecastAbortController = new AbortController();
     forecastStatus.value = 'loading';
-    forecastMessage.value = `Checking wind, tide, current, swell, and temperatures along the plan. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
+    forecastMessage.value = `Checking wind, tide, current, swell, and temperatures for the route area. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
     hasFetchedForecast.value = true;
 
-    const nextForecasts: Record<string, ForecastResult> = {};
+    const point = forecastAreaPoint.value;
+    const nextForecasts: Record<string, ForecastResult> = {
+        [AREA_FORECAST_KEY]: { status: 'loading' },
+    };
 
-    for (const point of routePoints.value) {
-        nextForecasts[point.key] = { status: 'loading' };
-        forecastByPoint.value = { ...nextForecasts };
+    forecastByPoint.value = { ...nextForecasts };
 
-        const params = new URLSearchParams({
-            plan_date: planDate.value,
-            start_time_local: startTimeLocal.value,
-            lat: point.lat.toFixed(6),
-            lng: point.lng.toFixed(6),
-            label: point.label,
-            offset_minutes: String(routePointOffsets.value[point.key] ?? 0),
+    const params = new URLSearchParams({
+        plan_date: planDate.value,
+        start_time_local: startTimeLocal.value,
+        lat: point.lat.toFixed(6),
+        lng: point.lng.toFixed(6),
+        label: point.label,
+        offset_minutes: String(forecastAreaOffsetMinutes.value),
+    });
+
+    try {
+        const response = await fetch(`/planning/weather-preview?${params}`, {
+            headers: {
+                Accept: 'application/json',
+            },
+            signal: forecastAbortController.signal,
         });
 
-        try {
-            const response = await fetch(
-                `/planning/weather-preview?${params}`,
-                {
-                    headers: {
-                        Accept: 'application/json',
-                    },
-                    signal: forecastAbortController.signal,
-                },
-            );
+        const payload = (await response
+            .json()
+            .catch(() => ({}))) as ForecastPayload;
 
-            const payload = (await response
-                .json()
-                .catch(() => ({}))) as ForecastPayload;
-
-            if (!response.ok) {
-                nextForecasts[point.key] = {
-                    status: 'failed',
-                    message:
-                        payload.message ||
-                        payload.reason ||
-                        `Forecast request failed (${response.status}).`,
-                };
-                continue;
-            }
-
-            nextForecasts[point.key] = {
-                status: payload.status ?? 'failed',
-                message: payload.message || payload.reason,
-                httpStatus: payload.httpStatus,
-                fields: payload.fields ?? {},
-            };
-        } catch (error) {
-            if (error instanceof DOMException && error.name === 'AbortError') {
-                return;
-            }
-
-            nextForecasts[point.key] = {
+        if (!response.ok) {
+            nextForecasts[AREA_FORECAST_KEY] = {
                 status: 'failed',
-                message: 'Forecast request failed for this point.',
+                message: payload.message || payload.reason,
+                httpStatus: response.status,
             };
+
+            forecastByPoint.value = nextForecasts;
+            forecastStatus.value = 'warning';
+            forecastMessage.value =
+                payload.message ||
+                payload.reason ||
+                `Area forecast request failed (${response.status}).`;
+
+            return;
         }
+
+        nextForecasts[AREA_FORECAST_KEY] = {
+            status: payload.status ?? 'failed',
+            message: payload.message || payload.reason,
+            httpStatus: payload.httpStatus,
+            fields: payload.fields ?? {},
+        };
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            return;
+        }
+
+        nextForecasts[AREA_FORECAST_KEY] = {
+            status: 'failed',
+            message: 'Area forecast request failed.',
+        };
     }
 
     forecastByPoint.value = nextForecasts;
-    const filledCount = Object.values(nextForecasts).filter((forecast) =>
-        hasForecastFields(forecast),
-    ).length;
-    const missingMessages = [
-        ...new Set(
-            Object.values(nextForecasts)
-                .filter((forecast) => !hasForecastFields(forecast))
-                .map((forecast) => forecast.message)
-                .filter(Boolean),
-        ),
-    ];
+    const forecast = nextForecasts[AREA_FORECAST_KEY];
+    const hasFields = hasForecastFields(forecast);
 
-    forecastStatus.value =
-        filledCount === routePoints.value.length ? 'filled' : 'warning';
-    forecastMessage.value =
-        filledCount > 0
-            ? `Waypoint conditions refreshed for ${filledCount}/${routePoints.value.length} points. ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.${missingMessages.length ? ` Missing points: ${missingMessages.join(' ')}` : ''}`
-            : `No waypoint returned usable forecast data yet. ${forecastRequestEstimate.value}${missingMessages.length ? ` ${missingMessages.join(' ')}` : ''}`;
+    forecastStatus.value = hasFields ? 'filled' : 'warning';
+    forecastMessage.value = hasFields
+        ? `Area conditions refreshed for the route centre at ${areaSampleTimeLabel.value}. ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
+        : `No usable area forecast data returned yet. ${forecastRequestEstimate.value}${forecast.message ? ` ${forecast.message}` : ''}`;
 }
 
 watch(
@@ -678,8 +675,8 @@ watch(
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
                             Sketch launch, landing, and course points before the
                             paddle. The planner estimates distance and can pull
-                            weather, tide, current, swell, and temperature for
-                            each point.
+                            one area forecast for wind, tide, current, swell,
+                            and temperature.
                         </p>
                     </div>
                     <div class="max-w-2xl">
@@ -886,14 +883,15 @@ watch(
                 class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
             >
                 <div>
-                    <p class="journal-kicker">Conditions timeline</p>
+                    <p class="journal-kicker">Area conditions</p>
                     <h3 class="mt-2 text-[1.55rem] leading-none">
-                        Waypoint forecast
+                        Route area forecast
                     </h3>
                     <p class="journal-copy mt-2 max-w-3xl text-sm md:text-base">
-                        Pull a point-by-point preview for the plan. This checks
-                        the nearest available Stormglass hour for the selected
-                        date and start time.
+                        Pull one forecast for the centre of the planned route,
+                        sampled around the midpoint of the paddle. This keeps
+                        the planner readable and avoids spending requests on
+                        every waypoint.
                     </p>
                 </div>
                 <div class="flex flex-col items-start gap-2 lg:items-end">
@@ -912,7 +910,7 @@ watch(
                     <p
                         class="max-w-[22rem] text-xs leading-5 text-[color:var(--journal-muted)] lg:text-right"
                     >
-                        {{ forecastRequestEstimate }} Drag first, refresh once.
+                        {{ forecastRequestEstimate }} Draw first, refresh once.
                     </p>
                 </div>
             </div>
@@ -932,349 +930,226 @@ watch(
             </section>
 
             <div
-                v-if="routePoints.length"
-                class="mt-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                v-if="forecastAreaPoint"
+                class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
             >
-                <div
-                    class="min-w-[900px] overflow-hidden rounded-[26px] border border-[rgba(122,16,20,0.22)] bg-[#b61018] text-white shadow-[0_22px_50px_rgba(89,18,25,0.16)]"
+                <section
+                    class="overflow-hidden rounded-[28px] border border-[rgba(122,16,20,0.22)] bg-[#b61018] text-white shadow-[0_22px_50px_rgba(89,18,25,0.16)]"
                 >
                     <div
-                        class="grid border-b border-white/15 bg-[#8f0d13] text-xs font-semibold tracking-[0.18em] uppercase"
-                        :style="conditionGridStyle"
+                        class="flex flex-col gap-3 border-b border-white/15 bg-[#8f0d13] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
-                        <div class="px-4 py-3">Route</div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-header`"
-                            class="border-l border-white/10 px-4 py-3"
-                        >
-                            <span
-                                class="inline-grid size-6 place-items-center rounded-full bg-white text-[0.72rem] font-black text-[#b61018]"
+                        <div>
+                            <p
+                                class="text-xs font-semibold tracking-[0.22em] uppercase opacity-75"
                             >
-                                {{ point.shortLabel }}
-                            </span>
-                            <span class="ml-2">{{ point.label }}</span>
-                        </div>
-                    </div>
-
-                    <div
-                        class="grid border-b border-white/10 text-sm"
-                        :style="conditionGridStyle"
-                    >
-                        <div class="bg-black/12 px-4 py-3 font-semibold">
-                            Time
-                        </div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-time`"
-                            class="border-l border-white/10 px-4 py-3 font-mono"
-                        >
-                            {{ pointOffsetLabel(point) }}
-                        </div>
-                    </div>
-
-                    <div class="grid text-sm" :style="conditionGridStyle">
-                        <div class="bg-black/12 px-4 py-3 font-semibold">
-                            Wind
-                        </div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-wind`"
-                            class="border-l border-white/10 px-4 py-3"
-                        >
-                            <template
-                                v-if="hasForecastFields(pointForecast(point))"
-                            >
-                                <span class="font-black">
-                                    F{{
-                                        fieldLabel(
-                                            pointForecast(point).fields
-                                                ?.wind_beaufort,
-                                        )
-                                    }}
-                                </span>
-                                <span class="ml-2 text-white/72">
-                                    {{
-                                        fieldLabel(
-                                            pointForecast(point).fields
-                                                ?.wind_avg_ms,
-                                            ' m/s',
-                                        )
-                                    }}
-                                </span>
-                            </template>
-                            <span v-else class="text-white/62">{{
-                                forecastCellMessage(point)
-                            }}</span>
-                        </div>
-                    </div>
-
-                    <div
-                        class="grid border-t border-white/10 text-sm"
-                        :style="conditionGridStyle"
-                    >
-                        <div class="bg-black/12 px-4 py-3 font-semibold">
-                            Current
-                        </div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-current`"
-                            class="border-l border-white/10 px-4 py-3"
-                        >
-                            {{
-                                fieldLabel(
-                                    pointForecast(point).fields?.current_knots,
-                                    ' kt',
-                                )
-                            }}
-                            <span class="text-white/62">
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.current_direction_deg,
-                                        '°',
-                                    )
-                                }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div
-                        class="grid border-t border-white/10 text-sm"
-                        :style="conditionGridStyle"
-                    >
-                        <div class="bg-black/12 px-4 py-3 font-semibold">
-                            Sea
-                        </div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-sea`"
-                            class="border-l border-white/10 px-4 py-3"
-                        >
-                            W
-                            {{
-                                fieldLabel(
-                                    pointForecast(point).fields?.wave_height_m,
-                                    ' m',
-                                )
-                            }}
-                            <span class="ml-2 text-white/62">
-                                S
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.swell_height_m,
-                                        ' m',
-                                    )
-                                }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div
-                        class="grid border-t border-white/10 text-sm"
-                        :style="conditionGridStyle"
-                    >
-                        <div class="bg-black/12 px-4 py-3 font-semibold">
-                            Tide / temp
-                        </div>
-                        <div
-                            v-for="point in routePoints"
-                            :key="`${point.key}-tide`"
-                            class="border-l border-white/10 px-4 py-3 capitalize"
-                        >
-                            {{ tideLabel(point) }}
-                            <span class="ml-2 text-white/62 normal-case">
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields?.air_temp_c,
-                                        ' C',
-                                    )
-                                }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div
-                v-if="routePoints.length"
-                class="mt-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-                <div
-                    class="min-w-[980px] overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/72"
-                >
-                    <div
-                        class="grid grid-cols-[130px_repeat(7,minmax(100px,1fr))] border-b border-[color:var(--journal-line)] bg-[rgba(255,255,255,0.74)] text-xs font-semibold tracking-[0.12em] text-[color:var(--journal-faint)] uppercase"
-                    >
-                        <div class="px-4 py-3">Point</div>
-                        <div class="px-4 py-3">Wind</div>
-                        <div class="px-4 py-3">Tide</div>
-                        <div class="px-4 py-3">Current</div>
-                        <div class="px-4 py-3">Sea</div>
-                        <div class="px-4 py-3">Temp</div>
-                        <div class="px-4 py-3">Severity</div>
-                        <div class="px-4 py-3">Coords</div>
-                    </div>
-
-                    <div
-                        v-for="point in routePoints"
-                        :key="point.key"
-                        class="grid grid-cols-[130px_repeat(7,minmax(100px,1fr))] border-b border-[color:var(--journal-line)] text-sm last:border-b-0"
-                    >
-                        <div class="px-4 py-3">
-                            <span class="journal-chip journal-chip--primary">{{
-                                point.shortLabel
-                            }}</span>
-                            <p class="mt-2 font-semibold">
-                                {{ point.label }}
+                                Route area
                             </p>
+                            <h4 class="mt-1 text-[1.45rem] leading-none">
+                                Area forecast
+                            </h4>
                         </div>
-                        <div class="px-4 py-3">
-                            <template
-                                v-if="hasForecastFields(pointForecast(point))"
-                            >
-                                <p class="font-semibold">
+                        <span
+                            class="inline-flex w-fit items-center rounded-full bg-white px-3 py-1.5 font-mono text-xs font-bold text-[#b61018]"
+                        >
+                            {{ areaSampleTimeLabel }}
+                        </span>
+                    </div>
+
+                    <div v-if="hasForecastFields(areaForecast)" class="p-5">
+                        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Wind
+                                </p>
+                                <p class="mt-2 text-2xl font-black">
                                     F{{
                                         fieldLabel(
-                                            pointForecast(point).fields
-                                                ?.wind_beaufort,
+                                            areaForecast.fields?.wind_beaufort,
                                         )
                                     }}
                                 </p>
-                                <p
-                                    class="text-xs text-[color:var(--journal-muted)]"
-                                >
+                                <p class="mt-1 text-sm text-white/72">
                                     {{
                                         fieldLabel(
-                                            pointForecast(point).fields
-                                                ?.wind_avg_ms,
+                                            areaForecast.fields?.wind_avg_ms,
                                             ' m/s',
                                         )
                                     }}
-                                    avg
-                                </p>
-                                <p
-                                    class="text-xs text-[color:var(--journal-muted)]"
-                                >
+                                    avg ·
                                     {{
                                         fieldLabel(
-                                            pointForecast(point).fields
-                                                ?.wind_gust_ms,
+                                            areaForecast.fields?.wind_gust_ms,
                                             ' m/s',
                                         )
                                     }}
                                     gust
                                 </p>
-                            </template>
-                            <span
-                                v-else
-                                class="text-[color:var(--journal-faint)]"
-                            >
-                                {{ forecastCellMessage(point) }}
-                            </span>
+                            </div>
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Tide
+                                </p>
+                                <p class="mt-2 text-2xl font-black capitalize">
+                                    {{ tideLabel(areaForecast) }}
+                                </p>
+                                <p class="mt-1 text-sm text-white/72">
+                                    Area sample, not per waypoint.
+                                </p>
+                            </div>
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Current
+                                </p>
+                                <p class="mt-2 text-2xl font-black">
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.current_knots,
+                                            ' kt',
+                                        )
+                                    }}
+                                </p>
+                                <p class="mt-1 text-sm text-white/72">
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields
+                                                ?.current_direction_deg,
+                                            '°',
+                                        )
+                                    }}
+                                    direction
+                                </p>
+                            </div>
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Sea
+                                </p>
+                                <p class="mt-2 text-2xl font-black">
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.wave_height_m,
+                                            ' m',
+                                        )
+                                    }}
+                                </p>
+                                <p class="mt-1 text-sm text-white/72">
+                                    Swell
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.swell_height_m,
+                                            ' m',
+                                        )
+                                    }}
+                                    @
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.swell_period_s,
+                                            ' s',
+                                        )
+                                    }}
+                                </p>
+                            </div>
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Temp
+                                </p>
+                                <p class="mt-2 text-2xl font-black">
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.air_temp_c,
+                                            ' C',
+                                        )
+                                    }}
+                                </p>
+                                <p class="mt-1 text-sm text-white/72">
+                                    Sea
+                                    {{
+                                        fieldLabel(
+                                            areaForecast.fields?.sea_temp_c,
+                                            ' C',
+                                        )
+                                    }}
+                                </p>
+                            </div>
+                            <div class="rounded-[20px] bg-white/12 p-4">
+                                <p class="text-xs font-semibold uppercase">
+                                    Severity
+                                </p>
+                                <p class="mt-2 text-2xl font-black capitalize">
+                                    {{
+                                        areaForecast.fields
+                                            ?.forecast_severity ?? '—'
+                                    }}
+                                </p>
+                                <p class="mt-1 text-sm text-white/72">
+                                    Planning guidance only.
+                                </p>
+                            </div>
                         </div>
-                        <div class="px-4 py-3 capitalize">
-                            {{ tideLabel(point) }}
-                        </div>
-                        <div class="px-4 py-3">
-                            <p>
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.current_knots,
-                                        ' kt',
-                                    )
-                                }}
-                            </p>
+
+                        <p
+                            v-if="areaForecast.fields?.weather_summary"
+                            class="mt-4 rounded-[20px] bg-black/14 p-4 text-sm leading-6 text-white/82"
+                        >
+                            {{ areaForecast.fields.weather_summary }}
+                        </p>
+                    </div>
+                    <div v-else class="p-5">
+                        <p
+                            class="rounded-[20px] bg-white/12 p-4 text-sm leading-6 text-white/80"
+                        >
+                            {{ forecastCellMessage(areaForecast) }}
+                        </p>
+                    </div>
+                </section>
+
+                <section class="journal-card p-5">
+                    <p class="journal-kicker">Sample point</p>
+                    <h4 class="mt-2 text-[1.35rem] leading-none">
+                        Route centre
+                    </h4>
+                    <div class="mt-4 grid gap-3">
+                        <div
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
+                        >
+                            <p class="journal-field-label">Coordinates</p>
                             <p
-                                class="text-xs text-[color:var(--journal-muted)]"
+                                class="mt-1 font-mono text-sm text-[color:var(--journal-text)]"
                             >
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.current_direction_deg,
-                                        '°',
-                                    )
-                                }}
+                                {{ formatCoordinate(forecastAreaPoint.lat) }},
+                                {{ formatCoordinate(forecastAreaPoint.lng) }}
                             </p>
-                        </div>
-                        <div class="px-4 py-3">
-                            <p>
-                                Wave
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.wave_height_m,
-                                        ' m',
-                                    )
-                                }}
-                            </p>
-                            <p
-                                class="text-xs text-[color:var(--journal-muted)]"
-                            >
-                                Swell
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.swell_height_m,
-                                        ' m',
-                                    )
-                                }}
-                                @
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields
-                                            ?.swell_period_s,
-                                        ' s',
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <div class="px-4 py-3">
-                            <p>
-                                Air
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields?.air_temp_c,
-                                        ' C',
-                                    )
-                                }}
-                            </p>
-                            <p
-                                class="text-xs text-[color:var(--journal-muted)]"
-                            >
-                                Sea
-                                {{
-                                    fieldLabel(
-                                        pointForecast(point).fields?.sea_temp_c,
-                                        ' C',
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <div class="px-4 py-3 capitalize">
-                            {{
-                                pointForecast(point).fields
-                                    ?.forecast_severity ??
-                                pointForecast(point).status
-                            }}
                         </div>
                         <div
-                            class="px-4 py-3 font-mono text-xs text-[color:var(--journal-muted)]"
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
                         >
-                            {{ formatCoordinate(point.lat) }}<br />
-                            {{ formatCoordinate(point.lng) }}
+                            <p class="journal-field-label">Sample time</p>
+                            <p
+                                class="mt-1 font-semibold text-[color:var(--journal-text)]"
+                            >
+                                {{ areaSampleTimeLabel }}
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
+                        >
+                            <p class="journal-field-label">API use</p>
+                            <p
+                                class="mt-1 text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
+                                {{ forecastRequestEstimate }} Cached repeats may
+                                use fewer calls.
+                            </p>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
 
             <p
                 v-else
                 class="mt-5 rounded-[22px] border border-dashed border-[color:var(--journal-line)] bg-white/56 p-5 text-sm leading-6 text-[color:var(--journal-muted)]"
             >
-                Place route points on the map to build the planning timeline.
+                Place route points on the map to build the area forecast.
             </p>
         </section>
     </div>
