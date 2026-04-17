@@ -80,6 +80,7 @@ interface ForecastFields {
 interface ForecastResult {
     status: 'idle' | 'loading' | 'filled' | 'skipped' | 'failed';
     message?: string;
+    httpStatus?: number;
     fields?: ForecastFields;
 }
 
@@ -87,6 +88,7 @@ interface ForecastPayload {
     status?: ForecastResult['status'];
     message?: string;
     reason?: string;
+    httpStatus?: number;
     fields?: ForecastFields;
 }
 
@@ -149,9 +151,9 @@ const landingLat = ref(props.formDefaults.landing_lat);
 const landingLng = ref(props.formDefaults.landing_lng);
 const routeWaypointsJson = ref(props.formDefaults.route_waypoints);
 const notes = ref(props.formDefaults.notes);
-const forecastStatus = ref<'idle' | 'loading' | 'filled' | 'warning' | 'error'>(
-    Object.keys(initialForecastByPoint).length ? 'filled' : 'idle',
-);
+const forecastStatus = ref<
+    'idle' | 'loading' | 'filled' | 'warning' | 'error' | 'stale'
+>(Object.keys(initialForecastByPoint).length ? 'filled' : 'idle');
 const forecastMessage = ref<string | null>(
     Object.keys(initialForecastByPoint).length
         ? 'Saved waypoint forecast loaded. Refresh conditions if the plan changes.'
@@ -162,7 +164,6 @@ const forecastByPoint = ref<Record<string, ForecastResult>>(
 );
 const hasFetchedForecast = ref(Object.keys(initialForecastByPoint).length > 0);
 
-let forecastTimer: ReturnType<typeof setTimeout> | null = null;
 let forecastAbortController: AbortController | null = null;
 
 const saveForm = useForm({
@@ -305,6 +306,21 @@ const routePointOffsets = computed<Record<string, number>>(() => {
     return offsets;
 });
 
+const estimatedStormglassRequests = computed(
+    () => routePoints.value.length * 2,
+);
+
+const forecastRequestEstimate = computed(() => {
+    if (!routePoints.value.length) {
+        return 'Add route points to estimate Stormglass usage.';
+    }
+
+    const requests =
+        estimatedStormglassRequests.value === 1 ? 'request' : 'requests';
+
+    return `About ${estimatedStormglassRequests.value} Stormglass ${requests}: ${routePoints.value.length} weather + ${routePoints.value.length} tide.`;
+});
+
 const conditionGridStyle = computed(() => ({
     gridTemplateColumns: `140px repeat(${Math.max(routePoints.value.length, 1)}, minmax(112px, 1fr))`,
 }));
@@ -316,6 +332,10 @@ const forecastProgressLabel = computed(() => {
 
     if (forecastStatus.value === 'filled') {
         return `${Object.keys(forecastByPoint.value).length} points checked`;
+    }
+
+    if (forecastStatus.value === 'stale') {
+        return 'Needs refresh';
     }
 
     if (!props.weatherAutofillAvailable) {
@@ -446,7 +466,21 @@ function forecastCellMessage(point: RoutePoint): string {
         return 'Loading...';
     }
 
+    if (forecastStatus.value === 'stale') {
+        return 'Refresh needed.';
+    }
+
     return forecast.message || 'No forecast data.';
+}
+
+function tideLabel(point: RoutePoint): string {
+    const forecast = pointForecast(point);
+
+    if (!hasForecastFields(forecast)) {
+        return '—';
+    }
+
+    return forecast.fields?.tide_state ?? 'No tide';
 }
 
 function defaultPlanTitle(): string {
@@ -465,9 +499,11 @@ function syncSaveForm() {
     saveForm.landing_lat = landingLat.value;
     saveForm.landing_lng = landingLng.value;
     saveForm.route_waypoints = routeWaypointsJson.value;
-    saveForm.forecast_points = Object.keys(forecastByPoint.value).length
-        ? JSON.stringify(forecastByPoint.value)
-        : '';
+    saveForm.forecast_points =
+        forecastStatus.value !== 'stale' &&
+        Object.keys(forecastByPoint.value).length
+            ? JSON.stringify(forecastByPoint.value)
+            : '';
     saveForm.notes = notes.value;
 }
 
@@ -487,18 +523,21 @@ function savePlan() {
     });
 }
 
-function scheduleForecastRefresh() {
-    if (!hasFetchedForecast.value) {
+function markForecastStale() {
+    if (
+        !hasFetchedForecast.value &&
+        !Object.keys(forecastByPoint.value).length
+    ) {
         return;
     }
 
-    if (forecastTimer) {
-        clearTimeout(forecastTimer);
+    if (forecastStatus.value === 'loading') {
+        forecastAbortController?.abort();
     }
 
-    forecastTimer = setTimeout(() => {
-        refreshForecasts();
-    }, 900);
+    forecastByPoint.value = {};
+    forecastStatus.value = 'stale';
+    forecastMessage.value = `Route, timing, or speed changed. Refresh conditions once the line is stable. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
 }
 
 async function refreshForecasts() {
@@ -520,8 +559,7 @@ async function refreshForecasts() {
     forecastAbortController?.abort();
     forecastAbortController = new AbortController();
     forecastStatus.value = 'loading';
-    forecastMessage.value =
-        'Checking wind, tide, current, swell, and temperatures along the plan.';
+    forecastMessage.value = `Checking wind, tide, current, swell, and temperatures along the plan. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
     hasFetchedForecast.value = true;
 
     const nextForecasts: Record<string, ForecastResult> = {};
@@ -568,6 +606,7 @@ async function refreshForecasts() {
             nextForecasts[point.key] = {
                 status: payload.status ?? 'failed',
                 message: payload.message || payload.reason,
+                httpStatus: payload.httpStatus,
                 fields: payload.fields ?? {},
             };
         } catch (error) {
@@ -595,27 +634,27 @@ async function refreshForecasts() {
         ),
     ];
 
-    forecastStatus.value = filledCount > 0 ? 'filled' : 'warning';
+    forecastStatus.value =
+        filledCount === routePoints.value.length ? 'filled' : 'warning';
     forecastMessage.value =
         filledCount > 0
-            ? `Waypoint conditions refreshed for ${filledCount}/${routePoints.value.length} points. Treat this as planning guidance, not a go/no-go forecast.${missingMessages.length ? ` Missing points: ${missingMessages.join(' ')}` : ''}`
-            : `No waypoint returned usable forecast data yet.${missingMessages.length ? ` ${missingMessages.join(' ')}` : ''}`;
+            ? `Waypoint conditions refreshed for ${filledCount}/${routePoints.value.length} points. ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.${missingMessages.length ? ` Missing points: ${missingMessages.join(' ')}` : ''}`
+            : `No waypoint returned usable forecast data yet. ${forecastRequestEstimate.value}${missingMessages.length ? ` ${missingMessages.join(' ')}` : ''}`;
 }
 
 watch(
     () => [
         planDate.value,
         startTimeLocal.value,
+        speedKnots.value,
         launchLat.value,
         launchLng.value,
         landingLat.value,
         landingLng.value,
-        launchName.value,
-        landingName.value,
         routeWaypointsJson.value,
     ],
     () => {
-        scheduleForecastRefresh();
+        markForecastStale();
     },
 );
 </script>
@@ -908,25 +947,34 @@ watch(
                         date and start time.
                     </p>
                 </div>
-                <button
-                    type="button"
-                    class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-60"
-                    :disabled="forecastStatus === 'loading'"
-                    @click="refreshForecasts"
-                >
-                    {{
-                        forecastStatus === 'loading'
-                            ? 'Checking conditions...'
-                            : 'Refresh conditions'
-                    }}
-                </button>
+                <div class="flex flex-col items-start gap-2 lg:items-end">
+                    <button
+                        type="button"
+                        class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-60"
+                        :disabled="forecastStatus === 'loading'"
+                        @click="refreshForecasts"
+                    >
+                        {{
+                            forecastStatus === 'loading'
+                                ? 'Checking conditions...'
+                                : 'Refresh conditions'
+                        }}
+                    </button>
+                    <p
+                        class="max-w-[22rem] text-xs leading-5 text-[color:var(--journal-muted)] lg:text-right"
+                    >
+                        {{ forecastRequestEstimate }} Drag first, refresh once.
+                    </p>
+                </div>
             </div>
 
             <section
                 v-if="forecastMessage"
                 class="journal-banner mt-4"
                 :class="
-                    forecastStatus === 'error' || forecastStatus === 'warning'
+                    forecastStatus === 'error' ||
+                    forecastStatus === 'warning' ||
+                    forecastStatus === 'stale'
                         ? 'journal-banner--danger'
                         : 'journal-banner--soft'
                 "
@@ -1086,7 +1134,7 @@ watch(
                             :key="`${point.key}-tide`"
                             class="border-l border-white/10 px-4 py-3 capitalize"
                         >
-                            {{ pointForecast(point).fields?.tide_state ?? '—' }}
+                            {{ tideLabel(point) }}
                             <span class="ml-2 text-white/62 normal-case">
                                 {{
                                     fieldLabel(
@@ -1178,7 +1226,7 @@ watch(
                             </span>
                         </div>
                         <div class="px-4 py-3 capitalize">
-                            {{ pointForecast(point).fields?.tide_state ?? '—' }}
+                            {{ tideLabel(point) }}
                         </div>
                         <div class="px-4 py-3">
                             <p>

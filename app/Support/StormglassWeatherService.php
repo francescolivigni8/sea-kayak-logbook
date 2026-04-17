@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\PaddleSession;
 use Carbon\CarbonInterface;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -55,6 +57,16 @@ class StormglassWeatherService
 
         try {
             $hour = $this->fetchNearestForecastHour($lat, $lng, $targetTime);
+        } catch (RequestException $exception) {
+            report($exception);
+
+            return [
+                'status' => 'failed',
+                'reason' => $this->requestFailureMessage($exception),
+                'httpStatus' => $exception->response?->status(),
+                'filledFields' => 0,
+                'fields' => [],
+            ];
         } catch (Throwable $exception) {
             report($exception);
 
@@ -120,21 +132,29 @@ class StormglassWeatherService
 
     private function fetchNearestForecastHour(float $lat, float $lng, CarbonInterface $targetTime): ?array
     {
-        $response = Http::timeout($this->timeout())
-            ->withHeaders([
-                $this->authHeader() => $this->apiKey(),
-            ])
-            ->get($this->baseUrl(), [
-                'lat' => $lat,
-                'lng' => $lng,
-                'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
-                'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
-                'params' => implode(',', $this->params()),
-                'source' => $this->source(),
-            ])
-            ->throw();
+        $hours = Cache::remember(
+            $this->cacheKey('weather', $lat, $lng, $targetTime, implode(',', $this->params())),
+            $this->cacheSeconds(),
+            function () use ($lat, $lng, $targetTime) {
+                $response = Http::timeout($this->timeout())
+                    ->withHeaders([
+                        $this->authHeader() => $this->apiKey(),
+                    ])
+                    ->get($this->baseUrl(), [
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
+                        'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
+                        'params' => implode(',', $this->params()),
+                        'source' => $this->source(),
+                    ])
+                    ->throw();
 
-        $hours = $response->json('hours');
+                $hours = $response->json('hours');
+
+                return is_array($hours) ? $hours : [];
+            },
+        );
 
         if (! is_array($hours) || $hours === []) {
             return null;
@@ -163,6 +183,13 @@ class StormglassWeatherService
 
     private function fetchTideExtremes(float $lat, float $lng, CarbonInterface $targetTime): array
     {
+        $cacheKey = $this->cacheKey('tide', $lat, $lng, $targetTime, 'extremes');
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $start = Carbon::instance($targetTime)->copy()->subHours(12)->utc()->toIso8601String();
         $end = Carbon::instance($targetTime)->copy()->addHours(12)->utc()->toIso8601String();
 
@@ -182,8 +209,13 @@ class StormglassWeatherService
         }
 
         $data = $response->json('data');
+        $extremes = is_array($data) ? $data : [];
 
-        return is_array($data) ? $data : [];
+        if ($this->cacheSeconds() > 0) {
+            Cache::put($cacheKey, $extremes, $this->cacheSeconds());
+        }
+
+        return $extremes;
     }
 
     private function applyForecast(PaddleSession $session, array $hour): int
@@ -642,11 +674,42 @@ class StormglassWeatherService
         return (int) config('kayak.weather.providers.stormglass.timeout', 10);
     }
 
+    private function cacheSeconds(): int
+    {
+        return max((int) config('kayak.weather.providers.stormglass.cache_seconds', 3600), 0);
+    }
+
     /**
      * @return array<int, string>
      */
     private function params(): array
     {
         return config('kayak.weather.providers.stormglass.params', []);
+    }
+
+    private function cacheKey(string $type, float $lat, float $lng, CarbonInterface $targetTime, string $scope): string
+    {
+        return sprintf(
+            'stormglass:%s:%s:%s:%s:%s:%s',
+            $type,
+            round($lat, 4),
+            round($lng, 4),
+            Carbon::instance($targetTime)->utc()->format('YmdHi'),
+            $this->source(),
+            sha1($scope),
+        );
+    }
+
+    private function requestFailureMessage(RequestException $exception): string
+    {
+        $status = $exception->response?->status();
+
+        return match (true) {
+            $status === 401 || $status === 403 => 'Stormglass rejected the API key. Check the key in Laravel Cloud before trying again.',
+            $status === 429 => 'Stormglass daily request quota is exhausted. Try again after the reset, reduce waypoints, or upgrade the request limit.',
+            $status !== null && $status >= 500 => 'Stormglass is unavailable right now. Try refreshing conditions again later.',
+            $status !== null => sprintf('Stormglass request failed with HTTP %d.', $status),
+            default => 'Stormglass request failed before a response was returned.',
+        };
     }
 }

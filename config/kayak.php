@@ -20,6 +20,7 @@ return [
                 'auth_header' => env('STORMGLASS_AUTH_HEADER', 'Authorization'),
                 'source' => env('STORMGLASS_SOURCE', 'sg'),
                 'timeout' => (int) env('STORMGLASS_TIMEOUT', 10),
+                'cache_seconds' => (int) env('STORMGLASS_CACHE_SECONDS', 3600),
                 'params' => [
                     'windSpeed',
                     'gust',
