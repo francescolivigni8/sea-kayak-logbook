@@ -6,6 +6,7 @@ use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\PaddleSessionController;
+use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\UserInsightsController;
 use Illuminate\Http\Request;
@@ -43,6 +44,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('imports.garmin.store');
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
+    Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
+    Route::get('planning/weather-preview', [PlanningController::class, 'weatherPreview'])
+        ->middleware('throttle:20,1')
+        ->name('planning.weather-preview');
     Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])
         ->middleware('throttle:20,1')
         ->name('sessions.weather-preview');

@@ -47,6 +47,11 @@ const primaryNav = [
         placeholder: true,
     },
     {
+        label: 'Planning',
+        href: '/planning',
+        match: ['/planning'],
+    },
+    {
         label: 'Add session',
         href: '/sessions/create',
         match: ['/sessions/create', '/sessions/', '/imports/garmin'],

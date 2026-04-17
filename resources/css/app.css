@@ -1096,6 +1096,28 @@ html[data-theme='midnight-chart'] {
         background: linear-gradient(135deg, #6c7cff, #4f46e5);
         font-size: 0.7rem;
     }
+
+    .journal-planning-leg-label-shell {
+        background: transparent;
+        border: 0;
+    }
+
+    .journal-planning-leg-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        padding: 0.28rem 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        border-radius: 999px;
+        background: rgba(37, 43, 82, 0.78);
+        color: white;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        box-shadow: 0 10px 20px rgba(37, 43, 82, 0.16);
+        backdrop-filter: blur(10px);
+    }
 }
 
 @media (max-width: 767px) {
