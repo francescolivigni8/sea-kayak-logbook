@@ -44,10 +44,10 @@
             gap: 16px;
         }
         .brand-logo {
-            width: 82px;
-            height: 82px;
+            width: 92px;
+            height: 92px;
             flex: 0 0 auto;
-            border-radius: 22px;
+            border-radius: 24px;
             border: 1px solid rgba(103, 114, 255, 0.16);
             object-fit: cover;
             box-shadow: 0 18px 34px rgba(37, 43, 82, 0.14);
@@ -131,7 +131,7 @@
     <main class="wrap">
         <section class="card">
             <div class="brand">
-                <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="82" height="82">
+                <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="92" height="92">
                 <div class="brand-copy">
                     <div class="eyebrow">New workspace</div>
                     <h1>Create your kayak account</h1>
