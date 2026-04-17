@@ -127,6 +127,8 @@ class StormglassWeatherService
             ->get($this->baseUrl(), [
                 'lat' => $lat,
                 'lng' => $lng,
+                'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
+                'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
                 'params' => implode(',', $this->params()),
                 'source' => $this->source(),
             ])

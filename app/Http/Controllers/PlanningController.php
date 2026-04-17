@@ -77,11 +77,17 @@ class PlanningController extends Controller
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'label' => ['nullable', 'string', 'max:80'],
+            'offset_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
         ]);
+        $startAt = $this->buildStartAt($validated['plan_date'], $validated['start_time_local'] ?? null, $profile->timezone);
+
+        if ($startAt && isset($validated['offset_minutes'])) {
+            $startAt = $startAt->copy()->addMinutes((int) $validated['offset_minutes']);
+        }
 
         $previewSession = new PaddleSession([
             'session_date' => $validated['plan_date'],
-            'start_at' => $this->buildStartAt($validated['plan_date'], $validated['start_time_local'] ?? null, $profile->timezone),
+            'start_at' => $startAt,
             'timezone' => $profile->timezone,
             'launch_lat' => $this->nullableFloat($validated['lat'] ?? null),
             'launch_lng' => $this->nullableFloat($validated['lng'] ?? null),
@@ -95,6 +101,7 @@ class PlanningController extends Controller
                 'label' => $validated['label'] ?? 'Waypoint',
                 'lat' => $this->nullableFloat($validated['lat'] ?? null),
                 'lng' => $this->nullableFloat($validated['lng'] ?? null),
+                'offsetMinutes' => (int) ($validated['offset_minutes'] ?? 0),
             ],
             'message' => match ($result['status']) {
                 'filled' => sprintf('Forecast filled %d fields for %s.', (int) ($result['filledFields'] ?? 0), $validated['label'] ?? 'waypoint'),

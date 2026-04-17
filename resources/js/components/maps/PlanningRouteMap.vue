@@ -44,7 +44,7 @@ const props = withDefaults(
             lng: -21.9426,
             zoom: 10,
         }),
-        heightClass: 'h-[420px] lg:h-[560px]',
+        heightClass: 'h-[620px] lg:h-[760px]',
     },
 );
 
@@ -136,8 +136,8 @@ function plannerMarkerIcon(
     label: string,
 ) {
     return L.divIcon({
-        className: 'journal-session-map-marker-shell',
-        html: `<span class="journal-session-map-marker journal-session-map-marker--${tone}">${label}</span>`,
+        className: 'journal-planning-map-marker-shell',
+        html: `<span class="journal-planning-map-marker journal-planning-map-marker--${tone}">${label}</span>`,
         iconSize: tone === 'route' ? [28, 28] : [34, 34],
         iconAnchor: tone === 'route' ? [14, 14] : [17, 17],
     });
@@ -272,15 +272,14 @@ function renderMarkers() {
 
         L.polyline(latLngs, {
             color: '#f9fafb',
-            weight: 8,
-            opacity: 0.86,
+            weight: 9,
+            opacity: 0.9,
         }).addTo(routes);
 
         L.polyline(latLngs, {
-            color: '#6772ff',
-            weight: 4,
-            opacity: 0.94,
-            dashArray: '10 8',
+            color: '#d71920',
+            weight: 3,
+            opacity: 0.92,
         }).addTo(routes);
 
         renderedRoutePoints.value.slice(0, -1).forEach((point, index) => {
@@ -357,7 +356,6 @@ function renderMarkers() {
         });
     }
 
-    fitToPoints();
     leafletMap.invalidateSize();
 }
 
@@ -384,8 +382,15 @@ async function initializeMap() {
         updateTargetPoint(event.latlng.lat, event.latlng.lng);
     });
 
-    fitToPoints();
+    map.setView(
+        [props.defaultView.lat, props.defaultView.lng],
+        props.defaultView.zoom,
+    );
     renderMarkers();
+
+    if (renderedRoutePoints.value.length > 1) {
+        fitToPoints();
+    }
 }
 
 watch(
@@ -474,6 +479,13 @@ onBeforeUnmount(() => {
                     @click="clearRouteTrace"
                 >
                     Clear course
+                </button>
+                <button
+                    type="button"
+                    class="journal-utility-link shrink-0"
+                    @click="fitToPoints"
+                >
+                    Fit route
                 </button>
                 <button
                     type="button"

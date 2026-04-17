@@ -83,6 +83,13 @@ interface ForecastResult {
     fields?: ForecastFields;
 }
 
+interface ForecastPayload {
+    status?: ForecastResult['status'];
+    message?: string;
+    reason?: string;
+    fields?: ForecastFields;
+}
+
 interface RoutePoint {
     key: string;
     label: string;
@@ -224,7 +231,7 @@ const routePoints = computed<RoutePoint[]>(() => {
     if (launch) {
         points.push({
             key: 'launch',
-            label: 'Launch',
+            label: launchName.value.trim() || 'Launch',
             shortLabel: 'L',
             ...launch,
         });
@@ -245,7 +252,7 @@ const routePoints = computed<RoutePoint[]>(() => {
     if (landing) {
         points.push({
             key: 'landing',
-            label: 'Landing',
+            label: landingName.value.trim() || 'Landing',
             shortLabel: 'F',
             ...landing,
         });
@@ -279,6 +286,28 @@ const estimatedMinutes = computed(() => {
 
     return Math.round((totalDistanceKm.value / speedKmh.value) * 60);
 });
+
+const routePointOffsets = computed<Record<string, number>>(() => {
+    const offsets: Record<string, number> = {};
+    let cumulativeDistanceKm = 0;
+
+    routePoints.value.forEach((point, index) => {
+        offsets[point.key] =
+            speedKmh.value > 0
+                ? Math.round((cumulativeDistanceKm / speedKmh.value) * 60)
+                : 0;
+
+        if (routeLegs.value[index]) {
+            cumulativeDistanceKm += routeLegs.value[index].distanceKm;
+        }
+    });
+
+    return offsets;
+});
+
+const conditionGridStyle = computed(() => ({
+    gridTemplateColumns: `140px repeat(${Math.max(routePoints.value.length, 1)}, minmax(112px, 1fr))`,
+}));
 
 const forecastProgressLabel = computed(() => {
     if (forecastStatus.value === 'loading') {
@@ -392,6 +421,34 @@ function pointForecast(point: RoutePoint): ForecastResult {
     return forecastByPoint.value[point.key] ?? { status: 'idle' };
 }
 
+function hasForecastFields(forecast: ForecastResult): boolean {
+    if (!forecast.fields) {
+        return false;
+    }
+
+    return Object.values(forecast.fields).some(
+        (value) => value !== null && value !== undefined && value !== '',
+    );
+}
+
+function pointOffsetLabel(point: RoutePoint): string {
+    const offset = routePointOffsets.value[point.key] ?? 0;
+
+    return offset === 0
+        ? startTimeLocal.value || 'Start'
+        : `+${formatMinutes(offset)}`;
+}
+
+function forecastCellMessage(point: RoutePoint): string {
+    const forecast = pointForecast(point);
+
+    if (forecast.status === 'loading') {
+        return 'Loading...';
+    }
+
+    return forecast.message || 'No forecast data.';
+}
+
 function defaultPlanTitle(): string {
     return title.value.trim() || `Planned paddle ${planDate.value}`;
 }
@@ -479,6 +536,7 @@ async function refreshForecasts() {
             lat: point.lat.toFixed(6),
             lng: point.lng.toFixed(6),
             label: point.label,
+            offset_minutes: String(routePointOffsets.value[point.key] ?? 0),
         });
 
         try {
@@ -492,12 +550,25 @@ async function refreshForecasts() {
                 },
             );
 
-            const payload = await response.json();
+            const payload = (await response
+                .json()
+                .catch(() => ({}))) as ForecastPayload;
+
+            if (!response.ok) {
+                nextForecasts[point.key] = {
+                    status: 'failed',
+                    message:
+                        payload.message ||
+                        payload.reason ||
+                        `Forecast request failed (${response.status}).`,
+                };
+                continue;
+            }
 
             nextForecasts[point.key] = {
                 status: payload.status ?? 'failed',
-                message: payload.message,
-                fields: payload.fields,
+                message: payload.message || payload.reason,
+                fields: payload.fields ?? {},
             };
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
@@ -512,15 +583,23 @@ async function refreshForecasts() {
     }
 
     forecastByPoint.value = nextForecasts;
-    forecastStatus.value = Object.values(nextForecasts).some(
-        (forecast) => forecast.status === 'filled',
-    )
-        ? 'filled'
-        : 'warning';
+    const filledCount = Object.values(nextForecasts).filter((forecast) =>
+        hasForecastFields(forecast),
+    ).length;
+    const missingMessages = [
+        ...new Set(
+            Object.values(nextForecasts)
+                .filter((forecast) => !hasForecastFields(forecast))
+                .map((forecast) => forecast.message)
+                .filter(Boolean),
+        ),
+    ];
+
+    forecastStatus.value = filledCount > 0 ? 'filled' : 'warning';
     forecastMessage.value =
-        forecastStatus.value === 'filled'
-            ? 'Waypoint conditions refreshed. Treat this as planning guidance, not a go/no-go forecast.'
-            : 'No waypoint returned usable forecast data yet.';
+        filledCount > 0
+            ? `Waypoint conditions refreshed for ${filledCount}/${routePoints.value.length} points. Treat this as planning guidance, not a go/no-go forecast.${missingMessages.length ? ` Missing points: ${missingMessages.join(' ')}` : ''}`
+            : `No waypoint returned usable forecast data yet.${missingMessages.length ? ` ${missingMessages.join(' ')}` : ''}`;
 }
 
 watch(
@@ -531,6 +610,8 @@ watch(
         launchLng.value,
         landingLat.value,
         landingLng.value,
+        launchName.value,
+        landingName.value,
         routeWaypointsJson.value,
     ],
     () => {
@@ -560,6 +641,24 @@ watch(
                             paddle. The planner estimates distance and can pull
                             weather, tide, current, swell, and temperature for
                             each point.
+                        </p>
+                    </div>
+                    <div class="max-w-2xl">
+                        <label class="journal-field-label" for="plan_title"
+                            >Plan name</label
+                        >
+                        <input
+                            id="plan_title"
+                            v-model="title"
+                            type="text"
+                            class="journal-input bg-white/82 text-lg font-semibold"
+                            placeholder="Name this plan, e.g. Saturday island loop"
+                        />
+                        <p
+                            v-if="saveForm.errors.title"
+                            class="mt-2 text-xs font-semibold text-red-500"
+                        >
+                            {{ saveForm.errors.title }}
                         </p>
                     </div>
                 </div>
@@ -597,7 +696,7 @@ watch(
             {{ successMessage }}
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_420px]">
+        <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="flex flex-col gap-5">
                 <PlanningRouteMap
                     v-model:launch-lat="launchLat"
@@ -606,6 +705,7 @@ watch(
                     v-model:landing-lng="landingLng"
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
+                    height-class="h-[640px] lg:h-[820px]"
                 />
             </div>
 
@@ -621,24 +721,6 @@ watch(
                         <span v-if="isEditing" class="journal-chip">Saved</span>
                     </div>
                     <div class="mt-4 grid gap-4">
-                        <div>
-                            <label class="journal-field-label" for="title"
-                                >Plan name</label
-                            >
-                            <input
-                                id="title"
-                                v-model="title"
-                                type="text"
-                                class="journal-input"
-                                placeholder="e.g. Saturday Hvalfjordur plan"
-                            />
-                            <p
-                                v-if="saveForm.errors.title"
-                                class="mt-2 text-xs font-semibold text-red-500"
-                            >
-                                {{ saveForm.errors.title }}
-                            </p>
-                        </div>
                         <div>
                             <label class="journal-field-label" for="plan_date"
                                 >Date</label
@@ -857,6 +939,172 @@ watch(
                 class="mt-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
                 <div
+                    class="min-w-[900px] overflow-hidden rounded-[26px] border border-[rgba(122,16,20,0.22)] bg-[#b61018] text-white shadow-[0_22px_50px_rgba(89,18,25,0.16)]"
+                >
+                    <div
+                        class="grid border-b border-white/15 bg-[#8f0d13] text-xs font-semibold tracking-[0.18em] uppercase"
+                        :style="conditionGridStyle"
+                    >
+                        <div class="px-4 py-3">Route</div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-header`"
+                            class="border-l border-white/10 px-4 py-3"
+                        >
+                            <span
+                                class="inline-grid size-6 place-items-center rounded-full bg-white text-[0.72rem] font-black text-[#b61018]"
+                            >
+                                {{ point.shortLabel }}
+                            </span>
+                            <span class="ml-2">{{ point.label }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="grid border-b border-white/10 text-sm"
+                        :style="conditionGridStyle"
+                    >
+                        <div class="bg-black/12 px-4 py-3 font-semibold">
+                            Time
+                        </div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-time`"
+                            class="border-l border-white/10 px-4 py-3 font-mono"
+                        >
+                            {{ pointOffsetLabel(point) }}
+                        </div>
+                    </div>
+
+                    <div class="grid text-sm" :style="conditionGridStyle">
+                        <div class="bg-black/12 px-4 py-3 font-semibold">
+                            Wind
+                        </div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-wind`"
+                            class="border-l border-white/10 px-4 py-3"
+                        >
+                            <template
+                                v-if="hasForecastFields(pointForecast(point))"
+                            >
+                                <span class="font-black">
+                                    F{{
+                                        fieldLabel(
+                                            pointForecast(point).fields
+                                                ?.wind_beaufort,
+                                        )
+                                    }}
+                                </span>
+                                <span class="ml-2 text-white/72">
+                                    {{
+                                        fieldLabel(
+                                            pointForecast(point).fields
+                                                ?.wind_avg_ms,
+                                            ' m/s',
+                                        )
+                                    }}
+                                </span>
+                            </template>
+                            <span v-else class="text-white/62">{{
+                                forecastCellMessage(point)
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="grid border-t border-white/10 text-sm"
+                        :style="conditionGridStyle"
+                    >
+                        <div class="bg-black/12 px-4 py-3 font-semibold">
+                            Current
+                        </div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-current`"
+                            class="border-l border-white/10 px-4 py-3"
+                        >
+                            {{
+                                fieldLabel(
+                                    pointForecast(point).fields?.current_knots,
+                                    ' kt',
+                                )
+                            }}
+                            <span class="text-white/62">
+                                {{
+                                    fieldLabel(
+                                        pointForecast(point).fields
+                                            ?.current_direction_deg,
+                                        '°',
+                                    )
+                                }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="grid border-t border-white/10 text-sm"
+                        :style="conditionGridStyle"
+                    >
+                        <div class="bg-black/12 px-4 py-3 font-semibold">
+                            Sea
+                        </div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-sea`"
+                            class="border-l border-white/10 px-4 py-3"
+                        >
+                            W
+                            {{
+                                fieldLabel(
+                                    pointForecast(point).fields?.wave_height_m,
+                                    ' m',
+                                )
+                            }}
+                            <span class="ml-2 text-white/62">
+                                S
+                                {{
+                                    fieldLabel(
+                                        pointForecast(point).fields
+                                            ?.swell_height_m,
+                                        ' m',
+                                    )
+                                }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="grid border-t border-white/10 text-sm"
+                        :style="conditionGridStyle"
+                    >
+                        <div class="bg-black/12 px-4 py-3 font-semibold">
+                            Tide / temp
+                        </div>
+                        <div
+                            v-for="point in routePoints"
+                            :key="`${point.key}-tide`"
+                            class="border-l border-white/10 px-4 py-3 capitalize"
+                        >
+                            {{ pointForecast(point).fields?.tide_state ?? '—' }}
+                            <span class="ml-2 text-white/62 normal-case">
+                                {{
+                                    fieldLabel(
+                                        pointForecast(point).fields?.air_temp_c,
+                                        ' C',
+                                    )
+                                }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="routePoints.length"
+                class="mt-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+                <div
                     class="min-w-[980px] overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-white/72"
                 >
                     <div
@@ -886,7 +1134,9 @@ watch(
                             </p>
                         </div>
                         <div class="px-4 py-3">
-                            <template v-if="pointForecast(point).fields">
+                            <template
+                                v-if="hasForecastFields(pointForecast(point))"
+                            >
                                 <p class="font-semibold">
                                     F{{
                                         fieldLabel(
@@ -924,11 +1174,7 @@ watch(
                                 v-else
                                 class="text-[color:var(--journal-faint)]"
                             >
-                                {{
-                                    pointForecast(point).status === 'loading'
-                                        ? '...'
-                                        : '—'
-                                }}
+                                {{ forecastCellMessage(point) }}
                             </span>
                         </div>
                         <div class="px-4 py-3 capitalize">

@@ -1118,6 +1118,44 @@ html[data-theme='midnight-chart'] {
         box-shadow: 0 10px 20px rgba(37, 43, 82, 0.16);
         backdrop-filter: blur(10px);
     }
+
+    .journal-planning-map-marker-shell {
+        background: transparent;
+        border: 0;
+    }
+
+    .journal-planning-map-marker {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border: 2px solid rgba(255, 255, 255, 0.96);
+        border-radius: 999px;
+        background: #d71920;
+        color: white;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 0.72rem;
+        font-weight: 800;
+        box-shadow:
+            0 12px 24px rgba(114, 22, 24, 0.2),
+            0 0 0 4px rgba(215, 25, 32, 0.18);
+    }
+
+    .journal-planning-map-marker--launch,
+    .journal-planning-map-marker--landing {
+        width: 36px;
+        height: 36px;
+        background: #ffffff;
+        color: #d71920;
+        border-color: #d71920;
+    }
+
+    .journal-planning-map-marker--route {
+        width: 28px;
+        height: 28px;
+        background: #d71920;
+        font-size: 0.68rem;
+    }
 }
 
 @media (max-width: 767px) {
