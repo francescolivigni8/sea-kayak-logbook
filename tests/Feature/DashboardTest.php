@@ -92,4 +92,41 @@ class DashboardTest extends TestCase
                 ->has('expeditionMapData.pins', 2)
                 ->has('expeditionPlaces', 1));
     }
+
+    public function test_dashboard_route_map_includes_all_tracked_sessions(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        foreach (range(1, 10) as $index) {
+            $profile->sessions()->create([
+                'recorded_by_user_id' => $user->id,
+                'session_date' => now()->subDays($index)->toDateString(),
+                'title' => 'Tracked paddle '.$index,
+                'launch_lat' => 64.1 + ($index / 100),
+                'launch_lng' => -21.9,
+                'landing_lat' => 64.11 + ($index / 100),
+                'landing_lng' => -21.88,
+                'distance_km' => 5.0,
+                'duration_minutes' => 60,
+                'route_profile' => [
+                    [
+                        'lat' => 64.1 + ($index / 100),
+                        'lng' => -21.9,
+                    ],
+                    [
+                        'lat' => 64.11 + ($index / 100),
+                        'lng' => -21.88,
+                    ],
+                ],
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('mapData.routes', 10));
+    }
 }

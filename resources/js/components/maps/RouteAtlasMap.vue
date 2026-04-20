@@ -197,26 +197,33 @@ function pinCountForSelection(pin: AtlasPinItem): number {
 }
 
 const filteredRoutes = computed(() => {
-    if (selectedGeometry.value === 'pins') {
+    const geometry = props.showFilters ? selectedGeometry.value : 'all';
+    const year = props.showFilters ? selectedYear.value : 'all';
+    const kind =
+        props.showFilters && props.showKindFilter ? selectedKind.value : 'all';
+
+    if (geometry === 'pins') {
         return [];
     }
 
     return props.routes.filter(
         (route) =>
-            itemMatchesYear(route, selectedYear.value) &&
-            itemMatchesKind(route, selectedKind.value),
+            itemMatchesYear(route, year) && itemMatchesKind(route, kind),
     );
 });
 
 const filteredPins = computed(() => {
-    if (selectedGeometry.value === 'routes') {
+    const geometry = props.showFilters ? selectedGeometry.value : 'all';
+    const year = props.showFilters ? selectedYear.value : 'all';
+    const kind =
+        props.showFilters && props.showKindFilter ? selectedKind.value : 'all';
+
+    if (geometry === 'routes') {
         return [];
     }
 
     return props.pins.filter(
-        (pin) =>
-            itemMatchesYear(pin, selectedYear.value) &&
-            itemMatchesKind(pin, selectedKind.value),
+        (pin) => itemMatchesYear(pin, year) && itemMatchesKind(pin, kind),
     );
 });
 
@@ -269,15 +276,22 @@ function readPersistedState() {
         selectedStyle.value = persistedStyle;
     }
 
-    if (persistedYear) {
+    if (props.showFilters && persistedYear) {
         selectedYear.value = persistedYear;
     }
 
-    if (persistedKind && ['all', 'day', 'expedition'].includes(persistedKind)) {
+    if (
+        props.showFilters &&
+        props.showKindFilter &&
+        persistedKind &&
+        ['all', 'day', 'expedition'].includes(persistedKind)
+    ) {
         selectedKind.value = persistedKind;
     }
 
     if (
+        props.showFilters &&
+        props.showGeometryFilter &&
         persistedGeometry &&
         ['all', 'routes', 'pins'].includes(persistedGeometry)
     ) {

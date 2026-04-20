@@ -492,7 +492,6 @@ class ProfileDashboardData
         $palette = $this->mapPalette();
         $mappedSessions = $sessions
             ->filter(fn (PaddleSession $session) => $this->hasTrackData($session) || (filled($session->launch_lat) && filled($session->launch_lng)))
-            ->take(8)
             ->values();
 
         $routes = $mappedSessions
