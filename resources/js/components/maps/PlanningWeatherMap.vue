@@ -25,6 +25,7 @@ type WeatherLayerKey =
     | 'temperature'
     | 'pressure'
     | 'radar';
+type WeatherAnimationPresetKey = 'calm' | 'normal' | 'scan';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
     animateByFactor?: (factor: number) => void;
@@ -127,10 +128,10 @@ const routeLineLayerId = 'ykj-planning-weather-route-line';
 const routeSegmentLabelLayerId = 'ykj-planning-weather-segment-labels';
 const routePointLayerId = 'ykj-planning-weather-points';
 const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
-const animationSpeedFactor = 3600;
 
 const page = usePage();
 const activeLayer = ref<WeatherLayerKey>('wind');
+const activeAnimationPreset = ref<WeatherAnimationPresetKey>('calm');
 const mapElement = ref<HTMLElement | null>(null);
 const mapError = ref<string | null>(null);
 const isMapReady = ref(false);
@@ -169,6 +170,44 @@ const weatherLayerOptions: {
     { key: 'wind', label: 'Wind', meta: 'speed + flow', icon: 'W' },
     { key: 'pressure', label: 'Pressure', meta: 'broad systems', icon: 'P' },
     { key: 'radar', label: 'Radar', meta: 'reflectivity', icon: 'R' },
+];
+
+const weatherAnimationPresets: {
+    key: WeatherAnimationPresetKey;
+    label: string;
+    meta: string;
+    factor: number;
+    opacityScale: number;
+    windDensity: number;
+    windParticleSpeed: number;
+}[] = [
+    {
+        key: 'calm',
+        label: 'Calm',
+        meta: 'slow + sparse',
+        factor: 1800,
+        opacityScale: 0.78,
+        windDensity: 0.36,
+        windParticleSpeed: 0.00072,
+    },
+    {
+        key: 'normal',
+        label: 'Normal',
+        meta: 'balanced',
+        factor: 3600,
+        opacityScale: 1,
+        windDensity: 0.58,
+        windParticleSpeed: 0.0011,
+    },
+    {
+        key: 'scan',
+        label: 'Scan',
+        meta: 'faster preview',
+        factor: 7200,
+        opacityScale: 1.08,
+        windDensity: 0.74,
+        windParticleSpeed: 0.00145,
+    },
 ];
 
 const marineWindRamp = ColorRamp.fromArrayDefinition([
@@ -288,6 +327,12 @@ const weatherEnabled = computed(
 const canShowPlanningMap = computed(() => Boolean(maptilerKey.value));
 const weatherLayerAvailable = computed(
     () => weatherEnabled.value && Boolean(maptilerKey.value),
+);
+const animationPreset = computed(
+    () =>
+        weatherAnimationPresets.find(
+            (preset) => preset.key === activeAnimationPreset.value,
+        ) ?? weatherAnimationPresets[0],
 );
 
 const launchPoint = computed(() =>
@@ -643,12 +688,16 @@ function weatherLayerLabel(layer: WeatherLayerKey): string {
     );
 }
 
+function weatherOpacity(baseOpacity: number): number {
+    return Math.min(0.5, baseOpacity * animationPreset.value.opacityScale);
+}
+
 function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
     if (layer === 'precipitation') {
         return new PrecipitationLayer({
             id: 'ykj-weather-precipitation',
             colorramp: marinePrecipitationRamp,
-            opacity: 0.24,
+            opacity: weatherOpacity(0.24),
         }) as unknown as MappableLayer;
     }
 
@@ -656,7 +705,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new RadarLayer({
             id: 'ykj-weather-radar',
             colorramp: radarCloudRamp,
-            opacity: 0.24,
+            opacity: weatherOpacity(0.24),
         }) as unknown as MappableLayer;
     }
 
@@ -664,7 +713,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new PressureLayer({
             id: 'ykj-weather-pressure',
             colorramp: softPressureRamp,
-            opacity: 0.18,
+            opacity: weatherOpacity(0.18),
         }) as unknown as MappableLayer;
     }
 
@@ -672,7 +721,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new TemperatureLayer({
             id: 'ykj-weather-temperature',
             colorramp: marineTemperatureRamp,
-            opacity: 0.2,
+            opacity: weatherOpacity(0.2),
         }) as unknown as MappableLayer;
     }
 
@@ -682,9 +731,9 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         fastColor: [216, 75, 70, 152],
         fastIsLarger: true,
         colorramp: marineWindRamp,
-        opacity: 0.26,
-        density: 0.58,
-        speed: 0.0011,
+        opacity: weatherOpacity(0.26),
+        density: animationPreset.value.windDensity,
+        speed: animationPreset.value.windParticleSpeed,
     }) as unknown as MappableLayer;
 }
 
@@ -763,7 +812,7 @@ function attachWeatherEvents(layer: MappableLayer) {
             }
 
             syncAnimationBounds();
-            layer.animateByFactor?.(animationSpeedFactor);
+            layer.animateByFactor?.(animationPreset.value.factor);
             isPlaying.value = layer.isPlaying?.() ?? true;
         })
         .catch(() => {
@@ -836,8 +885,12 @@ function togglePlayback() {
         return;
     }
 
-    weatherLayer.animateByFactor?.(animationSpeedFactor);
+    weatherLayer.animateByFactor?.(animationPreset.value.factor);
     isPlaying.value = true;
+}
+
+function selectAnimationPreset(preset: WeatherAnimationPresetKey) {
+    activeAnimationPreset.value = preset;
 }
 
 function setTimelineProgress(value: string | number) {
@@ -1314,6 +1367,10 @@ watch(activeLayer, () => {
     applyWeatherLayer();
 });
 
+watch(activeAnimationPreset, () => {
+    applyWeatherLayer();
+});
+
 watch(liveWeatherEnabled, () => {
     if (!liveWeatherEnabled.value) {
         showLegend.value = false;
@@ -1450,12 +1507,33 @@ onBeforeUnmount(() => {
                                 </span>
                             </button>
                         </template>
+                        <div
+                            v-if="liveWeatherEnabled"
+                            class="grid grid-cols-3 gap-1 rounded-[8px] bg-white/62 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
+                        >
+                            <button
+                                v-for="preset in weatherAnimationPresets"
+                                :key="preset.key"
+                                type="button"
+                                class="rounded-[6px] px-1.5 py-1.5 text-center text-[0.62rem] leading-none font-black transition"
+                                :class="
+                                    preset.key === activeAnimationPreset
+                                        ? 'bg-[#111827] text-white'
+                                        : 'bg-white/64 text-[#29304f] hover:bg-white'
+                                "
+                                :title="preset.meta"
+                                @click="selectAnimationPreset(preset.key)"
+                            >
+                                {{ preset.label }}
+                            </button>
+                        </div>
                         <p
                             v-if="liveWeatherEnabled"
                             class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[0.66rem] leading-4 font-semibold text-[#29304f]/78 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
                         >
-                            Visual broad-area forecast only. Tide, current, and
-                            swell still come from the route forecast board.
+                            {{ animationPreset.label }} animation. Visual
+                            broad-area forecast only. Tide, current, and swell
+                            still come from the route forecast board.
                         </p>
                         <p
                             v-if="!liveWeatherEnabled"
@@ -1566,11 +1644,30 @@ onBeforeUnmount(() => {
                                 {{ option.label }}
                             </button>
                         </div>
+                        <div
+                            v-if="liveWeatherEnabled"
+                            class="flex gap-2 overflow-x-auto"
+                        >
+                            <button
+                                v-for="preset in weatherAnimationPresets"
+                                :key="`mobile-preset-${preset.key}`"
+                                type="button"
+                                class="shrink-0 rounded-[6px] px-2.5 py-1.5 text-[0.68rem] font-bold"
+                                :class="
+                                    preset.key === activeAnimationPreset
+                                        ? 'bg-[#111827] text-white'
+                                        : 'bg-white/82 text-[#29304f]'
+                                "
+                                @click="selectAnimationPreset(preset.key)"
+                            >
+                                {{ preset.label }}
+                            </button>
+                        </div>
                         <p
                             v-if="liveWeatherEnabled"
                             class="text-[0.66rem] leading-4 font-semibold text-[#29304f]/76"
                         >
-                            Animation is a model-style visual overlay; use the
+                            {{ animationPreset.label }} animation. Use the
                             forecast board for tide/current/swell numbers.
                         </p>
                         <form class="flex gap-2" @submit.prevent="searchPlace">
