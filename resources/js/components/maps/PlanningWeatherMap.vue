@@ -20,14 +20,24 @@ import {
 type CoordinateValue = string | number | null;
 type WeatherLayerKey =
     | 'wind'
-    | 'radar'
     | 'precipitation'
+    | 'temperature'
     | 'pressure'
-    | 'temperature';
+    | 'radar';
+type WeatherControlKey = WeatherLayerKey | 'isobar-plus' | 'arrow-plus';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
     animateByFactor?: (factor: number) => void;
     animate?: (timePerSecond: number) => void;
+    getAnimationStart?: () => number;
+    getAnimationEnd?: () => number;
+    getAnimationTime?: () => number;
+    getAnimationTimeDate?: () => Date;
+    setAnimationTime?: (time: number) => void;
+    isPlaying?: () => boolean;
+    on?: (event: string, callback: (event: { time?: number }) => void) => void;
+    off?: (event: string, callback: (event: { time?: number }) => void) => void;
+    onSourceReadyAsync?: () => Promise<void>;
 };
 
 interface DefaultView {
@@ -45,6 +55,32 @@ interface SharedIntegrations {
     maps?: {
         maptilerKey?: string | null;
         weatherEnabled?: boolean;
+    };
+}
+
+interface RouteFeatureProperties {
+    index?: number | string;
+    label?: string;
+}
+
+interface LayerMouseEvent {
+    lngLat: {
+        lat: number;
+        lng: number;
+    };
+    point?: maptilersdk.Point;
+    features?: Array<{
+        properties?: RouteFeatureProperties;
+    }>;
+    originalEvent?: Event;
+}
+
+interface GeocodingFeature {
+    center?: [number, number];
+    place_name?: string;
+    text?: string;
+    geometry?: {
+        coordinates?: unknown;
     };
 }
 
@@ -70,10 +106,26 @@ const props = withDefaults(
             lng: -21.9426,
             zoom: 9,
         }),
-        heightClass: 'h-[420px] lg:h-[520px]',
+        heightClass: 'h-[720px] lg:h-[900px]',
         sampleTimeLabel: 'Start',
     },
 );
+
+const emit = defineEmits<{
+    'update:launchLat': [value: string];
+    'update:launchLng': [value: string];
+    'update:landingLat': [value: string];
+    'update:landingLng': [value: string];
+    'update:routeWaypointsJson': [value: string];
+}>();
+
+const lineSourceId = 'ykj-planning-weather-route';
+const pointSourceId = 'ykj-planning-weather-points';
+const routeGlowLayerId = 'ykj-planning-weather-route-glow';
+const routeLineLayerId = 'ykj-planning-weather-route-line';
+const routePointLayerId = 'ykj-planning-weather-points';
+const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
+const animationSpeedFactor = 3600;
 
 const page = usePage();
 const activeLayer = ref<WeatherLayerKey>('wind');
@@ -81,21 +133,114 @@ const mapElement = ref<HTMLElement | null>(null);
 const mapError = ref<string | null>(null);
 const isMapReady = ref(false);
 const hasFitInitialRoute = ref(false);
+const showLegend = ref(false);
+const searchQuery = ref('');
+const searchStatus = ref<string | null>(null);
+const isSearching = ref(false);
+const isGlobe = ref(false);
+const animationStart = ref<number | null>(null);
+const animationEnd = ref<number | null>(null);
+const animationTime = ref<number | null>(null);
+const timelineProgress = ref(0);
+const isPlaying = ref(false);
 
 let map: maptilersdk.Map | null = null;
 let weatherLayer: MappableLayer | null = null;
+let weatherTickHandler: ((event: { time?: number }) => void) | null = null;
+let hasRegisteredRouteInteractions = false;
+let draggedPointIndex: number | null = null;
 
 const weatherLayerOptions: {
-    key: WeatherLayerKey;
+    key: WeatherControlKey;
     label: string;
     meta: string;
+    icon: string;
+    plus?: boolean;
 }[] = [
-    { key: 'wind', label: 'Wind', meta: 'animated flow' },
-    { key: 'precipitation', label: 'Rain', meta: 'mm/h' },
-    { key: 'radar', label: 'Radar', meta: 'cloud + rain' },
-    { key: 'pressure', label: 'Pressure', meta: 'systems' },
-    { key: 'temperature', label: 'Temp', meta: 'air mass' },
+    { key: 'temperature', label: 'Temperature', meta: 'air mass', icon: 'T' },
+    {
+        key: 'precipitation',
+        label: 'Precipitation',
+        meta: 'rain / snow',
+        icon: 'P',
+    },
+    { key: 'wind', label: 'Wind', meta: 'animated flow', icon: 'W' },
+    { key: 'pressure', label: 'Pressure', meta: 'systems', icon: 'P' },
+    { key: 'radar', label: 'Radar', meta: 'cloud + rain', icon: 'R' },
+    {
+        key: 'isobar-plus',
+        label: 'Isobar',
+        meta: 'PLUS required',
+        icon: 'I',
+        plus: true,
+    },
+    {
+        key: 'arrow-plus',
+        label: 'Arrow',
+        meta: 'PLUS required',
+        icon: 'A',
+        plus: true,
+    },
 ];
+
+const legends: Record<
+    WeatherLayerKey,
+    {
+        title: string;
+        unit: string;
+        stops: { label: string; color: string }[];
+    }
+> = {
+    wind: {
+        title: 'Wind',
+        unit: 'm/s with animated streamlines',
+        stops: [
+            { label: 'Light', color: '#2dd4bf' },
+            { label: 'Moderate', color: '#60a5fa' },
+            { label: 'Strong', color: '#a78bfa' },
+            { label: 'Hard', color: '#f97316' },
+        ],
+    },
+    precipitation: {
+        title: 'Precipitation',
+        unit: 'mm/h',
+        stops: [
+            { label: 'Dry', color: '#0f172a' },
+            { label: 'Light', color: '#38bdf8' },
+            { label: 'Rain', color: '#2563eb' },
+            { label: 'Heavy', color: '#7c3aed' },
+        ],
+    },
+    temperature: {
+        title: 'Temperature',
+        unit: 'C',
+        stops: [
+            { label: 'Cold', color: '#2563eb' },
+            { label: 'Cool', color: '#22d3ee' },
+            { label: 'Mild', color: '#facc15' },
+            { label: 'Warm', color: '#ef4444' },
+        ],
+    },
+    pressure: {
+        title: 'Pressure',
+        unit: 'hPa',
+        stops: [
+            { label: 'Low', color: '#7c3aed' },
+            { label: 'Normal', color: '#38bdf8' },
+            { label: 'High', color: '#fb7185' },
+        ],
+    },
+    radar: {
+        title: 'Radar',
+        unit: 'dBZ reflectivity',
+        stops: [
+            { label: 'Cloud', color: '#64748b' },
+            { label: 'Showers', color: '#22c55e' },
+            { label: 'Heavy', color: '#f97316' },
+            { label: 'Severe', color: '#ef4444' },
+        ],
+    },
+};
 
 const integrations = computed(
     () => (page.props.integrations as SharedIntegrations | undefined)?.maps,
@@ -161,10 +306,29 @@ const visibleRoutePoints = computed(() =>
     isClosedCourse.value ? routePoints.value.slice(0, -1) : routePoints.value,
 );
 
+const routeLegs = computed(() =>
+    routePoints.value.slice(0, -1).map((point, index) => {
+        const nextPoint = routePoints.value[index + 1];
+
+        return {
+            key: `${point.lat}-${point.lng}-${nextPoint.lat}-${nextPoint.lng}`,
+            fromLabel: routePointLabel(index),
+            toLabel: routePointLabel(index + 1),
+            distanceKm: haversineKm(point, nextPoint),
+            bearingDeg: bearingDeg(point, nextPoint),
+        };
+    }),
+);
+
+const totalDistanceKm = computed(() =>
+    routeLegs.value.reduce((sum, leg) => sum + leg.distanceKm, 0),
+);
+
 const routeGeoJson = computed(() => {
     const pointFeatures = visibleRoutePoints.value.map((point, index) => ({
         type: 'Feature' as const,
         properties: {
+            index,
             label: String(index + 1),
         },
         geometry: {
@@ -202,16 +366,37 @@ const routeGeoJson = computed(() => {
     };
 });
 
+const activeLegend = computed(() => legends[activeLayer.value]);
+
 const routeSummary = computed(() => {
     if (routePoints.value.length < 2) {
-        return 'Draw a course above, then this map mirrors it over live weather.';
+        return 'Click the map to add course points. Click point 1 again to close the loop.';
     }
 
     if (isClosedCourse.value) {
-        return `Closed course mirrored over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+        return `Closed course, ${totalDistanceKm.value.toFixed(1)} km, over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
     }
 
-    return `${routePoints.value.length} route points mirrored over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+    return `${routePoints.value.length} points, ${totalDistanceKm.value.toFixed(1)} km, over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+});
+
+const animationTimeLabel = computed(() =>
+    animationTime.value ? formatWeatherTime(animationTime.value) : 'Loading',
+);
+
+const timelineDayLabels = computed(() => {
+    const start = animationStart.value;
+    const end = animationEnd.value;
+
+    if (!start || !end) {
+        return ['Now', '+1 day', '+2 days', '+3 days', '+4 days'];
+    }
+
+    const span = end - start;
+
+    return Array.from({ length: 5 }, (_, index) =>
+        formatDayLabel(start + (span / 4) * index),
+    );
 });
 
 function coordinatePoint(
@@ -231,17 +416,157 @@ function coordinatePoint(
     };
 }
 
-function weatherLayerLabel(layer: WeatherLayerKey): string {
-    return (
-        weatherLayerOptions.find((option) => option.key === layer)?.label ??
-        'Weather'
+function emitWaypoints(points: RouteWaypoint[]) {
+    emit(
+        'update:routeWaypointsJson',
+        points.length ? JSON.stringify(points) : '',
     );
+}
+
+function setCoursePoints(points: RouteWaypoint[]) {
+    if (!points.length) {
+        emit('update:launchLat', '');
+        emit('update:launchLng', '');
+        emit('update:landingLat', '');
+        emit('update:landingLng', '');
+        emitWaypoints([]);
+
+        return;
+    }
+
+    const [firstPoint] = points;
+    const lastPoint = points.length > 1 ? points[points.length - 1] : null;
+
+    emit('update:launchLat', firstPoint.lat.toFixed(6));
+    emit('update:launchLng', firstPoint.lng.toFixed(6));
+    emitWaypoints(points.slice(1, -1));
+    emit('update:landingLat', lastPoint ? lastPoint.lat.toFixed(6) : '');
+    emit('update:landingLng', lastPoint ? lastPoint.lng.toFixed(6) : '');
+}
+
+function appendCoursePoint(lat: number, lng: number) {
+    const nextPoint = formatPoint(lat, lng);
+    const points = routePoints.value;
+
+    if (!points.length) {
+        setCoursePoints([nextPoint]);
+
+        return;
+    }
+
+    if (isClosedCourse.value) {
+        setCoursePoints([...points.slice(0, -1), nextPoint, points[0]]);
+
+        return;
+    }
+
+    setCoursePoints([...points, nextPoint]);
+}
+
+function updateCoursePoint(index: number, lat: number, lng: number) {
+    const nextPoint = formatPoint(lat, lng);
+    const points = routePoints.value;
+    const updatedPoints = points.map((point, pointIndex) => {
+        if (pointIndex === index) {
+            return nextPoint;
+        }
+
+        if (
+            index === 0 &&
+            isClosedCourse.value &&
+            pointIndex === points.length - 1
+        ) {
+            return nextPoint;
+        }
+
+        return point;
+    });
+
+    setCoursePoints(updatedPoints);
+}
+
+function removeCoursePoint(index: number) {
+    if (index === 0) {
+        return;
+    }
+
+    setCoursePoints(
+        routePoints.value.filter((_, pointIndex) => pointIndex !== index),
+    );
+}
+
+function closeCourse() {
+    const points = routePoints.value;
+
+    if (points.length < 2 || isClosedCourse.value) {
+        return;
+    }
+
+    setCoursePoints([...points, points[0]]);
+}
+
+function clearCourse() {
+    setCoursePoints([]);
+    hasFitInitialRoute.value = false;
+}
+
+function formatPoint(lat: number, lng: number): RouteWaypoint {
+    return {
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6)),
+    };
+}
+
+function routePointLabel(index: number): string {
+    const points = routePoints.value;
+
+    if (isClosedCourse.value && index === points.length - 1) {
+        return '1';
+    }
+
+    return String(index + 1);
 }
 
 function isSamePoint(left: RouteWaypoint, right: RouteWaypoint): boolean {
     return (
         Math.abs(left.lat - right.lat) < 0.000001 &&
         Math.abs(left.lng - right.lng) < 0.000001
+    );
+}
+
+function haversineKm(left: RouteWaypoint, right: RouteWaypoint): number {
+    const earthRadiusKm = 6371;
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const dLat = toRadians(right.lat - left.lat);
+    const dLng = toRadians(right.lng - left.lng);
+    const lat1 = toRadians(left.lat);
+    const lat2 = toRadians(right.lat);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusKm * c;
+}
+
+function bearingDeg(left: RouteWaypoint, right: RouteWaypoint): number {
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+    const lat1 = toRadians(left.lat);
+    const lat2 = toRadians(right.lat);
+    const dLng = toRadians(right.lng - left.lng);
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x =
+        Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+    return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function weatherLayerLabel(layer: WeatherLayerKey): string {
+    return (
+        weatherLayerOptions.find((option) => option.key === layer)?.label ??
+        'Weather'
     );
 }
 
@@ -285,7 +610,11 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
     }) as unknown as MappableLayer;
 }
 
-function firstSymbolLayerId(): string | undefined {
+function weatherBeforeLayerId(): string | undefined {
+    if (map?.getLayer(routeGlowLayerId)) {
+        return routeGlowLayerId;
+    }
+
     return map?.getStyle().layers?.find((layer) => layer.type === 'symbol')?.id;
 }
 
@@ -295,6 +624,8 @@ function removeWeatherLayer() {
 
         return;
     }
+
+    detachWeatherEvents();
 
     if (map.getLayer(weatherLayer.id)) {
         map.removeLayer(weatherLayer.id);
@@ -313,14 +644,324 @@ function applyWeatherLayer() {
 
     try {
         weatherLayer = buildWeatherLayer(activeLayer.value);
-        map.addLayer(weatherLayer, firstSymbolLayerId());
-        weatherLayer.animateByFactor?.(3200);
+        map.addLayer(weatherLayer, weatherBeforeLayerId());
+        attachWeatherEvents(weatherLayer);
+        upsertRouteOverlay();
     } catch (error) {
         mapError.value =
             error instanceof Error
                 ? error.message
                 : 'MapTiler weather layer could not be added.';
     }
+}
+
+function attachWeatherEvents(layer: MappableLayer) {
+    weatherTickHandler = (event) => {
+        if (typeof event.time === 'number') {
+            syncAnimationTime(event.time);
+        }
+    };
+
+    layer.on?.('tick', weatherTickHandler);
+    layer.on?.('animationTimeSet', weatherTickHandler);
+    layer.on?.('playAnimation', () => {
+        isPlaying.value = true;
+    });
+    layer.on?.('pauseAnimation', () => {
+        isPlaying.value = false;
+    });
+
+    layer
+        .onSourceReadyAsync?.()
+        .then(() => {
+            if (weatherLayer !== layer) {
+                return;
+            }
+
+            syncAnimationBounds();
+            layer.animateByFactor?.(animationSpeedFactor);
+            isPlaying.value = layer.isPlaying?.() ?? true;
+        })
+        .catch(() => {
+            mapError.value = 'Weather animation data could not be loaded.';
+        });
+}
+
+function detachWeatherEvents() {
+    if (!weatherLayer || !weatherTickHandler) {
+        weatherTickHandler = null;
+
+        return;
+    }
+
+    weatherLayer.off?.('tick', weatherTickHandler);
+    weatherLayer.off?.('animationTimeSet', weatherTickHandler);
+    weatherTickHandler = null;
+}
+
+function syncAnimationBounds() {
+    if (!weatherLayer) {
+        return;
+    }
+
+    const start = weatherLayer.getAnimationStart?.();
+    const end = weatherLayer.getAnimationEnd?.();
+    const time = weatherLayer.getAnimationTime?.();
+
+    animationStart.value =
+        start !== undefined && Number.isFinite(start) ? start : null;
+    animationEnd.value = end !== undefined && Number.isFinite(end) ? end : null;
+
+    if (time !== undefined && Number.isFinite(time)) {
+        syncAnimationTime(time);
+    }
+}
+
+function syncAnimationTime(time: number) {
+    animationTime.value = time;
+
+    if (
+        animationStart.value === null ||
+        animationEnd.value === null ||
+        animationEnd.value <= animationStart.value
+    ) {
+        return;
+    }
+
+    timelineProgress.value = Math.min(
+        100,
+        Math.max(
+            0,
+            ((time - animationStart.value) /
+                (animationEnd.value - animationStart.value)) *
+                100,
+        ),
+    );
+}
+
+function togglePlayback() {
+    if (!weatherLayer) {
+        return;
+    }
+
+    if (isPlaying.value) {
+        weatherLayer.animateByFactor?.(0);
+        weatherLayer.animate?.(0);
+        isPlaying.value = false;
+
+        return;
+    }
+
+    weatherLayer.animateByFactor?.(animationSpeedFactor);
+    isPlaying.value = true;
+}
+
+function setTimelineProgress(value: string | number) {
+    const progress = Number(value);
+    timelineProgress.value = progress;
+
+    if (
+        !weatherLayer ||
+        animationStart.value === null ||
+        animationEnd.value === null
+    ) {
+        return;
+    }
+
+    const nextTime =
+        animationStart.value +
+        (animationEnd.value - animationStart.value) * (progress / 100);
+
+    weatherLayer.setAnimationTime?.(nextTime);
+    syncAnimationTime(nextTime);
+}
+
+function updateSourceData(sourceId: string, data: unknown) {
+    const source = map?.getSource(sourceId) as
+        | { setData?: (nextData: unknown) => void }
+        | undefined;
+
+    source?.setData?.(data);
+}
+
+function upsertRouteOverlay() {
+    if (!map || !isMapReady.value) {
+        return;
+    }
+
+    if (!map.getSource(lineSourceId)) {
+        map.addSource(lineSourceId, {
+            type: 'geojson',
+            data: routeGeoJson.value.line,
+        });
+    } else {
+        updateSourceData(lineSourceId, routeGeoJson.value.line);
+    }
+
+    if (!map.getSource(pointSourceId)) {
+        map.addSource(pointSourceId, {
+            type: 'geojson',
+            data: routeGeoJson.value.points,
+        });
+    } else {
+        updateSourceData(pointSourceId, routeGeoJson.value.points);
+    }
+
+    if (!map.getLayer(routeGlowLayerId)) {
+        map.addLayer({
+            id: routeGlowLayerId,
+            type: 'line',
+            source: lineSourceId,
+            paint: {
+                'line-color': '#020617',
+                'line-opacity': 0.58,
+                'line-width': 10,
+            },
+        });
+    }
+
+    if (!map.getLayer(routeLineLayerId)) {
+        map.addLayer({
+            id: routeLineLayerId,
+            type: 'line',
+            source: lineSourceId,
+            paint: {
+                'line-color': '#ffffff',
+                'line-opacity': 0.96,
+                'line-width': 5,
+            },
+        });
+    }
+
+    if (!map.getLayer(routePointLayerId)) {
+        map.addLayer({
+            id: routePointLayerId,
+            type: 'circle',
+            source: pointSourceId,
+            paint: {
+                'circle-color': '#ffffff',
+                'circle-radius': 14,
+                'circle-stroke-color': '#d71920',
+                'circle-stroke-width': 5,
+            },
+        });
+    }
+
+    if (!map.getLayer(routePointLabelLayerId)) {
+        map.addLayer({
+            id: routePointLabelLayerId,
+            type: 'symbol',
+            source: pointSourceId,
+            layout: {
+                'text-allow-overlap': true,
+                'text-field': ['get', 'label'],
+                'text-font': ['Open Sans Bold'],
+                'text-size': 11,
+            },
+            paint: {
+                'text-color': '#b30f18',
+            },
+        });
+    }
+
+    registerRouteInteractions();
+
+    if (!hasFitInitialRoute.value && routePoints.value.length) {
+        hasFitInitialRoute.value = true;
+        fitRouteOrDefault();
+    }
+}
+
+function registerRouteInteractions() {
+    if (!map || hasRegisteredRouteInteractions) {
+        return;
+    }
+
+    hasRegisteredRouteInteractions = true;
+
+    map.on('click', routePointLayerId, (event: LayerMouseEvent) => {
+        const index = pointIndexFromEvent(event);
+
+        if (index === 0) {
+            closeCourse();
+        }
+    });
+
+    map.on('dblclick', routePointLayerId, (event: LayerMouseEvent) => {
+        const index = pointIndexFromEvent(event);
+
+        if (index !== null) {
+            removeCoursePoint(index);
+        }
+    });
+
+    map.on('mousedown', routePointLayerId, (event: LayerMouseEvent) => {
+        const index = pointIndexFromEvent(event);
+
+        if (index === null) {
+            return;
+        }
+
+        draggedPointIndex = index;
+        map?.dragPan.disable();
+        map?.getCanvas().classList.add('cursor-grabbing');
+        updateCoursePoint(index, event.lngLat.lat, event.lngLat.lng);
+    });
+
+    map.on('mouseenter', routePointLayerId, () => {
+        map?.getCanvas().classList.add('cursor-pointer');
+    });
+
+    map.on('mouseleave', routePointLayerId, () => {
+        map?.getCanvas().classList.remove('cursor-pointer');
+    });
+
+    map.on('mousemove', (event: LayerMouseEvent) => {
+        if (draggedPointIndex === null) {
+            return;
+        }
+
+        updateCoursePoint(
+            draggedPointIndex,
+            event.lngLat.lat,
+            event.lngLat.lng,
+        );
+    });
+
+    map.on('mouseup', () => {
+        if (draggedPointIndex === null) {
+            return;
+        }
+
+        draggedPointIndex = null;
+        map?.dragPan.enable();
+        map?.getCanvas().classList.remove('cursor-grabbing');
+    });
+}
+
+function pointIndexFromEvent(event: LayerMouseEvent): number | null {
+    const rawIndex = event.features?.[0]?.properties?.index;
+    const index = Number(rawIndex);
+
+    return Number.isFinite(index) ? index : null;
+}
+
+function handleMapClick(event: maptilersdk.MapMouseEvent) {
+    if (!map) {
+        return;
+    }
+
+    const clickedPoints = event.point
+        ? map.queryRenderedFeatures(event.point, {
+              layers: [routePointLayerId],
+          })
+        : [];
+
+    if (clickedPoints.length) {
+        return;
+    }
+
+    appendCoursePoint(event.lngLat.lat, event.lngLat.lng);
 }
 
 function fitRouteOrDefault(force = false) {
@@ -359,107 +1000,131 @@ function fitRouteOrDefault(force = false) {
             [Math.max(...lngs), Math.max(...lats)],
         ],
         {
-            padding: 74,
+            padding: 86,
             maxZoom: 12,
             duration: force ? 450 : 0,
         },
     );
 }
 
-function updateSourceData(sourceId: string, data: unknown) {
-    const source = map?.getSource(sourceId) as
-        | { setData?: (nextData: unknown) => void }
-        | undefined;
+function selectWeatherLayer(key: WeatherControlKey) {
+    if (key === 'isobar-plus' || key === 'arrow-plus') {
+        mapError.value =
+            key === 'isobar-plus'
+                ? 'Isobar needs MapTiler Weather Plus: PressureIsolineLayer.'
+                : 'Arrow needs MapTiler Weather Plus: WindArrowLayer.';
 
-    source?.setData?.(data);
-}
-
-function upsertRouteOverlay() {
-    if (!map || !isMapReady.value) {
         return;
     }
 
-    const lineSourceId = 'ykj-planning-weather-route';
-    const pointSourceId = 'ykj-planning-weather-points';
+    activeLayer.value = key;
+}
 
-    if (!map.getSource(lineSourceId)) {
-        map.addSource(lineSourceId, {
-            type: 'geojson',
-            data: routeGeoJson.value.line,
+function zoomIn() {
+    map?.zoomIn();
+}
+
+function zoomOut() {
+    map?.zoomOut();
+}
+
+function resetBearing() {
+    map?.easeTo({ bearing: 0, pitch: 0, duration: 300 });
+}
+
+function locateUser() {
+    if (!navigator.geolocation) {
+        mapError.value = 'Browser location is not available.';
+
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            map?.flyTo({
+                center: [position.coords.longitude, position.coords.latitude],
+                zoom: 12,
+                duration: 650,
+            });
+        },
+        () => {
+            mapError.value = 'Location permission was not granted.';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 8000,
+        },
+    );
+}
+
+function toggleProjection() {
+    if (!map) {
+        return;
+    }
+
+    isGlobe.value = !isGlobe.value;
+    map.setProjection(isGlobe.value ? 'globe' : 'mercator', {
+        persist: true,
+    });
+}
+
+async function searchPlace() {
+    const query = searchQuery.value.trim();
+
+    if (!query) {
+        return;
+    }
+
+    isSearching.value = true;
+    searchStatus.value = null;
+    mapError.value = null;
+
+    try {
+        const result = await maptilersdk.geocoding.forward(query, {
+            limit: 1,
         });
-    } else {
-        updateSourceData(lineSourceId, routeGeoJson.value.line);
-    }
+        const feature = result.features?.[0] as unknown as
+            | GeocodingFeature
+            | undefined;
+        const center = featureCenter(feature);
 
-    if (!map.getSource(pointSourceId)) {
-        map.addSource(pointSourceId, {
-            type: 'geojson',
-            data: routeGeoJson.value.points,
+        if (!center) {
+            searchStatus.value = 'No place found.';
+
+            return;
+        }
+
+        map?.flyTo({
+            center,
+            zoom: 11,
+            duration: 700,
         });
-    } else {
-        updateSourceData(pointSourceId, routeGeoJson.value.points);
+        searchStatus.value = feature?.place_name ?? feature?.text ?? query;
+    } catch {
+        mapError.value = 'Search failed. Check the MapTiler key and try again.';
+    } finally {
+        isSearching.value = false;
+    }
+}
+
+function featureCenter(
+    feature: GeocodingFeature | undefined,
+): [number, number] | null {
+    if (feature?.center) {
+        return feature.center;
     }
 
-    if (!map.getLayer('ykj-planning-weather-route-glow')) {
-        map.addLayer({
-            id: 'ykj-planning-weather-route-glow',
-            type: 'line',
-            source: lineSourceId,
-            paint: {
-                'line-color': '#020617',
-                'line-opacity': 0.56,
-                'line-width': 9,
-            },
-        });
+    const coordinates = feature?.geometry?.coordinates;
+
+    if (
+        Array.isArray(coordinates) &&
+        typeof coordinates[0] === 'number' &&
+        typeof coordinates[1] === 'number'
+    ) {
+        return [coordinates[0], coordinates[1]];
     }
 
-    if (!map.getLayer('ykj-planning-weather-route-line')) {
-        map.addLayer({
-            id: 'ykj-planning-weather-route-line',
-            type: 'line',
-            source: lineSourceId,
-            paint: {
-                'line-color': '#f97356',
-                'line-opacity': 0.96,
-                'line-width': 3.5,
-            },
-        });
-    }
-
-    if (!map.getLayer('ykj-planning-weather-points')) {
-        map.addLayer({
-            id: 'ykj-planning-weather-points',
-            type: 'circle',
-            source: pointSourceId,
-            paint: {
-                'circle-color': '#ffffff',
-                'circle-radius': 13,
-                'circle-stroke-color': '#d71920',
-                'circle-stroke-width': 4,
-            },
-        });
-    }
-
-    if (!map.getLayer('ykj-planning-weather-point-labels')) {
-        map.addLayer({
-            id: 'ykj-planning-weather-point-labels',
-            type: 'symbol',
-            source: pointSourceId,
-            layout: {
-                'text-field': ['get', 'label'],
-                'text-font': ['Open Sans Bold'],
-                'text-size': 11,
-            },
-            paint: {
-                'text-color': '#b30f18',
-            },
-        });
-    }
-
-    if (!hasFitInitialRoute.value && routePoints.value.length) {
-        hasFitInitialRoute.value = true;
-        fitRouteOrDefault();
-    }
+    return null;
 }
 
 async function initializeMap() {
@@ -479,17 +1144,13 @@ async function initializeMap() {
             center: [props.defaultView.lng, props.defaultView.lat],
             zoom: props.defaultView.zoom,
             pitch: 0,
+            doubleClickZoom: false,
             attributionControl: {
                 compact: 'auto',
             },
         });
 
-        map.addControl(
-            new maptilersdk.NavigationControl({
-                visualizePitch: false,
-            }),
-            'top-right',
-        );
+        map.on('click', handleMapClick);
 
         map.on('load', () => {
             isMapReady.value = true;
@@ -508,6 +1169,22 @@ async function initializeMap() {
                 ? error.message
                 : 'MapTiler map could not be initialized.';
     }
+}
+
+function formatWeatherTime(timestampSeconds: number): string {
+    return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(timestampSeconds * 1000));
+}
+
+function formatDayLabel(timestampSeconds: number): string {
+    return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+    }).format(new Date(timestampSeconds * 1000));
 }
 
 watch(activeLayer, () => {
@@ -546,63 +1223,9 @@ onBeforeUnmount(() => {
 
 <template>
     <section
-        class="overflow-hidden rounded-[24px] border border-[color:var(--journal-line)] bg-[#09111f] text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)]"
+        class="overflow-hidden rounded-[28px] border border-[color:var(--journal-line)] bg-[#09111f] text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)]"
     >
-        <div
-            class="flex flex-col gap-4 border-b border-white/10 bg-gradient-to-r from-[#101a31] via-[#132340] to-[#0d2d3b] p-4 md:flex-row md:items-start md:justify-between"
-        >
-            <div class="space-y-2">
-                <p class="journal-kicker text-white/58">Weather animation</p>
-                <h4 class="text-[1.25rem] leading-none text-white sm:text-2xl">
-                    MapTiler live planning layer
-                </h4>
-                <p class="max-w-3xl text-sm leading-6 text-white/68">
-                    {{ routeSummary }} Use this as a visual weather read, then
-                    confirm the numeric tide, current, swell, and Beaufort board
-                    below.
-                </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                <span
-                    class="rounded-full border border-white/14 bg-white/10 px-3 py-1.5 font-mono text-xs text-white/78"
-                >
-                    {{ sampleTimeLabel }}
-                </span>
-                <button
-                    type="button"
-                    class="rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/18"
-                    @click="fitRouteOrDefault(true)"
-                >
-                    Fit course
-                </button>
-            </div>
-        </div>
-
-        <div class="flex gap-2 overflow-x-auto px-4 py-3">
-            <button
-                v-for="option in weatherLayerOptions"
-                :key="option.key"
-                type="button"
-                class="shrink-0 rounded-full border px-3 py-2 text-left transition"
-                :class="
-                    activeLayer === option.key
-                        ? 'border-white bg-white text-[#151b31]'
-                        : 'border-white/12 bg-white/8 text-white/76 hover:bg-white/14'
-                "
-                @click="activeLayer = option.key"
-            >
-                <span class="block text-xs font-semibold">{{
-                    option.label
-                }}</span>
-                <span
-                    class="block text-[0.66rem] tracking-[0.14em] uppercase"
-                    >{{ option.meta }}</span
-                >
-            </button>
-        </div>
-
-        <div class="relative border-t border-white/10">
+        <div class="relative">
             <div
                 v-if="canShowWeatherMap"
                 ref="mapElement"
@@ -619,7 +1242,7 @@ onBeforeUnmount(() => {
                 >
                     <p class="journal-kicker text-white/58">Waiting for key</p>
                     <h5 class="mt-2 text-2xl leading-none text-white">
-                        MapTiler weather is ready
+                        MapTiler planning map is ready
                     </h5>
                     <p class="mt-3 text-sm leading-6 text-white/70">
                         Add <span class="font-mono">MAPTILER_API_KEY</span> and
@@ -627,14 +1250,304 @@ onBeforeUnmount(() => {
                         <span class="font-mono"
                             >MAPTILER_WEATHER_ENABLED=true</span
                         >
-                        in Laravel Cloud to turn on the animated weather map.
+                        in Laravel Cloud to use course drawing and animated
+                        weather in one map.
                     </p>
                 </div>
             </div>
 
             <div
+                class="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-3 sm:p-4"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div
+                        class="pointer-events-auto hidden w-[180px] flex-col gap-2 sm:flex"
+                    >
+                        <button
+                            v-for="option in weatherLayerOptions"
+                            :key="option.key"
+                            type="button"
+                            class="flex items-center gap-2 rounded-[3px] px-3 py-3 text-left text-sm font-bold shadow-[0_10px_28px_rgba(0,0,0,0.18)] transition"
+                            :class="
+                                option.key === activeLayer
+                                    ? 'bg-[#2f7df6] text-white'
+                                    : option.plus
+                                      ? 'bg-white/84 text-[#29304f] opacity-70'
+                                      : 'bg-white text-[#29304f] hover:bg-[#eef4ff]'
+                            "
+                            @click="selectWeatherLayer(option.key)"
+                        >
+                            <span
+                                class="grid h-5 w-5 place-items-center rounded-full border border-current/20 font-mono text-[0.65rem]"
+                                >{{ option.icon }}</span
+                            >
+                            <span>
+                                <span class="block">{{ option.label }}</span>
+                                <span
+                                    class="block text-[0.62rem] font-semibold tracking-[0.12em] uppercase opacity-62"
+                                    >{{ option.meta }}</span
+                                >
+                            </span>
+                        </button>
+                    </div>
+
+                    <div class="pointer-events-auto ml-auto flex gap-2">
+                        <form
+                            class="relative hidden sm:block"
+                            @submit.prevent="searchPlace"
+                        >
+                            <input
+                                v-model="searchQuery"
+                                type="search"
+                                class="h-10 w-[300px] rounded-[3px] border border-white/16 bg-white px-4 pr-20 text-sm font-semibold text-[#1d2438] shadow-[0_10px_30px_rgba(0,0,0,0.16)] outline-none"
+                                placeholder="Search"
+                            />
+                            <button
+                                type="submit"
+                                class="absolute top-1 right-1 rounded-[3px] bg-[#111827] px-3 py-2 text-xs font-bold text-white disabled:opacity-55"
+                                :disabled="isSearching"
+                            >
+                                {{ isSearching ? '...' : 'Go' }}
+                            </button>
+                        </form>
+
+                        <div class="flex flex-col gap-1">
+                            <button
+                                type="button"
+                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                @click="zoomIn"
+                            >
+                                +
+                            </button>
+                            <button
+                                type="button"
+                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                @click="zoomOut"
+                            >
+                                -
+                            </button>
+                            <button
+                                type="button"
+                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                title="Reset north"
+                                @click="resetBearing"
+                            >
+                                N
+                            </button>
+                            <button
+                                type="button"
+                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                title="Locate me"
+                                @click="locateUser"
+                            >
+                                ⌖
+                            </button>
+                            <button
+                                type="button"
+                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                title="Toggle globe"
+                                @click="toggleProjection"
+                            >
+                                ◎
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pointer-events-auto flex flex-col gap-3">
+                    <div
+                        class="flex flex-col gap-2 rounded-[3px] bg-white/76 p-3 text-[#29304f] shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur sm:hidden"
+                    >
+                        <div class="flex gap-2 overflow-x-auto">
+                            <button
+                                v-for="option in weatherLayerOptions"
+                                :key="`mobile-${option.key}`"
+                                type="button"
+                                class="shrink-0 rounded-[3px] px-3 py-2 text-xs font-bold"
+                                :class="
+                                    option.key === activeLayer
+                                        ? 'bg-[#2f7df6] text-white'
+                                        : 'bg-white text-[#29304f]'
+                                "
+                                @click="selectWeatherLayer(option.key)"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </div>
+                        <form class="flex gap-2" @submit.prevent="searchPlace">
+                            <input
+                                v-model="searchQuery"
+                                type="search"
+                                class="min-w-0 flex-1 rounded-[3px] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none"
+                                placeholder="Search"
+                            />
+                            <button
+                                type="submit"
+                                class="rounded-[3px] bg-[#111827] px-3 py-2 text-xs font-bold text-white"
+                            >
+                                Go
+                            </button>
+                        </form>
+                    </div>
+
+                    <div
+                        class="flex flex-col gap-3 bg-white/72 p-3 text-[#29304f] shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur sm:flex-row sm:items-center"
+                    >
+                        <button
+                            type="button"
+                            class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_26px_rgba(0,0,0,0.16)]"
+                            @click="togglePlayback"
+                        >
+                            {{ isPlaying ? 'Ⅱ' : '▶' }}
+                        </button>
+
+                        <div class="min-w-0 flex-1">
+                            <div
+                                class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-bold"
+                            >
+                                <span
+                                    class="rounded-[3px] bg-white px-3 py-1.5 font-mono text-[#2f4fdb]"
+                                    >{{ animationTimeLabel }}</span
+                                >
+                                <span
+                                    class="rounded-[3px] bg-white px-3 py-1.5 font-mono"
+                                    >{{ routeSummary }}</span
+                                >
+                            </div>
+                            <input
+                                class="w-full accent-[#2f7df6]"
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                :value="timelineProgress"
+                                @input="
+                                    setTimelineProgress(
+                                        ($event.target as HTMLInputElement)
+                                            .value,
+                                    )
+                                "
+                            />
+                            <div
+                                class="mt-1 grid grid-cols-5 text-center text-xs font-bold text-[#29304f]/70"
+                            >
+                                <span
+                                    v-for="label in timelineDayLabels"
+                                    :key="label"
+                                    >{{ label }}</span
+                                >
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="rounded-[3px] bg-white px-4 py-3 text-xs font-black tracking-[0.08em] uppercase shadow-[0_10px_26px_rgba(0,0,0,0.12)]"
+                            @click="showLegend = !showLegend"
+                        >
+                            Legend
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="pointer-events-none absolute top-3 right-3 left-3 z-20 flex flex-wrap gap-2 sm:top-auto sm:right-auto sm:bottom-[6.3rem] sm:left-4"
+            >
+                <button
+                    type="button"
+                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-black tracking-[0.08em] text-[#29304f] uppercase shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+                    @click="clearCourse"
+                >
+                    Clear course
+                </button>
+                <button
+                    type="button"
+                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-black tracking-[0.08em] text-[#29304f] uppercase shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+                    @click="fitRouteOrDefault(true)"
+                >
+                    Fit course
+                </button>
+                <span
+                    v-if="searchStatus"
+                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-bold text-[#29304f] shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+                    >{{ searchStatus }}</span
+                >
+            </div>
+
+            <div
+                v-if="routeLegs.length"
+                class="pointer-events-none absolute right-3 bottom-[7.6rem] left-3 z-20 sm:right-auto sm:left-4 sm:max-w-[520px]"
+            >
+                <div
+                    class="pointer-events-auto rounded-[22px] border border-white/78 bg-white/90 p-3 text-[#29304f] shadow-[0_18px_42px_rgba(0,0,0,0.18)] backdrop-blur"
+                >
+                    <div
+                        class="flex items-center justify-between gap-4 border-b border-slate-200 pb-2"
+                    >
+                        <div>
+                            <p class="journal-kicker">Course estimate</p>
+                            <p class="mt-1 text-[1.35rem] leading-none">
+                                {{ totalDistanceKm.toFixed(1) }} km
+                            </p>
+                        </div>
+                        <span class="journal-chip"
+                            >{{ routeLegs.length }} legs</span
+                        >
+                    </div>
+                    <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        <span
+                            v-for="leg in routeLegs"
+                            :key="leg.key"
+                            class="shrink-0 rounded-full border border-slate-200 bg-white/84 px-3 py-1.5 font-mono text-xs"
+                        >
+                            {{ leg.fromLabel }}→{{ leg.toLabel }}
+                            {{ leg.distanceKm.toFixed(1) }} km ·
+                            {{ leg.bearingDeg.toFixed(0) }}°
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="showLegend"
+                class="absolute right-3 bottom-[11.5rem] z-30 w-[260px] rounded-[3px] bg-white p-4 text-[#29304f] shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="journal-kicker">Legend</p>
+                        <h5 class="mt-1 text-lg leading-none">
+                            {{ activeLegend.title }}
+                        </h5>
+                        <p class="mt-1 text-xs font-semibold opacity-65">
+                            {{ activeLegend.unit }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="text-sm font-black"
+                        @click="showLegend = false"
+                    >
+                        ×
+                    </button>
+                </div>
+                <div class="mt-4 grid gap-2">
+                    <div
+                        v-for="stop in activeLegend.stops"
+                        :key="stop.label"
+                        class="flex items-center gap-2 text-xs font-bold"
+                    >
+                        <span
+                            class="h-3 w-10 rounded-full"
+                            :style="{ background: stop.color }"
+                        />
+                        <span>{{ stop.label }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div
                 v-if="mapError"
-                class="absolute right-3 bottom-3 left-3 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-xl"
+                class="absolute right-3 bottom-3 left-3 z-40 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-xl sm:right-auto sm:max-w-[520px]"
             >
                 {{ mapError }}
             </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
-import PlanningRouteMap from '@/components/maps/PlanningRouteMap.vue';
 import { dashboard } from '@/routes';
 
 interface ProfileSummary {
@@ -957,24 +956,15 @@ watch(
 
         <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="flex flex-col gap-5">
-                <PlanningRouteMap
+                <PlanningWeatherMap
                     v-model:launch-lat="launchLat"
                     v-model:launch-lng="launchLng"
                     v-model:landing-lat="landingLat"
                     v-model:landing-lng="landingLng"
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
-                    height-class="h-[640px] lg:h-[820px]"
-                />
-                <PlanningWeatherMap
-                    :launch-lat="launchLat"
-                    :launch-lng="launchLng"
-                    :landing-lat="landingLat"
-                    :landing-lng="landingLng"
-                    :route-waypoints-json="routeWaypointsJson"
-                    :default-view="profile.defaultMapView"
                     :sample-time-label="areaSampleTimeLabel"
-                    height-class="h-[460px] lg:h-[560px]"
+                    height-class="h-[760px] lg:h-[920px]"
                 />
             </div>
 
