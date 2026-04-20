@@ -120,8 +120,10 @@ const emit = defineEmits<{
 
 const lineSourceId = 'ykj-planning-weather-route';
 const pointSourceId = 'ykj-planning-weather-points';
+const segmentSourceId = 'ykj-planning-weather-segments';
 const routeGlowLayerId = 'ykj-planning-weather-route-glow';
 const routeLineLayerId = 'ykj-planning-weather-route-line';
+const routeSegmentLabelLayerId = 'ykj-planning-weather-segment-labels';
 const routePointLayerId = 'ykj-planning-weather-points';
 const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
 const animationSpeedFactor = 3600;
@@ -340,10 +342,35 @@ const routeGeoJson = computed(() => {
               ]
             : [];
 
+    const segmentFeatures = routePoints.value
+        .slice(0, -1)
+        .map((point, index) => {
+            const nextPoint = routePoints.value[index + 1];
+            const distanceKm = haversineKm(point, nextPoint);
+
+            return {
+                type: 'Feature' as const,
+                properties: {
+                    label: formatSegmentDistance(distanceKm),
+                },
+                geometry: {
+                    type: 'LineString' as const,
+                    coordinates: [
+                        [point.lng, point.lat],
+                        [nextPoint.lng, nextPoint.lat],
+                    ],
+                },
+            };
+        });
+
     return {
         line: {
             type: 'FeatureCollection' as const,
             features: lineFeatures,
+        },
+        segments: {
+            type: 'FeatureCollection' as const,
+            features: segmentFeatures,
         },
         points: {
             type: 'FeatureCollection' as const,
@@ -551,6 +578,14 @@ function bearingDeg(left: RouteWaypoint, right: RouteWaypoint): number {
         Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
 
     return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function formatSegmentDistance(distanceKm: number): string {
+    if (distanceKm < 1) {
+        return `${Math.round(distanceKm * 1000)} m`;
+    }
+
+    return `${distanceKm.toFixed(1)} km`;
 }
 
 function weatherLayerLabel(layer: WeatherLayerKey): string {
@@ -803,6 +838,15 @@ function upsertRouteOverlay() {
         updateSourceData(pointSourceId, routeGeoJson.value.points);
     }
 
+    if (!map.getSource(segmentSourceId)) {
+        map.addSource(segmentSourceId, {
+            type: 'geojson',
+            data: routeGeoJson.value.segments,
+        });
+    } else {
+        updateSourceData(segmentSourceId, routeGeoJson.value.segments);
+    }
+
     if (!map.getLayer(routeGlowLayerId)) {
         map.addLayer({
             id: routeGlowLayerId,
@@ -825,6 +869,29 @@ function upsertRouteOverlay() {
                 'line-color': '#ffffff',
                 'line-opacity': 0.96,
                 'line-width': 5,
+            },
+        });
+    }
+
+    if (!map.getLayer(routeSegmentLabelLayerId)) {
+        map.addLayer({
+            id: routeSegmentLabelLayerId,
+            type: 'symbol',
+            source: segmentSourceId,
+            layout: {
+                'symbol-placement': 'line-center',
+                'text-allow-overlap': true,
+                'text-field': ['get', 'label'],
+                'text-font': ['Open Sans Bold'],
+                'text-keep-upright': true,
+                'text-offset': [0, -0.75],
+                'text-size': 11,
+            },
+            paint: {
+                'text-color': '#1d2438',
+                'text-halo-blur': 0.5,
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 2,
             },
         });
     }
