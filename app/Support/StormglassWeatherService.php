@@ -44,6 +44,15 @@ class StormglassWeatherService
             ];
         }
 
+        if ($failure = $this->cachedProviderFailure()) {
+            return [
+                ...$failure,
+                'status' => 'failed',
+                'filledFields' => 0,
+                'fields' => [],
+            ];
+        }
+
         [$lat, $lng] = $this->coordinatesFor($session);
 
         if ($lat === null || $lng === null) {
@@ -60,8 +69,12 @@ class StormglassWeatherService
         try {
             $hour = $this->fetchNearestForecastHour($lat, $lng, $targetTime);
         } catch (RequestException $exception) {
-            report($exception);
             $failure = $this->requestFailureDetails($exception);
+            $this->rememberProviderFailure($failure);
+
+            if ($this->shouldReportRequestFailure($exception)) {
+                report($exception);
+            }
 
             return [
                 'status' => 'failed',
@@ -122,6 +135,16 @@ class StormglassWeatherService
             ];
         }
 
+        if ($failure = $this->cachedProviderFailure()) {
+            return [
+                ...$failure,
+                'status' => 'failed',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        }
+
         [$lat, $lng] = $this->coordinatesFor($session);
 
         if ($lat === null || $lng === null) {
@@ -147,8 +170,12 @@ class StormglassWeatherService
             $hours = $this->fetchForecastHours($lat, $lng, $rangeStart, $rangeEnd);
             $tideExtremes = $this->fetchTideExtremesRange($lat, $lng, $rangeStart, $rangeEnd);
         } catch (RequestException $exception) {
-            report($exception);
             $failure = $this->requestFailureDetails($exception);
+            $this->rememberProviderFailure($failure);
+
+            if ($this->shouldReportRequestFailure($exception)) {
+                report($exception);
+            }
 
             return [
                 'status' => 'failed',
@@ -960,11 +987,46 @@ class StormglassWeatherService
         return match (true) {
             $status === 401 => 'Stormglass returned HTTP 401. The API key is missing or invalid in Stormglass. Check STORMGLASS_API_KEY in Laravel Cloud, redeploy, or try STORMGLASS_AUTH_VALUE_PREFIX=Bearer.'.$suffix,
             $status === 403 => 'Stormglass returned HTTP 403. The key reached Stormglass, but this account may not be allowed to use the selected source or endpoint. Try STORMGLASS_SOURCE=none, check the subscription, or regenerate the key.'.$suffix,
-            $status === 429 => 'Stormglass daily request quota is exhausted. Try again after the reset, reduce waypoints, or upgrade the request limit.',
+            $status === 402 || $status === 429 => 'Stormglass daily request quota is exhausted. Try again after the reset, reduce waypoints, or upgrade the request limit.',
             $status !== null && $status >= 500 => 'Stormglass is unavailable right now. Try refreshing conditions again later.',
             $status !== null => sprintf('Stormglass request failed with HTTP %d.', $status),
             default => 'Stormglass request failed before a response was returned.',
         };
+    }
+
+    private function shouldReportRequestFailure(RequestException $exception): bool
+    {
+        return ! $this->shouldShortCircuitProviderStatus($exception->response?->status());
+    }
+
+    private function cachedProviderFailure(): ?array
+    {
+        $failure = Cache::get($this->providerFailureCacheKey());
+
+        return is_array($failure) ? $failure : null;
+    }
+
+    private function rememberProviderFailure(array $failure): void
+    {
+        $status = $failure['httpStatus'] ?? null;
+
+        if (! $this->shouldShortCircuitProviderStatus(is_int($status) ? $status : null)) {
+            return;
+        }
+
+        $minutes = in_array($status, [402, 429], true) ? 30 : 10;
+
+        Cache::put($this->providerFailureCacheKey(), $failure, now()->addMinutes($minutes));
+    }
+
+    private function shouldShortCircuitProviderStatus(?int $status): bool
+    {
+        return in_array($status, [401, 402, 403, 429], true);
+    }
+
+    private function providerFailureCacheKey(): string
+    {
+        return 'stormglass:provider-failure:'.sha1(($this->apiKey() ?? '').'|'.($this->source() ?? 'default'));
     }
 
     private function providerMessage(?ClientResponse $response): ?string
