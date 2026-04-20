@@ -157,13 +157,13 @@ const expeditionMapWarning = computed(() => {
                     <p class="journal-kicker">I paddled here</p>
                     <h2
                         class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Global expedition footprint
+                        >
+                        Global paddling footprint
                     </h2>
                 </div>
                 <span
                     class="text-sm font-medium text-[color:var(--journal-muted)]"
-                    >{{ expeditionMapData.pins.length }} pins</span
+                    >{{ expeditionMapData.pins.length }} places</span
                 >
             </div>
 
@@ -180,7 +180,7 @@ const expeditionMapWarning = computed(() => {
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
                     height-class="h-[520px]"
-                    empty-message="No expedition locations yet."
+                    empty-message="No paddled locations yet."
                 />
             </div>
 
@@ -195,8 +195,8 @@ const expeditionMapWarning = computed(() => {
                 v-if="expeditionPlaces.length"
                 class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
             >
-                The map shows one pin per expedition session. The cards below
-                group those pins back into named places.
+                The map groups all logged paddled locations into one pin per
+                place. The cards below remain expedition-tagged places.
             </p>
         </section>
 

@@ -85,7 +85,7 @@ class PublicProfileTest extends TestCase
                 ->where('headline.averageSpeedSamples', 4)
                 ->where('expeditionSummary.tripCount', 3)
                 ->where('expeditionSummary.missingMapPointCount', 1)
-                ->has('expeditionMapData.pins', 2)
+                ->has('expeditionMapData.pins', 1)
                 ->has('expeditionPlaces', 1));
     }
 

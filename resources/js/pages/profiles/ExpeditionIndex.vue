@@ -152,14 +152,13 @@ const expeditionMapWarning = computed(() => {
                             I paddled here
                         </p>
                         <h2 class="mt-2 text-2xl font-semibold text-slate-900">
-                            Global public expedition footprint
+                            Global public paddling footprint
                         </h2>
                     </div>
                     <span
                         class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500"
                     >
-                        {{ expeditionMapData.pins.length }} public expedition
-                        pins
+                        {{ expeditionMapData.pins.length }} public places
                     </span>
                 </div>
 
@@ -176,7 +175,7 @@ const expeditionMapWarning = computed(() => {
                         :show-kind-filter="false"
                         :show-geometry-filter="false"
                         height-class="h-[520px]"
-                        empty-message="No public expedition locations yet."
+                        empty-message="No public paddled locations yet."
                     />
                 </div>
 
@@ -191,8 +190,8 @@ const expeditionMapWarning = computed(() => {
                     v-if="expeditionPlaces.length"
                     class="mt-4 text-sm leading-6 text-slate-500"
                 >
-                    The map shows one pin per public expedition session. The
-                    cards below group repeated places together.
+                    The map groups public paddled locations into one pin per
+                    place. The cards below remain expedition-tagged places.
                 </p>
             </section>
 

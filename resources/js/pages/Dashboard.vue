@@ -224,8 +224,9 @@ const expeditionMapWarning = computed(() => {
                     class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
                 >
                     Tag a session as expedition and optionally log the days out
-                    in the checklist. Each tagged session drops its own world
-                    pin here.
+                    in the checklist. The footprint map below now marks every
+                    paddled location with a saved track or coordinate, grouping
+                    repeats into one pin.
                 </p>
             </div>
 
@@ -270,7 +271,7 @@ const expeditionMapWarning = computed(() => {
                     </div>
                     <span
                         class="text-sm font-medium text-[color:var(--journal-muted)]"
-                        >{{ expeditionMapData.pins.length }} pins</span
+                        >{{ expeditionMapData.pins.length }} places</span
                     >
                 </div>
 
@@ -285,7 +286,7 @@ const expeditionMapWarning = computed(() => {
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    empty-message="No expedition locations logged yet."
+                    empty-message="No paddled locations logged yet."
                     height-class="h-[280px] sm:h-[360px] lg:h-[440px]"
                 />
             </div>
@@ -307,7 +308,8 @@ const expeditionMapWarning = computed(() => {
                 v-if="expeditionSessionChips.length"
                 class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
             >
-                Session chips below jump straight into the expedition log entry.
+                Session chips below jump straight into the latest log entry for
+                that paddled location.
             </p>
         </section>
     </div>

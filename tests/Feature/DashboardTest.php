@@ -77,13 +77,39 @@ class DashboardTest extends TestCase
             'is_public' => true,
         ]);
 
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-10',
+            'title' => 'Regular Isafjordur paddle',
+            'launch_name' => 'Isafjordur',
+            'launch_lat' => 66.0748,
+            'launch_lng' => -23.1267,
+            'route_category' => 'journey',
+            'distance_km' => 8.0,
+            'duration_minutes' => 90,
+            'is_expedition' => false,
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-11',
+            'title' => 'Regular Reykjavik paddle',
+            'launch_name' => 'Reykjavik',
+            'launch_lat' => 64.1466,
+            'launch_lng' => -21.9426,
+            'route_category' => 'journey',
+            'distance_km' => 7.0,
+            'duration_minutes' => 80,
+            'is_expedition' => false,
+        ]);
+
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('headline.averageSpeedKnots', 4.7)
-                ->where('headline.averageSpeedSamples', 3)
+                ->where('headline.averageSpeedKnots', 4)
+                ->where('headline.averageSpeedSamples', 5)
                 ->where('seaState.averageBeaufort', 4.5)
                 ->where('expeditionSummary.distanceKm', 66.5)
                 ->where('expeditionSummary.daysOut', 5)
@@ -91,6 +117,49 @@ class DashboardTest extends TestCase
                 ->where('expeditionSummary.missingMapPointCount', 1)
                 ->has('expeditionMapData.pins', 2)
                 ->has('expeditionPlaces', 1));
+    }
+
+    public function test_footprint_map_groups_repeated_places_and_includes_day_sessions(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        foreach (range(1, 3) as $index) {
+            $profile->sessions()->create([
+                'recorded_by_user_id' => $user->id,
+                'session_date' => now()->subDays($index)->toDateString(),
+                'title' => 'Harbor paddle '.$index,
+                'launch_name' => 'Reykjavik',
+                'launch_lat' => 64.1466,
+                'launch_lng' => -21.9426,
+                'route_category' => 'journey',
+                'distance_km' => 5.0,
+                'duration_minutes' => 60,
+                'is_expedition' => false,
+            ]);
+        }
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => now()->subDays(4)->toDateString(),
+            'title' => 'Reykjanes paddle',
+            'launch_name' => 'Reykjanes',
+            'launch_lat' => 63.999,
+            'launch_lng' => -22.56,
+            'route_category' => 'journey',
+            'distance_km' => 9.0,
+            'duration_minutes' => 110,
+            'is_expedition' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('expeditionMapData.pins', 2)
+                ->where('expeditionMapData.pins.0.count', 3)
+                ->where('expeditionMapData.pins.1.count', 1));
     }
 
     public function test_dashboard_route_map_includes_all_tracked_sessions(): void

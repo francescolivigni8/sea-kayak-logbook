@@ -316,7 +316,7 @@ const expeditionMapWarning = computed(() => {
                     </div>
                     <span
                         class="text-sm font-medium text-[color:var(--journal-muted)]"
-                        >{{ expeditionMapData.pins.length }} pins</span
+                        >{{ expeditionMapData.pins.length }} places</span
                     >
                 </div>
 
@@ -331,7 +331,7 @@ const expeditionMapWarning = computed(() => {
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    empty-message="No public expedition locations yet."
+                    empty-message="No public paddled locations yet."
                     height-class="h-[420px]"
                 />
             </div>
