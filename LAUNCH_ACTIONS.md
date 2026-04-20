@@ -6,11 +6,19 @@ This file parks the remaining launch work so we can switch context and return la
 
 The Laravel app is code-ready for private staging, but not yet ready for a wider public launch. The remaining work is mostly external production setup: domain, mail, Laravel Cloud environment, storage verification, smoke testing, and monitoring/backups.
 
+Status checked on 2026-04-20:
+
+- Local launch-readiness tests pass.
+- `http://yourkayakingjournal.com` still returns `302` from `Namecheap URL Forward` to `http://www.yourkayakingjournal.com/`.
+- `https://yourkayakingjournal.com` times out instead of serving Laravel Cloud.
+- `https://www.yourkayakingjournal.com` fails TLS with an unrecognized host name.
+- Conclusion: Namecheap forwarding/parking is still in the way and the custom domain is not yet connected to Laravel Cloud.
+
 Latest pushed commits at the time this was saved:
 
-- `3520490` - Throttle weather-heavy routes
-- `3ba4a3e` - Clean launch checks and harden media privacy
-- `3df1eb3` - Slightly enlarge brand logo
+- `61b23ba` - Clarify collapsible library sections
+- `f0c89e1` - Refine planning weather map controls
+- `b9ce32b` - Stabilize cloud frontend build
 
 ## What Codex can fix handsfree
 
@@ -41,15 +49,22 @@ Latest pushed commits at the time this was saved:
 
 ### Domain
 
-Current finding: `yourkayakingjournal.com` is not serving the Laravel Cloud app yet. Previous checks showed Namecheap forwarding/parking and broken or unavailable HTTPS.
+Current finding: `yourkayakingjournal.com` is not serving the Laravel Cloud app yet. The latest check still shows Namecheap forwarding on HTTP, a timeout on root HTTPS, and invalid/unconfigured TLS on `www`.
 
 Action needed:
 
 - Add the custom domain in Laravel Cloud.
 - Copy the DNS target records Laravel Cloud provides.
-- Replace Namecheap forwarding/parking with the required DNS records.
+- Replace Namecheap URL Forward/parking with the required DNS records.
 - Verify both `yourkayakingjournal.com` and `www.yourkayakingjournal.com`.
 - Confirm SSL/HTTPS is issued and valid.
+
+Recommended Laravel Cloud choices:
+
+- Add `yourkayakingjournal.com` as the custom domain.
+- Use the default/simple verification path unless Laravel Cloud specifically asks for pre-verification records.
+- Enable the Laravel Cloud redirect between root and `www` only after DNS records are copied exactly.
+- In Namecheap, use `@` for the root host and `www` for the `www` host when entering records, unless Laravel Cloud shows a different host value.
 
 ### Mail
 

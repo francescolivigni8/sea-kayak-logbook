@@ -24,7 +24,7 @@ MET_NO_USER_AGENT="Your Kayaking Journal/1.0 hello@yourkayakingjournal.com"
 - The app now reads tile URLs from shared server config.
 - Without a MapTiler key, it keeps the current OpenTopoMap/CARTO/OpenStreetMap fallbacks.
 - With a MapTiler key, set `MAP_PROVIDER=maptiler` and `MAPTILER_API_KEY=...`.
-- Planning can show animated MapTiler Weather layers for wind, rain, radar, pressure, and temperature. The route editor still uses the normal map; the weather map mirrors the planned course as a visual context layer.
+- Planning uses a single MapTiler map for route drawing and animated weather layers for wind, rain, radar, pressure, and temperature.
 
 Laravel Cloud env:
 
