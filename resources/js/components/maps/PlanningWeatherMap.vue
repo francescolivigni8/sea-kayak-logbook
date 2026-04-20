@@ -149,16 +149,23 @@ const routePoints = computed(() =>
     ),
 );
 
+const isClosedCourse = computed(() => {
+    const points = routePoints.value;
+
+    return (
+        points.length > 2 && isSamePoint(points[0], points[points.length - 1])
+    );
+});
+
+const visibleRoutePoints = computed(() =>
+    isClosedCourse.value ? routePoints.value.slice(0, -1) : routePoints.value,
+);
+
 const routeGeoJson = computed(() => {
-    const pointFeatures = routePoints.value.map((point, index) => ({
+    const pointFeatures = visibleRoutePoints.value.map((point, index) => ({
         type: 'Feature' as const,
         properties: {
-            label:
-                index === 0
-                    ? 'L'
-                    : index === routePoints.value.length - 1
-                      ? 'F'
-                      : String(index),
+            label: String(index + 1),
         },
         geometry: {
             type: 'Point' as const,
@@ -200,6 +207,10 @@ const routeSummary = computed(() => {
         return 'Draw a course above, then this map mirrors it over live weather.';
     }
 
+    if (isClosedCourse.value) {
+        return `Closed course mirrored over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+    }
+
     return `${routePoints.value.length} route points mirrored over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
 });
 
@@ -224,6 +235,13 @@ function weatherLayerLabel(layer: WeatherLayerKey): string {
     return (
         weatherLayerOptions.find((option) => option.key === layer)?.label ??
         'Weather'
+    );
+}
+
+function isSamePoint(left: RouteWaypoint, right: RouteWaypoint): boolean {
+    return (
+        Math.abs(left.lat - right.lat) < 0.000001 &&
+        Math.abs(left.lng - right.lng) < 0.000001
     );
 }
 

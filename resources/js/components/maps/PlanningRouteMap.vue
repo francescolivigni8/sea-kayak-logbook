@@ -10,7 +10,6 @@ import {
 } from 'vue';
 import { useMapTileStyles } from '@/lib/mapTiles';
 
-type MapTarget = 'launch' | 'landing' | 'route';
 type CoordinateValue = string | number | null;
 
 interface DefaultView {
@@ -58,7 +57,6 @@ const emit = defineEmits<{
 }>();
 
 const mapElement = ref<HTMLElement | null>(null);
-const activeTarget = ref<MapTarget>('launch');
 const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
@@ -125,20 +123,28 @@ const renderedRoutePoints = computed(() =>
     ),
 );
 
+const isClosedCourse = computed(() => {
+    const points = renderedRoutePoints.value;
+
+    return (
+        points.length > 2 && isSamePoint(points[0], points[points.length - 1])
+    );
+});
+
+const visibleRoutePoints = computed(() =>
+    isClosedCourse.value
+        ? renderedRoutePoints.value.slice(0, -1)
+        : renderedRoutePoints.value,
+);
+
 const routeLegs = computed(() =>
     renderedRoutePoints.value.slice(0, -1).map((point, index) => {
         const nextPoint = renderedRoutePoints.value[index + 1];
 
         return {
             key: `${point.lat}-${point.lng}-${nextPoint.lat}-${nextPoint.lng}`,
-            fromLabel:
-                index === 0
-                    ? 'L'
-                    : String(Math.min(index, routeWaypoints.value.length)),
-            toLabel:
-                index === renderedRoutePoints.value.length - 2
-                    ? 'F'
-                    : String(index + 1),
+            fromLabel: routePointLabel(index),
+            toLabel: routePointLabel(index + 1),
             distanceKm: haversineKm(point, nextPoint),
             bearingDeg: bearingDeg(point, nextPoint),
         };
@@ -158,15 +164,12 @@ function buildBaseLayer() {
     });
 }
 
-function plannerMarkerIcon(
-    tone: 'launch' | 'landing' | 'route',
-    label: string,
-) {
+function plannerMarkerIcon(label: string) {
     return L.divIcon({
         className: 'journal-planning-map-marker-shell',
-        html: `<span class="journal-planning-map-marker journal-planning-map-marker--${tone}">${label}</span>`,
-        iconSize: tone === 'route' ? [28, 28] : [34, 34],
-        iconAnchor: tone === 'route' ? [14, 14] : [17, 17],
+        html: `<span class="journal-planning-map-marker journal-planning-map-marker--route">${label}</span>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
     });
 }
 
@@ -205,62 +208,116 @@ function emitWaypoints(points: RouteWaypoint[]) {
     );
 }
 
-function updateTargetPoint(lat: number, lng: number) {
-    const formattedLat = lat.toFixed(6);
-    const formattedLng = lng.toFixed(6);
-
-    if (activeTarget.value === 'launch') {
-        emit('update:launchLat', formattedLat);
-        emit('update:launchLng', formattedLng);
-
-        return;
-    }
-
-    if (activeTarget.value === 'landing') {
-        emit('update:landingLat', formattedLat);
-        emit('update:landingLng', formattedLng);
+function setCoursePoints(points: RouteWaypoint[]) {
+    if (!points.length) {
+        emit('update:launchLat', '');
+        emit('update:launchLng', '');
+        emit('update:landingLat', '');
+        emit('update:landingLng', '');
+        emitWaypoints([]);
 
         return;
     }
 
-    emitWaypoints([
-        ...routeWaypoints.value,
-        {
-            lat: Number(formattedLat),
-            lng: Number(formattedLng),
-        },
-    ]);
+    const [firstPoint] = points;
+    const lastPoint = points.length > 1 ? points[points.length - 1] : null;
+
+    emit('update:launchLat', firstPoint.lat.toFixed(6));
+    emit('update:launchLng', firstPoint.lng.toFixed(6));
+    emitWaypoints(points.slice(1, -1));
+    emit('update:landingLat', lastPoint ? lastPoint.lat.toFixed(6) : '');
+    emit('update:landingLng', lastPoint ? lastPoint.lng.toFixed(6) : '');
 }
 
-function updateWaypoint(index: number, lat: number, lng: number) {
-    emitWaypoints(
-        routeWaypoints.value.map((point, pointIndex) =>
-            pointIndex === index
-                ? {
-                      lat: Number(lat.toFixed(6)),
-                      lng: Number(lng.toFixed(6)),
-                  }
-                : point,
-        ),
+function appendCoursePoint(lat: number, lng: number) {
+    const nextPoint = formatPoint(lat, lng);
+    const points = renderedRoutePoints.value;
+
+    if (!points.length) {
+        setCoursePoints([nextPoint]);
+
+        return;
+    }
+
+    if (isClosedCourse.value) {
+        setCoursePoints([...points.slice(0, -1), nextPoint, points[0]]);
+
+        return;
+    }
+
+    setCoursePoints([...points, nextPoint]);
+}
+
+function updateCoursePoint(index: number, lat: number, lng: number) {
+    const nextPoint = formatPoint(lat, lng);
+    const points = renderedRoutePoints.value;
+    const updatedPoints = points.map((point, pointIndex) => {
+        if (pointIndex === index) {
+            return nextPoint;
+        }
+
+        if (
+            index === 0 &&
+            isClosedCourse.value &&
+            pointIndex === points.length - 1
+        ) {
+            return nextPoint;
+        }
+
+        return point;
+    });
+
+    setCoursePoints(updatedPoints);
+}
+
+function removeCoursePoint(index: number) {
+    if (index === 0) {
+        return;
+    }
+
+    const points = renderedRoutePoints.value.filter(
+        (_, pointIndex) => pointIndex !== index,
     );
+
+    setCoursePoints(points);
 }
 
-function removeWaypoint(index: number) {
-    emitWaypoints(
-        routeWaypoints.value.filter((_, pointIndex) => pointIndex !== index),
+function closeCourse() {
+    const points = renderedRoutePoints.value;
+
+    if (points.length < 2 || isClosedCourse.value) {
+        return;
+    }
+
+    setCoursePoints([...points, points[0]]);
+}
+
+function clearCourse() {
+    setCoursePoints([]);
+}
+
+function formatPoint(lat: number, lng: number): RouteWaypoint {
+    return {
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6)),
+    };
+}
+
+function routePointLabel(index: number): string {
+    const points = renderedRoutePoints.value;
+
+    if (isClosedCourse.value && index === points.length - 1) {
+        return '1';
+    }
+
+    return String(index + 1);
+}
+
+function isSamePoint(left: RouteWaypoint, right: RouteWaypoint): boolean {
+    return (
+        Math.abs(left.lat - right.lat) < 0.000001 &&
+        Math.abs(left.lng - right.lng) < 0.000001
     );
-}
-
-function clearRouteTrace() {
-    emitWaypoints([]);
-}
-
-function clearAll() {
-    emit('update:launchLat', '');
-    emit('update:launchLng', '');
-    emit('update:landingLat', '');
-    emit('update:landingLng', '');
-    clearRouteTrace();
 }
 
 function haversineKm(left: RouteWaypoint, right: RouteWaypoint): number {
@@ -343,59 +400,36 @@ function renderMarkers() {
         });
     }
 
-    if (launchPoint.value) {
-        const launchMarker = L.marker(
-            [launchPoint.value.lat, launchPoint.value.lng],
-            {
-                draggable: true,
-                icon: plannerMarkerIcon('launch', 'L'),
-            },
-        )
-            .bindTooltip('Launch')
-            .addTo(markers);
-
-        launchMarker.on('dragend', () => {
-            const point = launchMarker.getLatLng();
-            emit('update:launchLat', point.lat.toFixed(6));
-            emit('update:launchLng', point.lng.toFixed(6));
-        });
-    }
-
-    routeWaypoints.value.forEach((point, index) => {
+    visibleRoutePoints.value.forEach((point, index) => {
+        const isFirstPoint = index === 0;
         const routeMarker = L.marker([point.lat, point.lng], {
             draggable: true,
-            icon: plannerMarkerIcon('route', String(index + 1)),
+            icon: plannerMarkerIcon(routePointLabel(index)),
         })
-            .bindTooltip(`Course point ${index + 1}. Double-click to remove.`)
+            .bindTooltip(
+                isFirstPoint
+                    ? 'Point 1. Click again to close the loop.'
+                    : `Point ${routePointLabel(index)}. Drag to refine; double-click to remove.`,
+            )
             .addTo(markers);
 
         routeMarker.on('dragend', () => {
             const markerPoint = routeMarker.getLatLng();
-            updateWaypoint(index, markerPoint.lat, markerPoint.lng);
+            updateCoursePoint(index, markerPoint.lat, markerPoint.lng);
+        });
+
+        routeMarker.on('click', (event) => {
+            L.DomEvent.stopPropagation(event);
+
+            if (isFirstPoint) {
+                closeCourse();
+            }
         });
 
         routeMarker.on('dblclick', () => {
-            removeWaypoint(index);
+            removeCoursePoint(index);
         });
     });
-
-    if (landingPoint.value) {
-        const landingMarker = L.marker(
-            [landingPoint.value.lat, landingPoint.value.lng],
-            {
-                draggable: true,
-                icon: plannerMarkerIcon('landing', 'F'),
-            },
-        )
-            .bindTooltip('Landing')
-            .addTo(markers);
-
-        landingMarker.on('dragend', () => {
-            const point = landingMarker.getLatLng();
-            emit('update:landingLat', point.lat.toFixed(6));
-            emit('update:landingLng', point.lng.toFixed(6));
-        });
-    }
 
     leafletMap.invalidateSize();
 }
@@ -420,7 +454,7 @@ async function initializeMap() {
     baseLayer.addTo(map);
 
     map.on('click', (event: L.LeafletMouseEvent) => {
-        updateTargetPoint(event.latlng.lat, event.latlng.lng);
+        appendCoursePoint(event.latlng.lat, event.latlng.lng);
     });
 
     map.setView(
@@ -473,9 +507,8 @@ onBeforeUnmount(() => {
                     Draw the day out
                 </h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Place launch and landing, then add course points. Drag any
-                    marker to refine the line; double-click a numbered course
-                    point to remove it.
+                    Click the map to add points in order. Drag any marker to
+                    refine the line; click point 1 again to close the loop.
                 </p>
             </div>
 
@@ -485,55 +518,9 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'launch' ? 'journal-chip--primary' : ''
-                    "
-                    @click="activeTarget = 'launch'"
-                >
-                    Launch
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'route' ? 'journal-chip--primary' : ''
-                    "
-                    @click="activeTarget = 'route'"
-                >
-                    Course point
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'landing'
-                            ? 'journal-chip--primary'
-                            : ''
-                    "
-                    @click="activeTarget = 'landing'"
-                >
-                    Landing
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    @click="clearRouteTrace"
+                    @click="clearCourse"
                 >
                     Clear course
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    @click="fitToPoints"
-                >
-                    Fit route
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    @click="clearAll"
-                >
-                    Reset map
                 </button>
             </div>
         </div>
