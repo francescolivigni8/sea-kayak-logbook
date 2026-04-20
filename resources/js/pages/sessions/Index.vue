@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -63,6 +63,8 @@ const page = usePage();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
+const showPlannedSessions = ref(true);
+const showLoggedSessions = ref(true);
 
 const statCards = computed(() => [
     {
@@ -163,12 +165,6 @@ function formatMinutes(minutes: number | null): string {
             {{ successMessage }}
         </section>
 
-        <section class="journal-banner journal-banner--soft">
-            Planned sessions are sketches for future days out. Sessions logged
-            are completed paddles and are the only entries counted in dashboard,
-            diary, expedition, and observation totals.
-        </section>
-
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <article
                 v-for="card in statCards"
@@ -190,22 +186,65 @@ function formatMinutes(minutes: number | null): string {
             </article>
         </section>
 
-        <section class="flex flex-col gap-4">
-            <div
-                class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
-            >
-                <div>
-                    <p class="journal-kicker">Planned sessions</p>
-                    <h3 class="mt-2 text-[1.7rem] leading-none">
-                        Routes still in pencil
-                    </h3>
+        <section
+            class="overflow-hidden rounded-[2.1rem] border border-[rgba(122,215,208,0.38)] bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(122,215,208,0.16))] shadow-[0_18px_60px_rgba(66,87,120,0.08)]"
+        >
+            <div class="px-5 py-5 md:px-6">
+                <div
+                    class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+                >
+                    <div class="flex gap-4">
+                        <span
+                            class="mt-1 h-16 w-1.5 rounded-full bg-[#55cfc3]"
+                            aria-hidden="true"
+                        />
+                        <div>
+                            <p class="journal-kicker">Plans</p>
+                            <h3 class="mt-2 text-[1.75rem] leading-none">
+                                Planned sessions
+                            </h3>
+                            <p
+                                class="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
+                                Future paddles, route sketches, forecasts, and
+                                ideas. These stay separate from real logbook
+                                totals until you actually log the session.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-wrap items-center gap-2 lg:justify-end"
+                    >
+                        <span
+                            class="rounded-full border border-[rgba(122,215,208,0.42)] bg-white/66 px-3 py-2 text-xs font-black tracking-[0.12em] text-[color:var(--journal-muted)] uppercase"
+                        >
+                            {{ plannedSessions.length }}
+                            {{
+                                plannedSessions.length === 1 ? 'plan' : 'plans'
+                            }}
+                        </span>
+                        <Link href="/planning" class="journal-primary-link">
+                            New plan
+                        </Link>
+                        <button
+                            type="button"
+                            class="journal-utility-link"
+                            :aria-expanded="showPlannedSessions"
+                            aria-controls="library-planned-sessions"
+                            @click="showPlannedSessions = !showPlannedSessions"
+                        >
+                            {{ showPlannedSessions ? 'Collapse' : 'Expand' }}
+                        </button>
+                    </div>
                 </div>
-                <Link href="/planning" class="journal-primary-link">
-                    New plan
-                </Link>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2">
+            <div
+                v-if="showPlannedSessions"
+                id="library-planned-sessions"
+                class="grid gap-4 border-t border-[rgba(122,215,208,0.24)] px-5 py-5 md:grid-cols-2 md:px-6"
+            >
                 <article
                     v-for="plan in plannedSessions"
                     :key="plan.id"
@@ -337,15 +376,66 @@ function formatMinutes(minutes: number | null): string {
             </div>
         </section>
 
-        <section class="flex flex-col gap-4">
-            <div>
-                <p class="journal-kicker">Sessions logged</p>
-                <h3 class="mt-2 text-[1.7rem] leading-none">
-                    Completed paddles
-                </h3>
+        <section
+            class="overflow-hidden rounded-[2.1rem] border border-[rgba(103,114,255,0.28)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(103,114,255,0.08))] shadow-[0_18px_60px_rgba(66,87,120,0.08)]"
+        >
+            <div class="px-5 py-5 md:px-6">
+                <div
+                    class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+                >
+                    <div class="flex gap-4">
+                        <span
+                            class="mt-1 h-16 w-1.5 rounded-full bg-[#6772ff]"
+                            aria-hidden="true"
+                        />
+                        <div>
+                            <p class="journal-kicker">Logbook</p>
+                            <h3 class="mt-2 text-[1.75rem] leading-none">
+                                Logged sessions
+                            </h3>
+                            <p
+                                class="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
+                                Completed paddles. These are the sessions that
+                                feed dashboard totals, diary days, observations,
+                                maps, and expedition stats.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-wrap items-center gap-2 lg:justify-end"
+                    >
+                        <span
+                            class="rounded-full border border-[rgba(103,114,255,0.3)] bg-white/66 px-3 py-2 text-xs font-black tracking-[0.12em] text-[color:var(--journal-muted)] uppercase"
+                        >
+                            {{ sessions.length }}
+                            {{ sessions.length === 1 ? 'session' : 'sessions' }}
+                        </span>
+                        <Link
+                            href="/sessions/create"
+                            class="journal-primary-link"
+                        >
+                            Add session
+                        </Link>
+                        <button
+                            type="button"
+                            class="journal-utility-link"
+                            :aria-expanded="showLoggedSessions"
+                            aria-controls="library-logged-sessions"
+                            @click="showLoggedSessions = !showLoggedSessions"
+                        >
+                            {{ showLoggedSessions ? 'Collapse' : 'Expand' }}
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2">
+            <div
+                v-if="showLoggedSessions"
+                id="library-logged-sessions"
+                class="grid gap-4 border-t border-[rgba(103,114,255,0.18)] px-5 py-5 md:grid-cols-2 md:px-6"
+            >
                 <article
                     v-for="session in sessions"
                     :key="session.id"
