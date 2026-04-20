@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PaddleSession;
+use App\Models\SessionCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -130,6 +131,49 @@ class PaddleSessionTest extends TestCase
             'kayak_used' => 'Valley Etain 17-7',
             'paddle_used' => 'Werner Cyprus',
         ]);
+    }
+
+    public function test_sessions_can_be_grouped_into_collections(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Anglesey day one',
+                'session_date' => '2026-04-06',
+                'launch_name' => 'Trearddur Bay',
+                'route_category' => 'journey',
+                'distance_km' => '12.4',
+                'category_names_text' => 'Anglesey 2026, Club paddles',
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Anglesey day one')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas(SessionCategory::class, [
+            'profile_id' => $profile->id,
+            'name' => 'Anglesey 2026',
+            'slug' => 'anglesey-2026',
+        ]);
+        $this->assertSame(
+            ['Anglesey 2026', 'Club paddles'],
+            $session->categories()->orderBy('name')->pluck('name')->all(),
+        );
+
+        $this->actingAs($user)
+            ->get(route('sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('sessions/Index')
+                ->where('stats.collectionCount', 2)
+                ->has('categoryGroups', 2)
+                ->where('categoryGroups.0.name', 'Anglesey 2026')
+                ->where('categoryGroups.0.sessionCount', 1)
+                ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
     }
 
     public function test_manual_sessions_can_store_launch_and_landing_coordinates_without_a_track_file(): void

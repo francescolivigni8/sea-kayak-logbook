@@ -61,6 +61,7 @@ class UpsertPaddleSessionRequest extends FormRequest
             'weather_summary' => ['nullable', 'string'],
             'route_summary' => ['nullable', 'string'],
             'route_tags_text' => ['nullable', 'string'],
+            'category_names_text' => ['nullable', 'string', 'max:1000'],
             'partners_text' => ['nullable', 'string'],
             'skills_text' => ['nullable', 'string'],
             'manual_route_waypoints' => ['nullable', 'string'],

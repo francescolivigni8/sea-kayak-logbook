@@ -58,6 +58,11 @@ class Profile extends Model
         return $this->hasMany(PlannedSession::class);
     }
 
+    public function sessionCategories(): HasMany
+    {
+        return $this->hasMany(SessionCategory::class);
+    }
+
     public function requiresSetup(): bool
     {
         $settings = $this->settings ?? [];

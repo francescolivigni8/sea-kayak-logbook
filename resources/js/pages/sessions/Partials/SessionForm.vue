@@ -116,6 +116,7 @@ const stepFieldMap: Record<string, number> = {
     duration_minutes: 0,
     moving_minutes: 0,
     route_tags_text: 0,
+    category_names_text: 0,
     partners_text: 0,
     manual_route_waypoints: 0,
 
@@ -522,6 +523,22 @@ function clearLandingCoordinates() {
     form.landing_lng = '';
 }
 
+function addCategoryName(categoryName: string) {
+    const existing = form.category_names_text
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
+    const alreadyAdded = existing.some(
+        (name) => name.toLowerCase() === categoryName.toLowerCase(),
+    );
+
+    if (!alreadyAdded) {
+        existing.push(categoryName);
+    }
+
+    form.category_names_text = existing.join(', ');
+}
+
 function syncDuration(hoursValue: string, minutesValue: string) {
     const hasHours = hoursValue.trim() !== '';
     const hasMinutes = minutesValue.trim() !== '';
@@ -707,7 +724,7 @@ onMounted(async () => {
 
                     <div>
                         <label class="journal-field-label" for="route_category"
-                            >Category</label
+                            >Paddle type</label
                         >
                         <select
                             id="route_category"
@@ -919,6 +936,43 @@ onMounted(async () => {
                             placeholder="benchmark, faxafloi, spring, harbor"
                         />
                         <InputError :message="form.errors.route_tags_text" />
+                    </div>
+
+                    <div class="sm:col-span-2 xl:col-span-2">
+                        <label
+                            class="journal-field-label"
+                            for="category_names_text"
+                            >Collections / folders</label
+                        >
+                        <input
+                            id="category_names_text"
+                            v-model="form.category_names_text"
+                            class="journal-input"
+                            placeholder="Anglesey 2026, Club paddles"
+                        />
+                        <p
+                            class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
+                        >
+                            Separate with commas. New collection names are
+                            created automatically and appear in Library.
+                        </p>
+                        <div
+                            v-if="profile.sessionCategories?.length"
+                            class="mt-2 flex flex-wrap gap-2"
+                        >
+                            <button
+                                v-for="categoryName in profile.sessionCategories"
+                                :key="categoryName"
+                                type="button"
+                                class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                                @click="addCategoryName(categoryName)"
+                            >
+                                {{ categoryName }}
+                            </button>
+                        </div>
+                        <InputError
+                            :message="form.errors.category_names_text"
+                        />
                     </div>
 
                     <div class="sm:col-span-2 xl:col-span-1">

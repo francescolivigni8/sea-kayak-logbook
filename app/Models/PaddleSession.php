@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PaddleSession extends Model
 {
@@ -118,5 +119,12 @@ class PaddleSession extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_user_id');
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(SessionCategory::class, 'paddle_session_category')
+            ->withTimestamps()
+            ->orderBy('name');
     }
 }

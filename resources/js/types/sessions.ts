@@ -9,6 +9,7 @@ export interface SessionProfileSummary {
     };
     kayaksOwned?: string[];
     paddlesOwned?: string[];
+    sessionCategories?: string[];
 }
 
 export interface SessionExistingAssets {
@@ -57,6 +58,7 @@ export interface SessionFormDefaults {
     weather_summary: string;
     route_summary: string;
     route_tags_text: string;
+    category_names_text: string;
     partners_text: string;
     skills_text: string;
     manual_route_waypoints: string;
