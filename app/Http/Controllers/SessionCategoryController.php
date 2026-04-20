@@ -45,14 +45,58 @@ class SessionCategoryController extends Controller
         return back()->with('success', "{$session->title} added to {$sessionCategory->name}.");
     }
 
+    public function attachSessions(
+        Request $request,
+        SessionCategory $sessionCategory,
+    ): RedirectResponse {
+        $profile = $request->user()->resolveActiveProfile();
+        $this->ensureCategoryBelongsToProfile($sessionCategory, $profile->id);
+
+        $validated = $request->validate([
+            'session_ids' => ['required', 'array', 'min:1'],
+            'session_ids.*' => ['integer'],
+        ]);
+
+        $requestedSessionIds = collect($validated['session_ids'])
+            ->map(fn (int|string $id) => (int) $id)
+            ->unique()
+            ->values();
+        $sessionIds = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->whereIn('id', $requestedSessionIds)
+            ->pluck('id');
+
+        abort_unless($sessionIds->count() === $requestedSessionIds->count(), 404);
+
+        $sessionCategory->sessions()->syncWithoutDetaching($sessionIds->all());
+
+        $sessionCount = $sessionIds->count();
+
+        return back()->with(
+            'success',
+            $sessionCount === 1
+                ? "1 session added to {$sessionCategory->name}."
+                : "{$sessionCount} sessions added to {$sessionCategory->name}.",
+        );
+    }
+
     private function ensureCategoryAndSessionBelongToProfile(
         SessionCategory $sessionCategory,
         PaddleSession $session,
         int $profileId,
     ): void {
+        $this->ensureCategoryBelongsToProfile($sessionCategory, $profileId);
+
         abort_unless(
-            $sessionCategory->profile_id === $profileId && $session->profile_id === $profileId,
+            $session->profile_id === $profileId,
             404,
         );
+    }
+
+    private function ensureCategoryBelongsToProfile(
+        SessionCategory $sessionCategory,
+        int $profileId,
+    ): void {
+        abort_unless($sessionCategory->profile_id === $profileId, 404);
     }
 }

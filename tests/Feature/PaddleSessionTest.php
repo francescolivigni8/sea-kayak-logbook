@@ -238,6 +238,46 @@ class PaddleSessionTest extends TestCase
                 ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
     }
 
+    public function test_logged_sessions_can_be_batch_attached_to_collection_folders(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $category = $profile->sessionCategories()->create([
+            'name' => 'Club paddles',
+            'slug' => 'club-paddles',
+        ]);
+        $sessions = collect(['Club night one', 'Club night two'])
+            ->map(fn (string $title) => $profile->sessions()->create([
+                'recorded_by_user_id' => $user->id,
+                'session_date' => '2026-04-06',
+                'title' => $title,
+                'launch_name' => 'Reykjavik',
+                'route_category' => 'journey',
+                'distance_km' => 6.4,
+            ]));
+
+        $this->actingAs($user)
+            ->post(route('session-categories.sessions.attach-many', $category), [
+                'session_ids' => $sessions->pluck('id')->all(),
+            ])
+            ->assertRedirect();
+
+        $sessions->each(function (PaddleSession $session) use ($category): void {
+            $this->assertDatabaseHas('paddle_session_category', [
+                'session_category_id' => $category->id,
+                'paddle_session_id' => $session->id,
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->get(route('sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('sessions/Index')
+                ->where('categoryGroups.0.name', 'Club paddles')
+                ->where('categoryGroups.0.sessionCount', 2));
+    }
+
     public function test_manual_sessions_can_store_launch_and_landing_coordinates_without_a_track_file(): void
     {
         $user = User::factory()->create();

@@ -60,6 +60,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('session-categories', [SessionCategoryController::class, 'store'])
         ->name('session-categories.store');
     Route::post(
+        'session-categories/{sessionCategory}/sessions',
+        [SessionCategoryController::class, 'attachSessions'],
+    )->name('session-categories.sessions.attach-many');
+    Route::post(
         'session-categories/{sessionCategory}/sessions/{session}',
         [SessionCategoryController::class, 'attachSession'],
     )->name('session-categories.sessions.attach');

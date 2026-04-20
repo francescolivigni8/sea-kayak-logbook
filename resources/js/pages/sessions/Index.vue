@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface ProfileSummary {
     name: string;
@@ -92,6 +92,8 @@ const showCollections = ref(true);
 const activeCategoryId = ref<number | null>(null);
 const sortingMode = ref(false);
 const draggedSessionId = ref<number | null>(null);
+const draggedSessionIds = ref<number[]>([]);
+const selectedSessionIds = ref<number[]>([]);
 const dropTargetCategoryId = ref<number | null>(null);
 const createCategoryForm = useForm({
     name: '',
@@ -113,6 +115,14 @@ const visibleSessions = computed(() => {
         ),
     );
 });
+const selectedSessionCount = computed(() => selectedSessionIds.value.length);
+const allVisibleSessionsSelected = computed(
+    () =>
+        visibleSessions.value.length > 0 &&
+        visibleSessions.value.every((session) =>
+            selectedSessionIds.value.includes(session.id),
+        ),
+);
 
 const statCards = computed(() => [
     {
@@ -172,6 +182,40 @@ function submitCategory() {
     });
 }
 
+function isSessionSelected(sessionId: number): boolean {
+    return selectedSessionIds.value.includes(sessionId);
+}
+
+function toggleSessionSelection(sessionId: number) {
+    if (isSessionSelected(sessionId)) {
+        selectedSessionIds.value = selectedSessionIds.value.filter(
+            (id) => id !== sessionId,
+        );
+
+        return;
+    }
+
+    selectedSessionIds.value = [...selectedSessionIds.value, sessionId];
+}
+
+function selectAllVisibleSessions() {
+    selectedSessionIds.value = visibleSessions.value.map(
+        (session) => session.id,
+    );
+}
+
+function clearSelectedSessions() {
+    selectedSessionIds.value = [];
+}
+
+function sessionIdsForDrag(sessionId: number): number[] {
+    if (selectedSessionIds.value.includes(sessionId)) {
+        return selectedSessionIds.value;
+    }
+
+    return [sessionId];
+}
+
 function beginSessionDrag(sessionId: number, event: DragEvent) {
     if (!sortingMode.value) {
         event.preventDefault();
@@ -180,7 +224,11 @@ function beginSessionDrag(sessionId: number, event: DragEvent) {
     }
 
     draggedSessionId.value = sessionId;
-    event.dataTransfer?.setData('text/plain', String(sessionId));
+    draggedSessionIds.value = sessionIdsForDrag(sessionId);
+    event.dataTransfer?.setData(
+        'text/plain',
+        draggedSessionIds.value.join(','),
+    );
 
     if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'copy';
@@ -189,6 +237,7 @@ function beginSessionDrag(sessionId: number, event: DragEvent) {
 
 function finishSessionDrag() {
     draggedSessionId.value = null;
+    draggedSessionIds.value = [];
     dropTargetCategoryId.value = null;
 }
 
@@ -211,28 +260,52 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
     }
 
     event.preventDefault();
-    const dataTransferSessionId = Number(
-        event.dataTransfer?.getData('text/plain'),
-    );
-    const sessionId = Number.isFinite(dataTransferSessionId)
-        ? dataTransferSessionId
-        : draggedSessionId.value;
+    const dataTransferSessionIds = event.dataTransfer
+        ?.getData('text/plain')
+        .split(',')
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id));
+    const sessionIds = dataTransferSessionIds?.length
+        ? dataTransferSessionIds
+        : draggedSessionIds.value;
 
-    if (!sessionId) {
+    if (!sessionIds.length) {
         finishSessionDrag();
 
         return;
     }
 
     router.post(
-        `/session-categories/${categoryId}/sessions/${sessionId}`,
-        {},
+        `/session-categories/${categoryId}/sessions`,
+        {
+            session_ids: sessionIds,
+        },
         {
             preserveScroll: true,
-            onFinish: finishSessionDrag,
+            onFinish: () => {
+                clearSelectedSessions();
+                finishSessionDrag();
+            },
         },
     );
 }
+
+watch(sortingMode, (isSorting) => {
+    if (!isSorting) {
+        clearSelectedSessions();
+        finishSessionDrag();
+    }
+});
+
+watch(visibleSessions, () => {
+    const visibleSessionIds = new Set(
+        visibleSessions.value.map((session) => session.id),
+    );
+
+    selectedSessionIds.value = selectedSessionIds.value.filter((id) =>
+        visibleSessionIds.has(id),
+    );
+});
 </script>
 
 <template>
@@ -365,9 +438,7 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
                             @click="sortingMode = !sortingMode"
                         >
                             {{
-                                sortingMode
-                                    ? 'Sorting mode on'
-                                    : 'Drag sorting'
+                                sortingMode ? 'Sorting mode on' : 'Drag sorting'
                             }}
                         </button>
                         <Link
@@ -426,16 +497,16 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
                     v-if="sortingMode"
                     class="journal-banner journal-banner--soft mt-4"
                 >
-                    Drag a logged-session card onto any folder below. The
-                    session stays in the main logbook and is added to that
-                    folder for easier sorting.
+                    Select one or more logged sessions, then drag any selected
+                    title onto a folder. Sessions stay in the main logbook and
+                    are added to that folder for easier sorting.
                 </section>
             </div>
 
             <div
                 v-if="showCollections"
                 id="library-session-collections"
-                class="grid gap-4 border-t border-[rgba(255,156,107,0.2)] px-5 py-5 md:grid-cols-2 xl:grid-cols-3 md:px-6"
+                class="grid gap-4 border-t border-[rgba(255,156,107,0.2)] px-5 py-5 md:grid-cols-2 md:px-6 xl:grid-cols-3"
             >
                 <article
                     v-for="category in categoryGroups"
@@ -523,9 +594,9 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
                     v-if="!categoryGroups.length"
                     class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
                 >
-                    No collections yet. Create “Anglesey 2026” or “Club
-                    paddles” above, then turn on drag sorting and drop sessions
-                    into the folder.
+                    No collections yet. Create “Anglesey 2026” or “Club paddles”
+                    above, then turn on drag sorting and drop sessions into the
+                    folder.
                 </article>
             </div>
         </section>
@@ -771,6 +842,36 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
                                     : 'sessions'
                             }}
                         </span>
+                        <template v-if="sortingMode">
+                            <span
+                                class="rounded-full border border-[rgba(255,156,107,0.32)] bg-white/76 px-3 py-2 text-xs font-black tracking-[0.12em] text-[color:var(--journal-muted)] uppercase"
+                            >
+                                {{ selectedSessionCount }} selected
+                            </span>
+                            <button
+                                type="button"
+                                class="journal-utility-link"
+                                @click="
+                                    allVisibleSessionsSelected
+                                        ? clearSelectedSessions()
+                                        : selectAllVisibleSessions()
+                                "
+                            >
+                                {{
+                                    allVisibleSessionsSelected
+                                        ? 'Clear all'
+                                        : 'Select all'
+                                }}
+                            </button>
+                            <button
+                                v-if="selectedSessionCount"
+                                type="button"
+                                class="journal-utility-link"
+                                @click="clearSelectedSessions"
+                            >
+                                Clear selected
+                            </button>
+                        </template>
                         <Link
                             href="/sessions/create"
                             class="journal-primary-link"
@@ -793,16 +894,22 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
             <div
                 v-if="showLoggedSessions"
                 id="library-logged-sessions"
-                class="grid gap-4 border-t border-[rgba(103,114,255,0.18)] px-5 py-5 md:grid-cols-2 md:px-6"
+                :class="[
+                    'grid border-t border-[rgba(103,114,255,0.18)] px-5 py-5 md:px-6',
+                    sortingMode ? 'gap-2' : 'gap-4 md:grid-cols-2',
+                ]"
             >
                 <article
                     v-for="session in visibleSessions"
                     :key="session.id"
                     :draggable="sortingMode"
                     :class="[
-                        'journal-card overflow-hidden px-5 py-5 md:px-6',
+                        'journal-card overflow-hidden',
                         sortingMode
-                            ? 'cursor-grab select-none ring-1 ring-[rgba(255,156,107,0.26)] active:cursor-grabbing'
+                            ? 'cursor-grab px-3 py-2 ring-1 ring-[rgba(255,156,107,0.26)] select-none active:cursor-grabbing'
+                            : 'px-5 py-5 md:px-6',
+                        isSessionSelected(session.id)
+                            ? 'border-[color:var(--journal-line-strong)] bg-white/92 shadow-[0_14px_36px_rgba(255,156,107,0.14)]'
                             : '',
                         draggedSessionId === session.id
                             ? 'opacity-55 ring-2 ring-[#ff9c6b]'
@@ -819,147 +926,188 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
                     @dragend="finishSessionDrag"
                 >
                     <div class="flex h-full flex-col gap-4">
-                        <div class="flex items-start justify-between gap-3">
-                            <div
-                                class="flex flex-wrap gap-2 text-xs font-medium"
-                            >
-                                <span class="journal-kicker">{{
-                                    session.date ?? 'No date'
-                                }}</span>
-                                <span class="journal-chip">{{
-                                    session.routeCategoryLabel
-                                }}</span>
-                                <span
-                                    v-if="session.beaufort !== null"
-                                    class="journal-chip"
-                                    >F{{ session.beaufort }}</span
-                                >
-                                <span v-if="sortingMode" class="journal-chip">
-                                    Drag to folder
-                                </span>
-                            </div>
-
-                            <Link
-                                :href="
-                                    session.hasObservation
-                                        ? `/sessions/${session.id}/edit`
-                                        : `/sessions/${session.id}/edit?step=notes`
+                        <div v-if="sortingMode" class="flex items-center gap-3">
+                            <button
+                                type="button"
+                                class="grid h-8 w-8 shrink-0 place-items-center rounded-full border text-sm font-black transition"
+                                :class="
+                                    isSessionSelected(session.id)
+                                        ? 'border-[#ff9c6b] bg-[#ff9c6b] text-white'
+                                        : 'border-[color:var(--journal-line)] bg-white/78 text-[color:var(--journal-muted)] hover:border-[#ff9c6b]'
                                 "
-                                class="journal-utility-link"
+                                :aria-pressed="isSessionSelected(session.id)"
+                                :aria-label="`Select ${session.title}`"
+                                @click.stop="toggleSessionSelection(session.id)"
                             >
-                                {{
-                                    session.hasObservation
-                                        ? 'Edit'
-                                        : 'Add observation'
-                                }}
-                            </Link>
-                        </div>
-
-                        <div class="space-y-2">
+                                {{ isSessionSelected(session.id) ? '✓' : '+' }}
+                            </button>
                             <h3
-                                class="text-[1.45rem] leading-none text-[color:var(--journal-text)]"
+                                class="min-w-0 flex-1 truncate text-[1.05rem] leading-none text-[color:var(--journal-text)]"
                             >
                                 {{ session.title }}
                             </h3>
-                            <p
-                                class="text-sm leading-6 text-[color:var(--journal-muted)]"
-                            >
-                                {{
-                                    session.launchName ??
-                                    props.profile.homeWater
-                                }}
-                            </p>
-                        </div>
-
-                        <div class="grid gap-3 sm:grid-cols-3">
-                            <div class="journal-soft-card">
-                                <p
-                                    class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    Distance
-                                </p>
-                                <p
-                                    class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
-                                >
-                                    {{ session.distanceKm.toFixed(1) }} km
-                                </p>
-                            </div>
-                            <div class="journal-soft-card">
-                                <p
-                                    class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    Time
-                                </p>
-                                <p
-                                    class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
-                                >
-                                    {{ session.durationMinutes }} min
-                                </p>
-                            </div>
-                            <div class="journal-soft-card">
-                                <p
-                                    class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    Track
-                                </p>
-                                <p
-                                    class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
-                                >
-                                    {{ session.hasTrack ? 'Attached' : 'None' }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div
-                            v-if="session.photoUrl"
-                            class="overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/72"
-                        >
-                            <img
-                                :src="session.photoUrl"
-                                alt="Session cover"
-                                class="h-40 w-full object-cover"
-                            />
-                        </div>
-
-                        <div
-                            class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
-                        >
-                            <span
-                                v-if="session.isExpedition"
-                                class="journal-chip journal-chip--primary"
-                                >Expedition</span
-                            >
                             <span
                                 v-if="
-                                    session.isExpedition &&
-                                    session.expeditionDays
+                                    isSessionSelected(session.id) &&
+                                    selectedSessionCount > 1
                                 "
-                                class="journal-chip"
+                                class="journal-chip shrink-0"
                             >
-                                {{ session.expeditionDays }} days out
+                                {{ selectedSessionCount }}
                             </span>
-                            <span class="journal-chip">{{
-                                session.launchName ?? props.profile.homeWater
-                            }}</span>
-                            <button
-                                v-for="category in session.categories"
-                                :key="category.id"
-                                type="button"
-                                class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                                @click="activeCategoryId = category.id"
-                            >
-                                {{ category.name }}
-                            </button>
                         </div>
 
-                        <div class="mt-auto">
-                            <Link
-                                :href="`/sessions/${session.id}`"
-                                class="journal-utility-link w-full justify-center"
+                        <template v-else>
+                            <div class="flex items-start justify-between gap-3">
+                                <div
+                                    class="flex flex-wrap gap-2 text-xs font-medium"
+                                >
+                                    <span class="journal-kicker">{{
+                                        session.date ?? 'No date'
+                                    }}</span>
+                                    <span class="journal-chip">{{
+                                        session.routeCategoryLabel
+                                    }}</span>
+                                    <span
+                                        v-if="session.beaufort !== null"
+                                        class="journal-chip"
+                                        >F{{ session.beaufort }}</span
+                                    >
+                                    <span
+                                        v-if="sortingMode"
+                                        class="journal-chip"
+                                    >
+                                        Drag to folder
+                                    </span>
+                                </div>
+
+                                <Link
+                                    :href="
+                                        session.hasObservation
+                                            ? `/sessions/${session.id}/edit`
+                                            : `/sessions/${session.id}/edit?step=notes`
+                                    "
+                                    class="journal-utility-link"
+                                >
+                                    {{
+                                        session.hasObservation
+                                            ? 'Edit'
+                                            : 'Add observation'
+                                    }}
+                                </Link>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3
+                                    class="text-[1.45rem] leading-none text-[color:var(--journal-text)]"
+                                >
+                                    {{ session.title }}
+                                </h3>
+                                <p
+                                    class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    {{
+                                        session.launchName ??
+                                        props.profile.homeWater
+                                    }}
+                                </p>
+                            </div>
+
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <div class="journal-soft-card">
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Distance
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
+                                        {{ session.distanceKm.toFixed(1) }} km
+                                    </p>
+                                </div>
+                                <div class="journal-soft-card">
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Time
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
+                                        {{ session.durationMinutes }} min
+                                    </p>
+                                </div>
+                                <div class="journal-soft-card">
+                                    <p
+                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        Track
+                                    </p>
+                                    <p
+                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                    >
+                                        {{
+                                            session.hasTrack
+                                                ? 'Attached'
+                                                : 'None'
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="session.photoUrl"
+                                class="overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/72"
                             >
-                                Open session
-                            </Link>
-                        </div>
+                                <img
+                                    :src="session.photoUrl"
+                                    alt="Session cover"
+                                    class="h-40 w-full object-cover"
+                                />
+                            </div>
+
+                            <div
+                                class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
+                            >
+                                <span
+                                    v-if="session.isExpedition"
+                                    class="journal-chip journal-chip--primary"
+                                    >Expedition</span
+                                >
+                                <span
+                                    v-if="
+                                        session.isExpedition &&
+                                        session.expeditionDays
+                                    "
+                                    class="journal-chip"
+                                >
+                                    {{ session.expeditionDays }} days out
+                                </span>
+                                <span class="journal-chip">{{
+                                    session.launchName ??
+                                    props.profile.homeWater
+                                }}</span>
+                                <button
+                                    v-for="category in session.categories"
+                                    :key="category.id"
+                                    type="button"
+                                    class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                                    @click="activeCategoryId = category.id"
+                                >
+                                    {{ category.name }}
+                                </button>
+                            </div>
+
+                            <div class="mt-auto">
+                                <Link
+                                    :href="`/sessions/${session.id}`"
+                                    class="journal-utility-link w-full justify-center"
+                                >
+                                    Open session
+                                </Link>
+                            </div>
+                        </template>
                     </div>
                 </article>
 
