@@ -6,9 +6,10 @@ This file parks the remaining launch work so we can switch context and return la
 
 The Laravel app is code-ready for private staging, but not yet ready for a wider public launch. The remaining work is mostly external production setup: domain, mail, Laravel Cloud environment, storage verification, smoke testing, and monitoring/backups.
 
-Status checked on 2026-04-20:
+Status checked on 2026-04-20 at 13:11 Atlantic/Reykjavik:
 
 - Local launch-readiness tests pass.
+- Local health-check test passes.
 - `http://yourkayakingjournal.com` still returns `302` from `Namecheap URL Forward` to `http://www.yourkayakingjournal.com/`.
 - `https://yourkayakingjournal.com` times out instead of serving Laravel Cloud.
 - `https://www.yourkayakingjournal.com` fails TLS with an unrecognized host name.
@@ -16,9 +17,13 @@ Status checked on 2026-04-20:
 
 Latest pushed commits at the time this was saved:
 
-- `61b23ba` - Clarify collapsible library sections
-- `f0c89e1` - Refine planning weather map controls
-- `b9ce32b` - Stabilize cloud frontend build
+- `fee57ce` - Separate planning map controls
+- `1c4e465` - Fill planning marine forecast gaps
+- `009bc07` - Remove planning forecast summary row
+- `94b1fd9` - Cap planning forecast offset
+- `50528ea` - Restore planning segment distance labels
+- `017626e` - Refine planning map weather toggle
+- `d73d516` - Refresh launch action map
 
 ## What Codex can fix handsfree
 
@@ -103,6 +108,18 @@ KAYAK_NOINDEX=true
 KAYAK_OWNER_EMAILS=your-owner-login-email@example.com
 
 STORMGLASS_API_KEY=your-stormglass-api-key
+STORMGLASS_SOURCE=none
+OPEN_METEO_ENABLED=true
+
+MAP_PROVIDER=maptiler
+MAPTILER_API_KEY=your-maptiler-api-key
+MAPTILER_WEATHER_ENABLED=true
+
+SENTRY_LARAVEL_DSN=your-sentry-dsn
+SENTRY_SAMPLE_RATE=1.0
+SENTRY_SEND_DEFAULT_PII=false
+
+POSTHOG_ENABLED=false
 ```
 
 Important:
@@ -110,6 +127,7 @@ Important:
 - Do not set `SESSION_DOMAIN` unless we deliberately need a custom cookie plan.
 - Keep public profiles disabled for private staging.
 - Keep noindex enabled until public launch is intentional.
+- Keep PostHog disabled until the privacy/consent wording is final.
 
 ### Storage
 
