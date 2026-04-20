@@ -110,6 +110,130 @@ class StormglassWeatherService
         ];
     }
 
+    public function previewForecastBoard(PaddleSession $session, int $days = 5, int $stepHours = 3): array
+    {
+        if (! $this->isConfigured()) {
+            return [
+                'status' => 'skipped',
+                'reason' => 'Stormglass API key is not configured yet.',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        }
+
+        [$lat, $lng] = $this->coordinatesFor($session);
+
+        if ($lat === null || $lng === null) {
+            return [
+                'status' => 'skipped',
+                'reason' => 'No saved launch or landing coordinates were available.',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        }
+
+        $timezone = $session->timezone ?: 'UTC';
+        $targetTime = $this->targetTime($session);
+        $rangeStart = Carbon::parse(
+            $session->session_date?->toDateString() ?? Carbon::instance($targetTime)->setTimezone($timezone)->toDateString(),
+            $timezone,
+        )->startOfDay();
+        $rangeEnd = $rangeStart->copy()->addDays(max($days, 1))->subSecond();
+        $stepHours = max($stepHours, 1);
+
+        try {
+            $hours = $this->fetchForecastHours($lat, $lng, $rangeStart, $rangeEnd);
+            $tideExtremes = $this->fetchTideExtremesRange($lat, $lng, $rangeStart, $rangeEnd);
+        } catch (RequestException $exception) {
+            report($exception);
+            $failure = $this->requestFailureDetails($exception);
+
+            return [
+                'status' => 'failed',
+                'reason' => $failure['reason'],
+                'httpStatus' => $failure['httpStatus'],
+                'providerMessage' => $failure['providerMessage'],
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return [
+                'status' => 'failed',
+                'reason' => 'Stormglass request failed.',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        }
+
+        if ($hours === []) {
+            return [
+                'status' => 'skipped',
+                'reason' => 'Stormglass returned no usable forecast hours.',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => [],
+            ];
+        }
+
+        $targetSnapshot = $this->forecastSnapshot(
+            $this->nearestForecastHour($hours, $targetTime),
+            $lat,
+            $lng,
+            $targetTime,
+            $timezone,
+            $tideExtremes,
+        );
+        $timeline = [];
+        $slot = $rangeStart->copy();
+
+        while ($slot->lte($rangeEnd)) {
+            $snapshot = $this->forecastSnapshot(
+                $this->nearestForecastHour($hours, $slot),
+                $lat,
+                $lng,
+                $slot,
+                $timezone,
+                $tideExtremes,
+            );
+            $localSlot = $slot->copy()->setTimezone($timezone);
+
+            $timeline[] = [
+                'time' => $localSlot->toIso8601String(),
+                'dayLabel' => $this->dayLabel($localSlot, $timezone),
+                'hourLabel' => $localSlot->format('H'),
+                'status' => $snapshot['filledFields'] > 0 ? 'filled' : 'skipped',
+                'filledFields' => $snapshot['filledFields'],
+                'fields' => $snapshot['fields'],
+            ];
+
+            $slot->addHours($stepHours);
+        }
+
+        if (($targetSnapshot['filledFields'] ?? 0) === 0) {
+            return [
+                'status' => 'skipped',
+                'reason' => 'Stormglass did not return any values we could apply.',
+                'filledFields' => 0,
+                'fields' => [],
+                'timeline' => $timeline,
+            ];
+        }
+
+        return [
+            'status' => 'filled',
+            'reason' => null,
+            'filledFields' => $targetSnapshot['filledFields'],
+            'fields' => $targetSnapshot['fields'],
+            'timeline' => $timeline,
+        ];
+    }
+
     public function enrichSessions(iterable $sessions): array
     {
         $summary = [
@@ -136,15 +260,31 @@ class StormglassWeatherService
 
     private function fetchNearestForecastHour(float $lat, float $lng, CarbonInterface $targetTime): ?array
     {
-        $hours = Cache::remember(
-            $this->cacheKey('weather', $lat, $lng, $targetTime, implode(',', $this->params())),
+        $hours = $this->fetchForecastHours(
+            $lat,
+            $lng,
+            Carbon::instance($targetTime)->copy()->subHours(6),
+            Carbon::instance($targetTime)->copy()->addHours(6),
+        );
+
+        if (! is_array($hours) || $hours === []) {
+            return null;
+        }
+
+        return $this->nearestForecastHour($hours, $targetTime);
+    }
+
+    private function fetchForecastHours(float $lat, float $lng, CarbonInterface $start, CarbonInterface $end): array
+    {
+        return Cache::remember(
+            $this->weatherRangeCacheKey($lat, $lng, $start, $end),
             $this->cacheSeconds(),
-            function () use ($lat, $lng, $targetTime) {
+            function () use ($lat, $lng, $start, $end) {
                 $response = Http::timeout($this->timeout())
                     ->withHeaders([
                         $this->authHeader() => $this->authValue(),
                     ])
-                    ->get($this->baseUrl(), $this->weatherQuery($lat, $lng, $targetTime))
+                    ->get($this->baseUrl(), $this->weatherQuery($lat, $lng, $start, $end))
                     ->throw();
 
                 $hours = $response->json('hours');
@@ -152,11 +292,10 @@ class StormglassWeatherService
                 return is_array($hours) ? $hours : [];
             },
         );
+    }
 
-        if (! is_array($hours) || $hours === []) {
-            return null;
-        }
-
+    private function nearestForecastHour(array $hours, CarbonInterface $targetTime): ?array
+    {
         $targetTimestamp = Carbon::instance($targetTime)->utc()->timestamp;
 
         return collect($hours)
@@ -180,15 +319,22 @@ class StormglassWeatherService
 
     private function fetchTideExtremes(float $lat, float $lng, CarbonInterface $targetTime): array
     {
-        $cacheKey = $this->cacheKey('tide', $lat, $lng, $targetTime, 'extremes');
+        return $this->fetchTideExtremesRange(
+            $lat,
+            $lng,
+            Carbon::instance($targetTime)->copy()->subHours(12),
+            Carbon::instance($targetTime)->copy()->addHours(12),
+        );
+    }
+
+    private function fetchTideExtremesRange(float $lat, float $lng, CarbonInterface $startTime, CarbonInterface $endTime): array
+    {
+        $cacheKey = $this->rangeCacheKey('tide', $lat, $lng, $startTime, $endTime, 'extremes');
         $cached = Cache::get($cacheKey);
 
         if (is_array($cached)) {
             return $cached;
         }
-
-        $start = Carbon::instance($targetTime)->copy()->subHours(12)->utc()->toIso8601String();
-        $end = Carbon::instance($targetTime)->copy()->addHours(12)->utc()->toIso8601String();
 
         $response = Http::timeout($this->timeout())
             ->withHeaders([
@@ -197,8 +343,8 @@ class StormglassWeatherService
             ->get($this->tideExtremesUrl(), [
                 'lat' => $lat,
                 'lng' => $lng,
-                'start' => $start,
-                'end' => $end,
+                'start' => Carbon::instance($startTime)->utc()->toIso8601String(),
+                'end' => Carbon::instance($endTime)->utc()->toIso8601String(),
             ]);
 
         if (! $response->successful()) {
@@ -215,7 +361,35 @@ class StormglassWeatherService
         return $extremes;
     }
 
-    private function applyForecast(PaddleSession $session, array $hour): int
+    private function forecastSnapshot(?array $hour, float $lat, float $lng, CarbonInterface $targetTime, string $timezone, array $tideExtremes): array
+    {
+        if (! $hour) {
+            return [
+                'filledFields' => 0,
+                'fields' => [],
+            ];
+        }
+
+        $session = new PaddleSession([
+            'session_date' => Carbon::instance($targetTime)->setTimezone($timezone)->toDateString(),
+            'start_at' => $targetTime,
+            'timezone' => $timezone,
+            'launch_lat' => $lat,
+            'launch_lng' => $lng,
+        ]);
+
+        $filledFields = $this->applyForecast($session, $hour, $tideExtremes);
+        $fields = $this->extractFields($session);
+        $fields['precipitation_mm'] = $this->roundedValue($this->extractNumericValue($hour, 'precipitation'), 1);
+        $fields['cloud_cover_percent'] = $this->roundedValue($this->extractNumericValue($hour, 'cloudCover'), 0);
+
+        return [
+            'filledFields' => $filledFields,
+            'fields' => $fields,
+        ];
+    }
+
+    private function applyForecast(PaddleSession $session, array $hour, ?array $tideExtremes = null): int
     {
         $filled = 0;
         [$lat, $lng] = $this->coordinatesFor($session);
@@ -260,7 +434,7 @@ class StormglassWeatherService
         }
 
         $tideState = ($lat !== null && $lng !== null)
-            ? $this->resolveTideState($targetTime, $this->fetchTideExtremes($lat, $lng, $targetTime))
+            ? $this->resolveTideState($targetTime, $tideExtremes ?? $this->fetchTideExtremes($lat, $lng, $targetTime))
             : null;
         if ($tideState !== null) {
             $session->tide_state = $tideState;
@@ -364,6 +538,11 @@ class StormglassWeatherService
         $session->{$field} = round($value, $precision);
 
         return 1;
+    }
+
+    private function roundedValue(?float $value, int $precision): ?float
+    {
+        return $value === null ? null : round($value, $precision);
     }
 
     private function assignInt(PaddleSession $session, string $field, ?float $value): int
@@ -702,13 +881,32 @@ class StormglassWeatherService
         );
     }
 
-    private function weatherQuery(float $lat, float $lng, CarbonInterface $targetTime): array
+    private function weatherRangeCacheKey(float $lat, float $lng, CarbonInterface $start, CarbonInterface $end): string
+    {
+        return $this->rangeCacheKey('weather', $lat, $lng, $start, $end, implode(',', $this->params()));
+    }
+
+    private function rangeCacheKey(string $type, float $lat, float $lng, CarbonInterface $start, CarbonInterface $end, string $scope): string
+    {
+        return sprintf(
+            'stormglass:%s:%s:%s:%s:%s:%s:%s',
+            $type,
+            round($lat, 4),
+            round($lng, 4),
+            Carbon::instance($start)->utc()->format('YmdHi'),
+            Carbon::instance($end)->utc()->format('YmdHi'),
+            $this->source() ?? 'default',
+            sha1($scope),
+        );
+    }
+
+    private function weatherQuery(float $lat, float $lng, CarbonInterface $start, CarbonInterface $end): array
     {
         $query = [
             'lat' => $lat,
             'lng' => $lng,
-            'start' => Carbon::instance($targetTime)->copy()->subHours(6)->utc()->toIso8601String(),
-            'end' => Carbon::instance($targetTime)->copy()->addHours(6)->utc()->toIso8601String(),
+            'start' => Carbon::instance($start)->utc()->toIso8601String(),
+            'end' => Carbon::instance($end)->utc()->toIso8601String(),
             'params' => implode(',', $this->params()),
         ];
 
@@ -717,6 +915,22 @@ class StormglassWeatherService
         }
 
         return $query;
+    }
+
+    private function dayLabel(CarbonInterface $slot, string $timezone): string
+    {
+        $localSlot = Carbon::instance($slot)->setTimezone($timezone);
+        $today = now($timezone)->startOfDay();
+
+        if ($localSlot->isSameDay($today)) {
+            return 'TODAY';
+        }
+
+        if ($localSlot->isSameDay($today->copy()->addDay())) {
+            return 'TOMORROW';
+        }
+
+        return strtoupper($localSlot->format('D, M j'));
     }
 
     private function authValue(): string

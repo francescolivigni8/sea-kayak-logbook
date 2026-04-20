@@ -27,6 +27,7 @@ return [
                     'gust',
                     'windDirection',
                     'precipitation',
+                    'cloudCover',
                     'airTemperature',
                     'waterTemperature',
                     'visibility',

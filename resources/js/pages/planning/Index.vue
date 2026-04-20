@@ -73,14 +73,30 @@ interface ForecastFields {
     swell_period_s?: number | null;
     air_temp_c?: number | null;
     sea_temp_c?: number | null;
+    precipitation_mm?: number | null;
+    cloud_cover_percent?: number | null;
+    rain_severity?: string | null;
+    visibility_code?: string | null;
+    wind_severity?: string | null;
+    temperature_severity?: string | null;
     forecast_severity?: string | null;
     weather_summary?: string | null;
+}
+
+interface ForecastTimelinePoint {
+    time: string;
+    dayLabel: string;
+    hourLabel: string;
+    status: 'filled' | 'skipped' | 'failed';
+    filledFields?: number;
+    fields?: ForecastFields;
 }
 
 interface ForecastResult {
     status: 'idle' | 'loading' | 'filled' | 'skipped' | 'failed';
     message?: string;
     httpStatus?: number;
+    timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
 
@@ -89,6 +105,7 @@ interface ForecastPayload {
     message?: string;
     reason?: string;
     httpStatus?: number;
+    timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
 
@@ -326,6 +343,55 @@ const areaForecast = computed<ForecastResult>(() => {
     );
 });
 
+const forecastTimeline = computed<ForecastTimelinePoint[]>(() => {
+    if (areaForecast.value.timeline?.length) {
+        return areaForecast.value.timeline;
+    }
+
+    if (!hasForecastFields(areaForecast.value)) {
+        return [];
+    }
+
+    return [
+        {
+            time: new Date().toISOString(),
+            dayLabel: 'AREA',
+            hourLabel: areaSampleTimeLabel.value,
+            status: 'filled',
+            filledFields: Object.values(areaForecast.value.fields ?? {}).filter(
+                (value) =>
+                    value !== null && value !== undefined && value !== '',
+            ).length,
+            fields: areaForecast.value.fields,
+        },
+    ];
+});
+
+const forecastDayGroups = computed(() => {
+    const groups: { label: string; span: number }[] = [];
+
+    forecastTimeline.value.forEach((slot) => {
+        const lastGroup = groups[groups.length - 1];
+
+        if (lastGroup?.label === slot.dayLabel) {
+            lastGroup.span++;
+
+            return;
+        }
+
+        groups.push({
+            label: slot.dayLabel,
+            span: 1,
+        });
+    });
+
+    return groups;
+});
+
+const forecastBoardGridStyle = computed(() => ({
+    gridTemplateColumns: `76px repeat(${Math.max(forecastTimeline.value.length, 1)}, minmax(38px, 1fr))`,
+}));
+
 const estimatedStormglassRequests = computed(() =>
     forecastAreaPoint.value ? 2 : 0,
 );
@@ -480,12 +546,129 @@ function forecastCellMessage(forecast: ForecastResult): string {
     return forecast.message || 'No forecast data.';
 }
 
-function tideLabel(forecast: ForecastResult): string {
-    if (!hasForecastFields(forecast)) {
+function slotTideLabel(slot: ForecastTimelinePoint): string {
+    if (!slot.fields) {
         return '—';
     }
 
-    return forecast.fields?.tide_state ?? 'No tide';
+    return slot.fields.tide_state ?? '—';
+}
+
+function beaufortCellClass(value?: number | null): string {
+    if (value === null || value === undefined) {
+        return 'bg-slate-100 text-slate-400';
+    }
+
+    if (value <= 2) {
+        return 'bg-cyan-100 text-slate-800';
+    }
+
+    if (value <= 4) {
+        return 'bg-lime-300 text-slate-900';
+    }
+
+    if (value <= 5) {
+        return 'bg-yellow-300 text-slate-900';
+    }
+
+    if (value <= 6) {
+        return 'bg-orange-300 text-slate-950';
+    }
+
+    return 'bg-red-500 text-white';
+}
+
+function gustCellClass(value?: number | null): string {
+    if (value === null || value === undefined) {
+        return 'bg-slate-100 text-slate-400';
+    }
+
+    if (value < 6) {
+        return 'bg-emerald-100 text-slate-800';
+    }
+
+    if (value < 11) {
+        return 'bg-yellow-200 text-slate-900';
+    }
+
+    if (value < 17) {
+        return 'bg-orange-300 text-slate-950';
+    }
+
+    return 'bg-red-500 text-white';
+}
+
+function rainCellClass(value?: number | null): string {
+    if (value === null || value === undefined) {
+        return 'bg-slate-50 text-slate-300';
+    }
+
+    if (value < 0.5) {
+        return 'bg-slate-50 text-slate-500';
+    }
+
+    if (value < 2.5) {
+        return 'bg-sky-100 text-sky-900';
+    }
+
+    if (value < 7.5) {
+        return 'bg-blue-300 text-slate-950';
+    }
+
+    return 'bg-blue-700 text-white';
+}
+
+function cloudOpacityStyle(value?: number | null) {
+    const opacity =
+        value === null || value === undefined
+            ? 0.16
+            : Math.min(Math.max(value / 100, 0.16), 0.92);
+
+    return {
+        opacity: opacity.toFixed(2),
+    };
+}
+
+function windArrowStyle(value?: number | null) {
+    return {
+        transform: `rotate(${value ?? 0}deg)`,
+    };
+}
+
+function windArrowLabel(value?: number | null): string {
+    return value === null || value === undefined ? '·' : '↓';
+}
+
+function compactNumber(value?: number | null, digits = 0): string {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    return value.toFixed(digits);
+}
+
+function uppercaseLabel(value?: string | null): string {
+    return value ? value.toUpperCase() : '—';
+}
+
+function boardSummaryLabel(slot: ForecastTimelinePoint): string {
+    if (!slot.fields) {
+        return 'No data';
+    }
+
+    const parts = [
+        slot.fields.wind_beaufort !== null &&
+        slot.fields.wind_beaufort !== undefined
+            ? `F${slot.fields.wind_beaufort}`
+            : null,
+        slot.fields.wind_avg_ms !== null &&
+        slot.fields.wind_avg_ms !== undefined
+            ? `${slot.fields.wind_avg_ms.toFixed(1)} m/s`
+            : null,
+        slot.fields.tide_state ?? null,
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(' · ') : 'No data';
 }
 
 function defaultPlanTitle(): string {
@@ -616,6 +799,7 @@ async function refreshForecasts() {
             status: payload.status ?? 'failed',
             message: payload.message || payload.reason,
             httpStatus: payload.httpStatus,
+            timeline: payload.timeline ?? [],
             fields: payload.fields ?? {},
         };
     } catch (error) {
@@ -929,218 +1113,414 @@ watch(
                 {{ forecastMessage }}
             </section>
 
-            <div
-                v-if="forecastAreaPoint"
-                class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
-            >
+            <div v-if="forecastAreaPoint" class="mt-5">
                 <section
-                    class="overflow-hidden rounded-[28px] border border-[rgba(122,16,20,0.22)] bg-[#b61018] text-white shadow-[0_22px_50px_rgba(89,18,25,0.16)]"
+                    class="overflow-hidden rounded-[28px] border border-[color:var(--journal-line)] bg-white/92 shadow-[0_24px_70px_rgba(58,65,111,0.14)]"
                 >
                     <div
-                        class="flex flex-col gap-3 border-b border-white/15 bg-[#8f0d13] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        class="flex flex-col gap-4 border-b border-[color:var(--journal-line)] bg-gradient-to-r from-white via-[#f8fbff] to-[#edf8fb] px-5 py-4 sm:flex-row sm:items-end sm:justify-between"
                     >
                         <div>
-                            <p
-                                class="text-xs font-semibold tracking-[0.22em] uppercase opacity-75"
-                            >
-                                Route area
+                            <p class="journal-kicker">
+                                Route area / Forecast board
                             </p>
-                            <h4 class="mt-1 text-[1.45rem] leading-none">
-                                Area forecast
-                            </h4>
-                        </div>
-                        <span
-                            class="inline-flex w-fit items-center rounded-full bg-white px-3 py-1.5 font-mono text-xs font-bold text-[#b61018]"
-                        >
-                            {{ areaSampleTimeLabel }}
-                        </span>
-                    </div>
-
-                    <div v-if="hasForecastFields(areaForecast)" class="p-5">
-                        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Wind
-                                </p>
-                                <p class="mt-2 text-2xl font-black">
+                            <div
+                                class="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-2"
+                            >
+                                <h4
+                                    class="text-[clamp(2.15rem,5vw,3.85rem)] leading-none tracking-[-0.06em]"
+                                >
                                     F{{
                                         fieldLabel(
                                             areaForecast.fields?.wind_beaufort,
                                         )
                                     }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.wind_avg_ms,
-                                            ' m/s',
-                                        )
-                                    }}
-                                    avg ·
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.wind_gust_ms,
-                                            ' m/s',
-                                        )
-                                    }}
-                                    gust
-                                </p>
-                            </div>
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Tide
-                                </p>
-                                <p class="mt-2 text-2xl font-black capitalize">
-                                    {{ tideLabel(areaForecast) }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    Area sample, not per waypoint.
-                                </p>
-                            </div>
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Current
-                                </p>
-                                <p class="mt-2 text-2xl font-black">
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.current_knots,
-                                            ' kt',
-                                        )
-                                    }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields
-                                                ?.current_direction_deg,
-                                            '°',
-                                        )
-                                    }}
-                                    direction
-                                </p>
-                            </div>
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Sea
-                                </p>
-                                <p class="mt-2 text-2xl font-black">
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.wave_height_m,
-                                            ' m',
-                                        )
-                                    }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    Swell
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.swell_height_m,
-                                            ' m',
-                                        )
-                                    }}
-                                    @
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.swell_period_s,
-                                            ' s',
-                                        )
-                                    }}
-                                </p>
-                            </div>
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Temp
-                                </p>
-                                <p class="mt-2 text-2xl font-black">
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.air_temp_c,
-                                            ' C',
-                                        )
-                                    }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    Sea
-                                    {{
-                                        fieldLabel(
-                                            areaForecast.fields?.sea_temp_c,
-                                            ' C',
-                                        )
-                                    }}
-                                </p>
-                            </div>
-                            <div class="rounded-[20px] bg-white/12 p-4">
-                                <p class="text-xs font-semibold uppercase">
-                                    Severity
-                                </p>
-                                <p class="mt-2 text-2xl font-black capitalize">
-                                    {{
-                                        areaForecast.fields
-                                            ?.forecast_severity ?? '—'
-                                    }}
-                                </p>
-                                <p class="mt-1 text-sm text-white/72">
-                                    Planning guidance only.
+                                    <span
+                                        class="border-b border-dashed border-[color:var(--journal-muted)] text-[0.46em] tracking-normal text-[color:var(--journal-muted)]"
+                                        >bft</span
+                                    >
+                                </h4>
+                                <p
+                                    class="max-w-xl text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Area sample from the route centre, shown as
+                                    a planning strip instead of per-waypoint
+                                    weather.
                                 </p>
                             </div>
                         </div>
-
-                        <p
-                            v-if="areaForecast.fields?.weather_summary"
-                            class="mt-4 rounded-[20px] bg-black/14 p-4 text-sm leading-6 text-white/82"
+                        <div
+                            class="flex flex-wrap items-center gap-2 text-xs font-semibold"
                         >
-                            {{ areaForecast.fields.weather_summary }}
-                        </p>
+                            <span
+                                class="rounded-full border border-[color:var(--journal-line)] bg-white px-3 py-1.5 font-mono text-[color:var(--journal-text)]"
+                            >
+                                {{ areaSampleTimeLabel }}
+                            </span>
+                            <span
+                                class="rounded-full bg-[#1b243f] px-3 py-1.5 text-white"
+                            >
+                                Stormglass
+                            </span>
+                            <span
+                                class="rounded-full border border-[color:var(--journal-line)] bg-white/80 px-3 py-1.5 text-[color:var(--journal-muted)]"
+                            >
+                                {{ forecastProgressLabel }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div v-if="forecastTimeline.length" class="overflow-x-auto">
+                        <div class="min-w-[1180px] p-4">
+                            <div
+                                class="grid items-stretch gap-px text-[0.68rem] font-semibold tracking-[0.08em] text-[color:var(--journal-muted)] uppercase"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="rounded-l-[14px] bg-slate-50 px-2 py-2 text-right"
+                                >
+                                    day
+                                </div>
+                                <div
+                                    v-for="group in forecastDayGroups"
+                                    :key="group.label"
+                                    class="bg-slate-50 px-2 py-2 text-center first:rounded-l-[14px] last:rounded-r-[14px]"
+                                    :style="{
+                                        gridColumn: `span ${group.span} / span ${group.span}`,
+                                    }"
+                                >
+                                    {{ group.label }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="mt-1 grid items-stretch gap-px text-xs font-semibold text-[color:var(--journal-muted)]"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right font-mono"
+                                >
+                                    time
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`time-${slot.time}`"
+                                    class="bg-white px-1 py-2 text-center font-mono"
+                                >
+                                    {{ slot.hourLabel }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    wind
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`wind-${slot.time}`"
+                                    class="flex items-center justify-center bg-white px-1 py-2 text-base text-[#123047]"
+                                >
+                                    <span
+                                        class="inline-block"
+                                        :style="
+                                            windArrowStyle(
+                                                slot.fields?.wind_direction_deg,
+                                            )
+                                        "
+                                        >{{
+                                            windArrowLabel(
+                                                slot.fields?.wind_direction_deg,
+                                            )
+                                        }}</span
+                                    >
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs font-bold"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    bft
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`bft-${slot.time}`"
+                                    class="px-1 py-2 text-center"
+                                    :class="
+                                        beaufortCellClass(
+                                            slot.fields?.wind_beaufort,
+                                        )
+                                    "
+                                >
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.wind_beaufort,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs font-bold"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    gust
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`gust-${slot.time}`"
+                                    class="px-1 py-2 text-center"
+                                    :class="
+                                        gustCellClass(slot.fields?.wind_gust_ms)
+                                    "
+                                >
+                                    {{
+                                        compactNumber(slot.fields?.wind_gust_ms)
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    temp C
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`temp-${slot.time}`"
+                                    class="bg-sky-50 px-1 py-2 text-center font-semibold text-slate-700"
+                                >
+                                    {{ compactNumber(slot.fields?.air_temp_c) }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    clouds
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`cloud-${slot.time}`"
+                                    class="flex items-center justify-center bg-white px-1 py-2"
+                                >
+                                    <span
+                                        class="h-3 w-6 rounded-full bg-slate-500"
+                                        :style="
+                                            cloudOpacityStyle(
+                                                slot.fields
+                                                    ?.cloud_cover_percent,
+                                            )
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    rain mm
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`rain-${slot.time}`"
+                                    class="px-1 py-2 text-center font-semibold"
+                                    :class="
+                                        rainCellClass(
+                                            slot.fields?.precipitation_mm,
+                                        )
+                                    "
+                                >
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.precipitation_mm,
+                                            1,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    vis
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`visibility-${slot.time}`"
+                                    class="bg-white px-1 py-2 text-center font-mono text-[0.62rem] text-slate-600"
+                                >
+                                    {{
+                                        uppercaseLabel(
+                                            slot.fields?.visibility_code,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    sea m
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`sea-${slot.time}`"
+                                    class="bg-blue-100 px-1 py-2 text-center font-semibold text-slate-800"
+                                >
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.wave_height_m,
+                                            1,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    swell
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`swell-${slot.time}`"
+                                    class="bg-blue-50 px-1 py-2 text-center font-mono text-[0.66rem] text-slate-700"
+                                >
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.swell_height_m,
+                                            1,
+                                        )
+                                    }}
+                                    /
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.swell_period_s,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    current
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`current-${slot.time}`"
+                                    class="bg-white px-1 py-2 text-center font-semibold text-slate-700"
+                                >
+                                    {{
+                                        compactNumber(
+                                            slot.fields?.current_knots,
+                                            1,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
+                                    tide
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`tide-${slot.time}`"
+                                    class="bg-[#eef6fb] px-1 py-2 text-center font-mono text-[0.62rem] text-slate-700"
+                                >
+                                    {{ slotTideLabel(slot) }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="mt-2 grid items-stretch gap-px text-[0.68rem]"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="rounded-l-[14px] bg-[#1b243f] px-2 py-2 text-right font-semibold text-white/72"
+                                >
+                                    summary
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`summary-${slot.time}`"
+                                    class="bg-[#1b243f] px-1 py-2 text-center font-mono text-white/78 last:rounded-r-[14px]"
+                                    :title="slot.fields?.weather_summary ?? ''"
+                                >
+                                    {{ boardSummaryLabel(slot) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex flex-col gap-2 border-t border-[color:var(--journal-line)] bg-slate-50/70 px-5 py-3 text-xs leading-5 text-[color:var(--journal-muted)] sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <span>
+                                Route centre:
+                                <span class="font-mono">
+                                    {{
+                                        formatCoordinate(forecastAreaPoint.lat)
+                                    }},
+                                    {{
+                                        formatCoordinate(forecastAreaPoint.lng)
+                                    }}
+                                </span>
+                            </span>
+                            <span>{{ forecastRequestEstimate }}</span>
+                        </div>
                     </div>
                     <div v-else class="p-5">
                         <p
-                            class="rounded-[20px] bg-white/12 p-4 text-sm leading-6 text-white/80"
+                            class="rounded-[20px] border border-dashed border-[color:var(--journal-line)] bg-white/72 p-4 text-sm leading-6 text-[color:var(--journal-muted)]"
                         >
                             {{ forecastCellMessage(areaForecast) }}
                         </p>
-                    </div>
-                </section>
-
-                <section class="journal-card p-5">
-                    <p class="journal-kicker">Sample point</p>
-                    <h4 class="mt-2 text-[1.35rem] leading-none">
-                        Route centre
-                    </h4>
-                    <div class="mt-4 grid gap-3">
-                        <div
-                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
-                        >
-                            <p class="journal-field-label">Coordinates</p>
-                            <p
-                                class="mt-1 font-mono text-sm text-[color:var(--journal-text)]"
-                            >
-                                {{ formatCoordinate(forecastAreaPoint.lat) }},
-                                {{ formatCoordinate(forecastAreaPoint.lng) }}
-                            </p>
-                        </div>
-                        <div
-                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
-                        >
-                            <p class="journal-field-label">Sample time</p>
-                            <p
-                                class="mt-1 font-semibold text-[color:var(--journal-text)]"
-                            >
-                                {{ areaSampleTimeLabel }}
-                            </p>
-                        </div>
-                        <div
-                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/70 p-3"
-                        >
-                            <p class="journal-field-label">API use</p>
-                            <p
-                                class="mt-1 text-sm leading-6 text-[color:var(--journal-muted)]"
-                            >
-                                {{ forecastRequestEstimate }} Cached repeats may
-                                use fewer calls.
-                            </p>
-                        </div>
                     </div>
                 </section>
             </div>

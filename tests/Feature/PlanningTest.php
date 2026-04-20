@@ -54,6 +54,7 @@ class PlanningTest extends TestCase
                     'gust' => ['sg' => 8.2],
                     'windDirection' => ['sg' => 205],
                     'precipitation' => ['sg' => 0.1],
+                    'cloudCover' => ['sg' => 46],
                     'airTemperature' => ['sg' => 9.5],
                     'waterTemperature' => ['sg' => 6.4],
                     'visibility' => ['sg' => 9000],
@@ -89,7 +90,10 @@ class PlanningTest extends TestCase
             ->assertJsonPath('fields.wind_beaufort', 4)
             ->assertJsonPath('fields.tide_state', 'flooding')
             ->assertJsonPath('fields.current_knots', 0.7)
-            ->assertJsonPath('fields.wind_direction_deg', 205);
+            ->assertJsonPath('fields.wind_direction_deg', 205)
+            ->assertJsonPath('timeline.0.fields.wind_beaufort', 4)
+            ->assertJsonPath('timeline.0.fields.precipitation_mm', 0.1)
+            ->assertJsonPath('timeline.0.fields.cloud_cover_percent', 46);
     }
 
     public function test_planning_weather_preview_reports_stormglass_quota_errors(): void
@@ -195,6 +199,7 @@ class PlanningTest extends TestCase
                     'windSpeed' => ['sg' => 5.8],
                     'gust' => ['sg' => 8.2],
                     'windDirection' => ['sg' => 205],
+                    'cloudCover' => ['sg' => 46],
                     'airTemperature' => ['sg' => 9.5],
                     'waterTemperature' => ['sg' => 6.4],
                     'currentSpeed' => ['sg' => 0.35],

@@ -93,20 +93,20 @@ class PlanningController extends Controller
             'launch_lng' => $this->nullableFloat($validated['lng'] ?? null),
         ]);
 
-        $result = $this->stormglassWeather->previewSession($previewSession);
+        $result = $this->stormglassWeather->previewForecastBoard($previewSession);
 
         return response()->json([
             ...$result,
             'point' => [
-                'label' => $validated['label'] ?? 'Waypoint',
+                'label' => $validated['label'] ?? 'Route area',
                 'lat' => $this->nullableFloat($validated['lat'] ?? null),
                 'lng' => $this->nullableFloat($validated['lng'] ?? null),
                 'offsetMinutes' => (int) ($validated['offset_minutes'] ?? 0),
             ],
             'message' => match ($result['status']) {
-                'filled' => sprintf('Forecast filled %d fields for %s.', (int) ($result['filledFields'] ?? 0), $validated['label'] ?? 'waypoint'),
+                'filled' => sprintf('Forecast board filled %d fields for %s.', (int) ($result['filledFields'] ?? 0), $validated['label'] ?? 'route area'),
                 'failed' => $result['reason'] ?? 'Forecast preview failed.',
-                default => $result['reason'] ?? 'Forecast could not fill this waypoint yet.',
+                default => $result['reason'] ?? 'Forecast could not fill this route area yet.',
             },
         ]);
     }
