@@ -97,6 +97,7 @@ interface ForecastResult {
     httpStatus?: number;
     provider?: string | null;
     fallbackFrom?: ForecastFallback | null;
+    marineFallback?: ForecastFallback | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
@@ -108,6 +109,7 @@ interface ForecastPayload {
     httpStatus?: number;
     provider?: string | null;
     fallbackFrom?: ForecastFallback | null;
+    marineFallback?: ForecastFallback | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
@@ -327,15 +329,49 @@ const forecastAreaPoint = computed<RoutePoint | null>(() => {
         return null;
     }
 
-    const lats = routePoints.value.map((point) => point.lat);
-    const lngs = routePoints.value.map((point) => point.lng);
+    if (!routeLegs.value.length || totalDistanceKm.value <= 0) {
+        const [point] = routePoints.value;
+
+        return {
+            ...point,
+            key: AREA_FORECAST_KEY,
+            label: 'Route area',
+            shortLabel: 'A',
+        };
+    }
+
+    const targetDistanceKm = totalDistanceKm.value / 2;
+    let coveredDistanceKm = 0;
+
+    for (const leg of routeLegs.value) {
+        const nextDistanceKm = coveredDistanceKm + leg.distanceKm;
+
+        if (targetDistanceKm <= nextDistanceKm) {
+            const fraction =
+                leg.distanceKm > 0
+                    ? (targetDistanceKm - coveredDistanceKm) / leg.distanceKm
+                    : 0;
+
+            return {
+                key: AREA_FORECAST_KEY,
+                label: 'Route area',
+                shortLabel: 'A',
+                lat: interpolateCoordinate(leg.from.lat, leg.to.lat, fraction),
+                lng: interpolateCoordinate(leg.from.lng, leg.to.lng, fraction),
+            };
+        }
+
+        coveredDistanceKm = nextDistanceKm;
+    }
+
+    const point = routePoints.value[routePoints.value.length - 1];
 
     return {
         key: AREA_FORECAST_KEY,
         label: 'Route area',
         shortLabel: 'A',
-        lat: (Math.min(...lats) + Math.max(...lats)) / 2,
-        lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+        lat: point.lat,
+        lng: point.lng,
     };
 });
 
@@ -520,6 +556,16 @@ function bearingDeg(left: RoutePoint, right: RoutePoint): number {
         Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
 
     return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function interpolateCoordinate(
+    start: number,
+    end: number,
+    fraction: number,
+): number {
+    return Number(
+        (start + (end - start) * Math.min(Math.max(fraction, 0), 1)).toFixed(6),
+    );
 }
 
 function formatMinutes(minutes: number | null): string {
@@ -828,6 +874,7 @@ async function refreshForecasts() {
             httpStatus: payload.httpStatus,
             provider: payload.provider,
             fallbackFrom: payload.fallbackFrom,
+            marineFallback: payload.marineFallback,
             timeline: payload.timeline ?? [],
             fields: payload.fields ?? {},
         };
@@ -845,10 +892,13 @@ async function refreshForecasts() {
     forecastByPoint.value = nextForecasts;
     const forecast = nextForecasts[AREA_FORECAST_KEY];
     const hasFields = hasForecastFields(forecast);
+    const marineFallbackMessage = forecast.marineFallback?.provider
+        ? ` Marine gaps filled with ${providerLabel(forecast.marineFallback.provider)}.`
+        : '';
 
     forecastStatus.value = hasFields ? 'filled' : 'warning';
     forecastMessage.value = hasFields
-        ? `Area conditions refreshed with ${providerLabel(forecast.provider)} for the route centre at ${areaSampleTimeLabel.value}.${forecast.fallbackFrom ? ` Fallback used after ${providerLabel(forecast.fallbackFrom.provider)} returned no usable board.` : ''} ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
+        ? `Area conditions refreshed with ${providerLabel(forecast.provider)} for the route midpoint at ${areaSampleTimeLabel.value}.${forecast.fallbackFrom ? ` Fallback used after ${providerLabel(forecast.fallbackFrom.provider)} returned no usable board.` : ''}${marineFallbackMessage} ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
         : `No usable area forecast data returned yet. ${forecastRequestEstimate.value}${forecast.message ? ` ${forecast.message}` : ''}`;
 }
 
@@ -1102,7 +1152,7 @@ watch(
                         Route area forecast
                     </h3>
                     <p class="journal-copy mt-2 max-w-3xl text-sm md:text-base">
-                        Pull one forecast for the centre of the planned route,
+                        Pull one forecast for the midpoint of the planned route,
                         sampled around the midpoint of the paddle. This keeps
                         the planner readable and avoids spending requests on
                         every waypoint.
@@ -1173,8 +1223,8 @@ watch(
                                 <p
                                     class="max-w-xl text-sm leading-6 text-[color:var(--journal-muted)]"
                                 >
-                                    Area sample from the route centre, shown as
-                                    a planning strip instead of per-waypoint
+                                    Area sample from the route midpoint, shown
+                                    as a planning strip instead of per-waypoint
                                     weather.
                                 </p>
                             </div>
@@ -1513,7 +1563,7 @@ watch(
                             class="flex flex-col gap-2 border-t border-[color:var(--journal-line)] bg-slate-50/70 px-5 py-3 text-xs leading-5 text-[color:var(--journal-muted)] sm:flex-row sm:items-center sm:justify-between"
                         >
                             <span>
-                                Route centre:
+                                Route midpoint:
                                 <span class="font-mono">
                                     {{
                                         formatCoordinate(forecastAreaPoint.lat)
