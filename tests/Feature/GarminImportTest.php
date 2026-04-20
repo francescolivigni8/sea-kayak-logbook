@@ -48,6 +48,56 @@ class GarminImportTest extends TestCase
         ]);
     }
 
+    public function test_gpx_files_can_be_attached_to_existing_garmin_sessions_without_csv(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,Reykjavik Kayaking,Kayaking,8.4,01:20:00,01:25:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $gpx = UploadedFile::fake()->createWithContent('reykjavik-route.gpx', <<<'GPX'
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test">
+  <metadata>
+    <time>2026-04-01T18:15:00Z</time>
+  </metadata>
+  <trk>
+    <name>Reykjavik Kayaking</name>
+    <trkseg>
+      <trkpt lat="64.146600" lon="-21.942600"><time>2026-04-01T18:15:00Z</time></trkpt>
+      <trkpt lat="64.147600" lon="-21.932600"><time>2026-04-01T18:25:00Z</time></trkpt>
+      <trkpt lat="64.148600" lon="-21.922600"><time>2026-04-01T18:35:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
+GPX);
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'gpx_files' => [$gpx],
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Reykjavik Kayaking')
+            ->firstOrFail();
+
+        $this->assertNotNull($session->gpx_path);
+        $this->assertSame('reykjavik-route.gpx', $session->garmin_gpx_name);
+        $this->assertNotEmpty($session->route_profile);
+        $this->assertSame(1, PaddleSession::query()->where('profile_id', $profile->id)->count());
+    }
+
     public function test_garmin_import_can_match_fit_files(): void
     {
         $user = User::factory()->create();

@@ -31,8 +31,8 @@ const selectedFitCount = computed(() => form.fit_files.length);
 const metaPills = computed(() => [
     props.profile.homeWater,
     props.profile.timezone,
-    'CSV required',
-    'GPX / FIT optional',
+    'CSV creates sessions',
+    'GPX / FIT can repair tracks',
 ]);
 
 function assignCsv(event: Event) {
@@ -75,9 +75,9 @@ function submit() {
                             Bring in Garmin history
                         </h2>
                         <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Bring in Garmin history with one CSV, then layer GPX
-                            or FIT files on top when you want routes and richer
-                            track data.
+                            Bring in Garmin history with one CSV, or upload GPX
+                            and FIT files alone to match routes onto sessions
+                            that already exist.
                         </p>
                     </div>
                 </div>
@@ -110,16 +110,16 @@ function submit() {
                         <p
                             class="text-base font-semibold text-[color:var(--journal-text)]"
                         >
-                            CSV stays required. GPX and FIT remain optional, but
-                            they unlock the route map, timing, and the cleaner
-                            session views.
+                            CSV creates or updates sessions. GPX and FIT can be
+                            uploaded later by themselves; we match them to
+                            existing sessions using Garmin timestamps and the
+                            session date.
                         </p>
                         <p
                             class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
                         >
-                            Repeated imports stay safer than one-off scripts
-                            because existing paddles are updated by external
-                            reference where possible.
+                            This is useful when Garmin CSV synced first but the
+                            GPX routes failed or arrived separately.
                         </p>
                     </div>
 
@@ -168,8 +168,8 @@ function submit() {
                             <p
                                 class="text-sm text-[color:var(--journal-muted)]"
                             >
-                                Use the Garmin export with date, type, distance,
-                                and time.
+                                Optional if you are only attaching GPX/FIT to
+                                sessions already in your library.
                             </p>
                             <InputError :message="form.errors.csv_file" />
                         </article>
@@ -192,8 +192,8 @@ function submit() {
                                 <p
                                     class="text-sm text-[color:var(--journal-muted)]"
                                 >
-                                    Optional. Best for route geometry and
-                                    timing.
+                                    Upload alone to repair existing sessions, or
+                                    include with CSV during a full import.
                                 </p>
                                 <InputError :message="form.errors.gpx_files" />
                                 <InputError
@@ -218,8 +218,8 @@ function submit() {
                                 <p
                                     class="text-sm text-[color:var(--journal-muted)]"
                                 >
-                                    Optional. Best when GPX is missing and you
-                                    want Garmin-native detail.
+                                    Upload alone to repair existing sessions, or
+                                    include with CSV when GPX is missing.
                                 </p>
                                 <InputError :message="form.errors.fit_files" />
                                 <InputError
@@ -288,7 +288,10 @@ function submit() {
                             <p
                                 class="mt-2 text-sm font-semibold text-[color:var(--journal-text)]"
                             >
-                                {{ form.csv_file?.name ?? 'Not selected' }}
+                                {{
+                                    form.csv_file?.name ??
+                                    'Not selected - attach mode'
+                                }}
                             </p>
                         </article>
                         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -357,8 +360,8 @@ function submit() {
                     <div
                         class="journal-banner journal-banner--soft mt-5 text-xs leading-6"
                     >
-                        GPX takes priority for route geometry. FIT fills timing
-                        and Garmin-native gaps.
+                        GPX takes priority for route geometry. Without a CSV,
+                        files are matched onto existing sessions.
                     </div>
 
                     <button
@@ -368,7 +371,11 @@ function submit() {
                     >
                         <Spinner v-if="form.processing" class="mr-2 h-4 w-4" />
                         {{
-                            form.processing ? 'Importing...' : 'Import history'
+                            form.processing
+                                ? 'Working...'
+                                : form.csv_file
+                                  ? 'Import history'
+                                  : 'Attach tracks'
                         }}
                     </button>
                 </aside>

@@ -43,10 +43,12 @@ class GarminImportService
         $gpxSummary = [
             'matched' => 0,
             'unmatched' => [],
+            'matchedIds' => [],
         ];
         $fitSummary = [
             'matched' => 0,
             'unmatched' => [],
+            'matchedIds' => [],
         ];
 
         if ($gpxDirectory && is_dir($gpxDirectory)) {
@@ -76,6 +78,69 @@ class GarminImportService
         return [
             'imported' => $sessions->count(),
             'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
+            'profile' => $profile->name,
+            'gpxMatched' => $gpxSummary['matched'],
+            'gpxUnmatched' => $gpxSummary['unmatched'],
+            'fitMatched' => $fitSummary['matched'],
+            'fitUnmatched' => $fitSummary['unmatched'],
+            'weatherFilled' => $weatherSummary['filled'],
+            'weatherSkipped' => $weatherSummary['skipped'],
+            'weatherFailed' => $weatherSummary['failed'],
+        ];
+    }
+
+    public function attachTracksToExisting(Profile $profile, ?string $gpxDirectory = null, ?string $fitDirectory = null, bool $autofillWeather = false): array
+    {
+        $sessions = $profile->sessions()
+            ->orderBy('session_date')
+            ->orderBy('start_at')
+            ->get();
+
+        $gpxSummary = [
+            'matched' => 0,
+            'unmatched' => [],
+            'matchedIds' => [],
+        ];
+        $fitSummary = [
+            'matched' => 0,
+            'unmatched' => [],
+            'matchedIds' => [],
+        ];
+
+        if ($gpxDirectory && is_dir($gpxDirectory)) {
+            $gpxSummary = $this->attachGpxRoutes($profile, $sessions, $gpxDirectory);
+            $sessions = $profile->sessions()
+                ->whereIn('id', $sessions->pluck('id'))
+                ->get();
+        }
+
+        if ($fitDirectory && is_dir($fitDirectory)) {
+            $fitSummary = $this->attachFitFiles($profile, $sessions, $fitDirectory);
+        }
+
+        $matchedIds = collect($gpxSummary['matchedIds'] ?? [])
+            ->merge($fitSummary['matchedIds'] ?? [])
+            ->unique()
+            ->values();
+
+        $matchedSessions = $matchedIds->isNotEmpty()
+            ? $profile->sessions()->whereIn('id', $matchedIds)->get()
+            : collect();
+
+        $weatherSummary = [
+            'filled' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+        ];
+
+        if ($autofillWeather && $matchedSessions->isNotEmpty()) {
+            $weatherSummary = $this->stormglassWeather->enrichSessions($matchedSessions);
+        }
+
+        return [
+            'imported' => 0,
+            'updated' => $matchedSessions->count(),
+            'distanceKm' => round((float) $matchedSessions->sum('distance_km'), 1),
             'profile' => $profile->name,
             'gpxMatched' => $gpxSummary['matched'],
             'gpxUnmatched' => $gpxSummary['unmatched'],
@@ -170,6 +235,7 @@ class GarminImportService
     private function attachGpxRoutes(Profile $profile, Collection $sessions, string $gpxDirectory): array
     {
         $matched = 0;
+        $matchedIds = [];
         $unmatched = [];
 
         $files = collect(scandir($gpxDirectory) ?: [])
@@ -213,17 +279,20 @@ class GarminImportService
 
             $session->save();
             $matched += 1;
+            $matchedIds[] = $session->id;
         }
 
         return [
             'matched' => $matched,
             'unmatched' => $unmatched,
+            'matchedIds' => $matchedIds,
         ];
     }
 
     private function attachFitFiles(Profile $profile, Collection $sessions, string $fitDirectory): array
     {
         $matched = 0;
+        $matchedIds = [];
         $unmatched = [];
 
         $files = collect(scandir($fitDirectory) ?: [])
@@ -267,11 +336,13 @@ class GarminImportService
 
             $session->save();
             $matched += 1;
+            $matchedIds[] = $session->id;
         }
 
         return [
             'matched' => $matched,
             'unmatched' => $unmatched,
+            'matchedIds' => $matchedIds,
         ];
     }
 

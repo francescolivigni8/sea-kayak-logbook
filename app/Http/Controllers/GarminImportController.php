@@ -47,7 +47,9 @@ class GarminImportController extends Controller
 
         try {
             $csvFile = $request->file('csv_file');
-            $csvPath = $csvFile->storeAs($baseDirectory, $csvFile->getClientOriginalName(), 'local');
+            if ($csvFile) {
+                $csvPath = $csvFile->storeAs($baseDirectory, $csvFile->getClientOriginalName(), 'local');
+            }
 
             $gpxDirectory = null;
             foreach ($request->file('gpx_files', []) as $file) {
@@ -61,29 +63,48 @@ class GarminImportController extends Controller
                 $file->storeAs($fitDirectory, $file->getClientOriginalName(), 'local');
             }
 
-            $summary = $importService->import(
-                $profile,
-                $disk->path($csvPath),
-                $gpxDirectory ? $disk->path($gpxDirectory) : null,
-                $fitDirectory ? $disk->path($fitDirectory) : null,
-                $request->boolean('autofill_weather'),
-            );
+            $summary = $csvPath
+                ? $importService->import(
+                    $profile,
+                    $disk->path($csvPath),
+                    $gpxDirectory ? $disk->path($gpxDirectory) : null,
+                    $fitDirectory ? $disk->path($fitDirectory) : null,
+                    $request->boolean('autofill_weather'),
+                )
+                : $importService->attachTracksToExisting(
+                    $profile,
+                    $gpxDirectory ? $disk->path($gpxDirectory) : null,
+                    $fitDirectory ? $disk->path($fitDirectory) : null,
+                    $request->boolean('autofill_weather'),
+                );
         } finally {
             $disk->deleteDirectory($baseDirectory);
         }
 
-        return redirect()
-            ->route('sessions.index')
-            ->with('success', sprintf(
+        $weatherText = $request->boolean('autofill_weather')
+            ? sprintf(' Stormglass weather filled %d sessions, skipped %d, failed %d.', $summary['weatherFilled'], $summary['weatherSkipped'], $summary['weatherFailed'])
+            : '';
+
+        $message = $csvPath
+            ? sprintf(
                 'Garmin import finished: %d sessions, %s km, %d GPX matched, %d FIT matched.%s Review imported sessions and add observations where useful.',
                 $summary['imported'],
                 number_format($summary['distanceKm'], 1),
                 $summary['gpxMatched'],
                 $summary['fitMatched'],
-                $request->boolean('autofill_weather')
-                    ? sprintf(' Stormglass weather filled %d sessions, skipped %d, failed %d.', $summary['weatherFilled'], $summary['weatherSkipped'], $summary['weatherFailed'])
-                    : ''
-            ));
+                $weatherText,
+            )
+            : sprintf(
+                'Garmin track attach finished: %d sessions updated, %d GPX matched, %d FIT matched.%s Review matched sessions and add observations where useful.',
+                $summary['updated'] ?? 0,
+                $summary['gpxMatched'],
+                $summary['fitMatched'],
+                $weatherText,
+            );
+
+        return redirect()
+            ->route('sessions.index')
+            ->with('success', $message);
     }
 
     private function mapProfile(Profile $profile): array
