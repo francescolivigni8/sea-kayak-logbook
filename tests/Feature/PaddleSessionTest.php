@@ -176,6 +176,68 @@ class PaddleSessionTest extends TestCase
                 ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
     }
 
+    public function test_library_can_create_collection_folders(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $this->actingAs($user)
+            ->post(route('session-categories.store'), [
+                'name' => 'Club paddles',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas(SessionCategory::class, [
+            'profile_id' => $profile->id,
+            'name' => 'Club paddles',
+            'slug' => 'club-paddles',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('sessions/Index')
+                ->where('stats.collectionCount', 1)
+                ->where('categoryGroups.0.name', 'Club paddles'));
+    }
+
+    public function test_logged_sessions_can_be_attached_to_collection_folders(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $category = $profile->sessionCategories()->create([
+            'name' => 'Anglesey 2026',
+            'slug' => 'anglesey-2026',
+        ]);
+        $session = $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Anglesey day two',
+            'launch_name' => 'Holyhead',
+            'route_category' => 'journey',
+            'distance_km' => 9.2,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('session-categories.sessions.attach', [$category, $session]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('paddle_session_category', [
+            'session_category_id' => $category->id,
+            'paddle_session_id' => $session->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('sessions/Index')
+                ->where('categoryGroups.0.name', 'Anglesey 2026')
+                ->where('categoryGroups.0.sessionCount', 1)
+                ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
+    }
+
     public function test_manual_sessions_can_store_launch_and_landing_coordinates_without_a_track_file(): void
     {
         $user = User::factory()->create();

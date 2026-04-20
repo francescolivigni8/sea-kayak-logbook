@@ -9,6 +9,7 @@ use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PublicProfileController;
+use App\Http\Controllers\SessionCategoryController;
 use App\Http\Controllers\UserInsightsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +57,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])
         ->middleware('throttle:20,1')
         ->name('sessions.weather-preview');
+    Route::post('session-categories', [SessionCategoryController::class, 'store'])
+        ->name('session-categories.store');
+    Route::post(
+        'session-categories/{sessionCategory}/sessions/{session}',
+        [SessionCategoryController::class, 'attachSession'],
+    )->name('session-categories.sessions.attach');
     Route::get('insights/users', UserInsightsController::class)
         ->middleware('journal.owner')
         ->name('insights.users');

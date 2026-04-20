@@ -2,6 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import * as maptilersdk from '@maptiler/sdk';
 import {
+    ColorRamp,
     PrecipitationLayer,
     PressureLayer,
     RadarLayer,
@@ -158,17 +159,64 @@ const weatherLayerOptions: {
     meta: string;
     icon: string;
 }[] = [
-    { key: 'temperature', label: 'Temperature', meta: 'air mass', icon: 'T' },
+    { key: 'temperature', label: 'Temperature', meta: 'air forecast', icon: 'T' },
     {
         key: 'precipitation',
         label: 'Precipitation',
-        meta: 'rain / snow',
+        meta: 'rain / snow rate',
         icon: 'P',
     },
-    { key: 'wind', label: 'Wind', meta: 'animated flow', icon: 'W' },
-    { key: 'pressure', label: 'Pressure', meta: 'systems', icon: 'P' },
-    { key: 'radar', label: 'Radar', meta: 'cloud + rain', icon: 'R' },
+    { key: 'wind', label: 'Wind', meta: 'speed + flow', icon: 'W' },
+    { key: 'pressure', label: 'Pressure', meta: 'broad systems', icon: 'P' },
+    { key: 'radar', label: 'Radar', meta: 'reflectivity', icon: 'R' },
 ];
+
+const marineWindRamp = ColorRamp.fromArrayDefinition([
+    [0, [222, 247, 245, 0]],
+    [1.6, [180, 231, 225, 42]],
+    [3.4, [97, 205, 195, 72]],
+    [5.5, [105, 196, 120, 100]],
+    [8, [237, 208, 84, 125]],
+    [10.8, [235, 146, 76, 148]],
+    [13.9, [210, 76, 70, 168]],
+    [17.2, [130, 58, 87, 184]],
+    [25, [61, 39, 78, 196]],
+]);
+
+const marineTemperatureRamp = ColorRamp.fromArrayDefinition([
+    [-15, [51, 89, 173, 112]],
+    [-5, [68, 167, 201, 108]],
+    [3, [122, 215, 208, 82]],
+    [10, [250, 228, 154, 92]],
+    [18, [244, 155, 107, 112]],
+    [28, [205, 78, 85, 128]],
+]);
+
+const marinePrecipitationRamp = ColorRamp.fromArrayDefinition([
+    [0, [255, 255, 255, 0]],
+    [0.2, [180, 224, 236, 50]],
+    [1, [99, 179, 211, 88]],
+    [3, [49, 111, 194, 122]],
+    [8, [43, 67, 136, 150]],
+    [20, [90, 55, 122, 166]],
+]);
+
+const softPressureRamp = ColorRamp.fromArrayDefinition([
+    [950, [76, 103, 176, 72]],
+    [990, [122, 215, 208, 58]],
+    [1015, [255, 255, 255, 20]],
+    [1035, [245, 180, 109, 70]],
+    [1060, [203, 96, 92, 92]],
+]);
+
+const radarCloudRamp = ColorRamp.fromArrayDefinition([
+    [0, [255, 255, 255, 0]],
+    [8, [180, 192, 205, 58]],
+    [20, [100, 181, 205, 84]],
+    [35, [74, 179, 128, 110]],
+    [50, [238, 183, 72, 135]],
+    [65, [210, 77, 71, 158]],
+]);
 
 const legends: Record<
     WeatherLayerKey,
@@ -182,49 +230,49 @@ const legends: Record<
         title: 'Wind',
         unit: 'm/s with animated streamlines',
         stops: [
-            { label: 'Light', color: '#2dd4bf' },
-            { label: 'Moderate', color: '#60a5fa' },
-            { label: 'Strong', color: '#a78bfa' },
-            { label: 'Hard', color: '#f97316' },
+            { label: 'Light', color: '#61cdc3' },
+            { label: 'Fresh', color: '#69c478' },
+            { label: 'Strong', color: '#edd054' },
+            { label: 'Hard', color: '#d24c46' },
         ],
     },
     precipitation: {
         title: 'Precipitation',
         unit: 'mm/h',
         stops: [
-            { label: 'Dry', color: '#0f172a' },
-            { label: 'Light', color: '#38bdf8' },
-            { label: 'Rain', color: '#2563eb' },
-            { label: 'Heavy', color: '#7c3aed' },
+            { label: 'Dry', color: '#f8fafc' },
+            { label: 'Light', color: '#63b3d3' },
+            { label: 'Rain', color: '#316fc2' },
+            { label: 'Heavy', color: '#5a377a' },
         ],
     },
     temperature: {
         title: 'Temperature',
         unit: 'C',
         stops: [
-            { label: 'Cold', color: '#2563eb' },
-            { label: 'Cool', color: '#22d3ee' },
-            { label: 'Mild', color: '#facc15' },
-            { label: 'Warm', color: '#ef4444' },
+            { label: 'Cold', color: '#3359ad' },
+            { label: 'Cool', color: '#44a7c9' },
+            { label: 'Mild', color: '#fae49a' },
+            { label: 'Warm', color: '#cd4e55' },
         ],
     },
     pressure: {
         title: 'Pressure',
         unit: 'hPa',
         stops: [
-            { label: 'Low', color: '#7c3aed' },
-            { label: 'Normal', color: '#38bdf8' },
-            { label: 'High', color: '#fb7185' },
+            { label: 'Low', color: '#4c67b0' },
+            { label: 'Normal', color: '#7ad7d0' },
+            { label: 'High', color: '#cb605c' },
         ],
     },
     radar: {
         title: 'Radar',
         unit: 'dBZ reflectivity',
         stops: [
-            { label: 'Cloud', color: '#64748b' },
-            { label: 'Showers', color: '#22c55e' },
-            { label: 'Heavy', color: '#f97316' },
-            { label: 'Severe', color: '#ef4444' },
+            { label: 'Cloud', color: '#b4c0cd' },
+            { label: 'Showers', color: '#4ab380' },
+            { label: 'Heavy', color: '#eeb748' },
+            { label: 'Severe', color: '#d24d47' },
         ],
     },
 };
@@ -599,39 +647,44 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
     if (layer === 'precipitation') {
         return new PrecipitationLayer({
             id: 'ykj-weather-precipitation',
-            opacity: 0.32,
+            colorramp: marinePrecipitationRamp,
+            opacity: 0.24,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'radar') {
         return new RadarLayer({
             id: 'ykj-weather-radar',
-            opacity: 0.3,
+            colorramp: radarCloudRamp,
+            opacity: 0.24,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'pressure') {
         return new PressureLayer({
             id: 'ykj-weather-pressure',
-            opacity: 0.24,
+            colorramp: softPressureRamp,
+            opacity: 0.18,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'temperature') {
         return new TemperatureLayer({
             id: 'ykj-weather-temperature',
-            opacity: 0.28,
+            colorramp: marineTemperatureRamp,
+            opacity: 0.2,
         }) as unknown as MappableLayer;
     }
 
     return new WindLayer({
         id: 'ykj-weather-wind',
-        color: [255, 255, 255, 105],
-        fastColor: [103, 114, 255, 145],
+        color: [14, 54, 77, 88],
+        fastColor: [216, 75, 70, 152],
         fastIsLarger: true,
-        opacity: 0.38,
-        density: 0.82,
-        speed: 0.0014,
+        colorramp: marineWindRamp,
+        opacity: 0.26,
+        density: 0.58,
+        speed: 0.0011,
     }) as unknown as MappableLayer;
 }
 
@@ -1398,6 +1451,13 @@ onBeforeUnmount(() => {
                             </button>
                         </template>
                         <p
+                            v-if="liveWeatherEnabled"
+                            class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[0.66rem] leading-4 font-semibold text-[#29304f]/78 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
+                        >
+                            Visual broad-area forecast only. Tide, current, and
+                            swell still come from the route forecast board.
+                        </p>
+                        <p
                             v-if="!liveWeatherEnabled"
                             class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[0.66rem] leading-4 font-semibold text-[#29304f]/78 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
                         >
@@ -1506,6 +1566,13 @@ onBeforeUnmount(() => {
                                 {{ option.label }}
                             </button>
                         </div>
+                        <p
+                            v-if="liveWeatherEnabled"
+                            class="text-[0.66rem] leading-4 font-semibold text-[#29304f]/76"
+                        >
+                            Animation is a model-style visual overlay; use the
+                            forecast board for tide/current/swell numbers.
+                        </p>
                         <form class="flex gap-2" @submit.prevent="searchPlace">
                             <input
                                 v-model="searchQuery"

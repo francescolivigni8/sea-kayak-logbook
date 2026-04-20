@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 interface ProfileSummary {
@@ -90,6 +90,12 @@ const showPlannedSessions = ref(true);
 const showLoggedSessions = ref(true);
 const showCollections = ref(true);
 const activeCategoryId = ref<number | null>(null);
+const sortingMode = ref(false);
+const draggedSessionId = ref<number | null>(null);
+const dropTargetCategoryId = ref<number | null>(null);
+const createCategoryForm = useForm({
+    name: '',
+});
 const activeCategory = computed(
     () =>
         props.categoryGroups.find(
@@ -154,6 +160,78 @@ function formatMinutes(minutes: number | null): string {
     }
 
     return `${hours} h ${remainder} min`;
+}
+
+function submitCategory() {
+    createCategoryForm.post('/session-categories', {
+        preserveScroll: true,
+        onSuccess: () => {
+            createCategoryForm.reset('name');
+            showCollections.value = true;
+        },
+    });
+}
+
+function beginSessionDrag(sessionId: number, event: DragEvent) {
+    if (!sortingMode.value) {
+        event.preventDefault();
+
+        return;
+    }
+
+    draggedSessionId.value = sessionId;
+    event.dataTransfer?.setData('text/plain', String(sessionId));
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'copy';
+    }
+}
+
+function finishSessionDrag() {
+    draggedSessionId.value = null;
+    dropTargetCategoryId.value = null;
+}
+
+function allowCategoryDrop(categoryId: number, event: DragEvent) {
+    if (!sortingMode.value) {
+        return;
+    }
+
+    event.preventDefault();
+    dropTargetCategoryId.value = categoryId;
+
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy';
+    }
+}
+
+function dropSessionOnCategory(categoryId: number, event: DragEvent) {
+    if (!sortingMode.value) {
+        return;
+    }
+
+    event.preventDefault();
+    const dataTransferSessionId = Number(
+        event.dataTransfer?.getData('text/plain'),
+    );
+    const sessionId = Number.isFinite(dataTransferSessionId)
+        ? dataTransferSessionId
+        : draggedSessionId.value;
+
+    if (!sessionId) {
+        finishSessionDrag();
+
+        return;
+    }
+
+    router.post(
+        `/session-categories/${categoryId}/sessions/${sessionId}`,
+        {},
+        {
+            preserveScroll: true,
+            onFinish: finishSessionDrag,
+        },
+    );
 }
 </script>
 
@@ -276,6 +354,22 @@ function formatMinutes(minutes: number | null): string {
                         >
                             All logged
                         </button>
+                        <button
+                            type="button"
+                            :class="[
+                                'journal-utility-link',
+                                sortingMode
+                                    ? 'border-[color:var(--journal-line-strong)] bg-white/90 text-[color:var(--journal-text)]'
+                                    : '',
+                            ]"
+                            @click="sortingMode = !sortingMode"
+                        >
+                            {{
+                                sortingMode
+                                    ? 'Sorting mode on'
+                                    : 'Drag sorting'
+                            }}
+                        </button>
                         <Link
                             href="/sessions/create"
                             class="journal-primary-link"
@@ -293,6 +387,49 @@ function formatMinutes(minutes: number | null): string {
                         </button>
                     </div>
                 </div>
+
+                <form
+                    class="mt-5 grid gap-3 rounded-[1.65rem] border border-[rgba(255,156,107,0.24)] bg-white/62 p-3 sm:grid-cols-[1fr_auto] sm:items-end"
+                    @submit.prevent="submitCategory"
+                >
+                    <div>
+                        <label class="journal-field-label" for="folder_name"
+                            >Create folder</label
+                        >
+                        <input
+                            id="folder_name"
+                            v-model="createCategoryForm.name"
+                            class="journal-input"
+                            placeholder="Anglesey 2026, Club paddles, Skills weekends"
+                        />
+                        <p
+                            v-if="createCategoryForm.errors.name"
+                            class="mt-2 text-sm font-medium text-red-600"
+                        >
+                            {{ createCategoryForm.errors.name }}
+                        </p>
+                    </div>
+                    <button
+                        type="submit"
+                        class="journal-primary-link justify-center"
+                        :disabled="createCategoryForm.processing"
+                    >
+                        {{
+                            createCategoryForm.processing
+                                ? 'Creating...'
+                                : 'Create folder'
+                        }}
+                    </button>
+                </form>
+
+                <section
+                    v-if="sortingMode"
+                    class="journal-banner journal-banner--soft mt-4"
+                >
+                    Drag a logged-session card onto any folder below. The
+                    session stays in the main logbook and is added to that
+                    folder for easier sorting.
+                </section>
             </div>
 
             <div
@@ -308,7 +445,16 @@ function formatMinutes(minutes: number | null): string {
                         activeCategoryId === category.id
                             ? 'border-[color:var(--journal-line-strong)] shadow-[0_20px_70px_rgba(103,114,255,0.16)]'
                             : '',
+                        sortingMode
+                            ? 'border-dashed ring-1 ring-transparent'
+                            : '',
+                        dropTargetCategoryId === category.id
+                            ? 'ring-2 ring-[#ff9c6b]'
+                            : '',
                     ]"
+                    @dragover="allowCategoryDrop(category.id, $event)"
+                    @dragleave="dropTargetCategoryId = null"
+                    @drop="dropSessionOnCategory(category.id, $event)"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -377,9 +523,9 @@ function formatMinutes(minutes: number | null): string {
                     v-if="!categoryGroups.length"
                     class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
                 >
-                    No collections yet. Add names such as “Anglesey 2026” or
-                    “Club paddles” in the session form and they will appear
-                    here.
+                    No collections yet. Create “Anglesey 2026” or “Club
+                    paddles” above, then turn on drag sorting and drop sessions
+                    into the folder.
                 </article>
             </div>
         </section>
@@ -652,7 +798,16 @@ function formatMinutes(minutes: number | null): string {
                 <article
                     v-for="session in visibleSessions"
                     :key="session.id"
-                    class="journal-card overflow-hidden px-5 py-5 md:px-6"
+                    :draggable="sortingMode"
+                    :class="[
+                        'journal-card overflow-hidden px-5 py-5 md:px-6',
+                        sortingMode
+                            ? 'cursor-grab select-none ring-1 ring-[rgba(255,156,107,0.26)] active:cursor-grabbing'
+                            : '',
+                        draggedSessionId === session.id
+                            ? 'opacity-55 ring-2 ring-[#ff9c6b]'
+                            : '',
+                    ]"
                     :style="{
                         background: session.isExpedition
                             ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,156,107,0.08))'
@@ -660,6 +815,8 @@ function formatMinutes(minutes: number | null): string {
                               ? 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(122,215,208,0.08))'
                               : 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(103,114,255,0.05))',
                     }"
+                    @dragstart="beginSessionDrag(session.id, $event)"
+                    @dragend="finishSessionDrag"
                 >
                     <div class="flex h-full flex-col gap-4">
                         <div class="flex items-start justify-between gap-3">
@@ -677,6 +834,9 @@ function formatMinutes(minutes: number | null): string {
                                     class="journal-chip"
                                     >F{{ session.beaufort }}</span
                                 >
+                                <span v-if="sortingMode" class="journal-chip">
+                                    Drag to folder
+                                </span>
                             </div>
 
                             <Link
