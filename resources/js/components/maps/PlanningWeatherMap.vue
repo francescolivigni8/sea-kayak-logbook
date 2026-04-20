@@ -133,8 +133,8 @@ const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
 
 const page = usePage();
 const activeLayer = ref<WeatherLayerKey>('wind');
-const activeAnimationPreset = ref<WeatherAnimationPresetKey>('calm');
-const weatherVisibilityPercent = ref(82);
+const activeAnimationPreset = ref<WeatherAnimationPresetKey>('normal');
+const weatherVisibilityPercent = ref(92);
 const mapElement = ref<HTMLElement | null>(null);
 const mapError = ref<string | null>(null);
 const isMapReady = ref(false);
@@ -188,24 +188,27 @@ const weatherAnimationPresets: {
     factor: number;
     opacityScale: number;
     windDensity: number;
+    windParticleSize: number;
     windParticleSpeed: number;
 }[] = [
     {
         key: 'calm',
         label: 'Calm',
-        meta: 'slow + sparse',
+        meta: 'slow + readable',
         factor: 1800,
-        opacityScale: 0.94,
-        windDensity: 0.7,
+        opacityScale: 0.98,
+        windDensity: 1.2,
+        windParticleSize: 2.6,
         windParticleSpeed: 0.00082,
     },
     {
         key: 'normal',
-        label: 'Normal',
-        meta: 'balanced',
+        label: 'Clear',
+        meta: 'larger streamlines',
         factor: 3600,
-        opacityScale: 1,
-        windDensity: 0.92,
+        opacityScale: 1.06,
+        windDensity: 1.65,
+        windParticleSize: 3.05,
         windParticleSpeed: 0.0011,
     },
     {
@@ -213,22 +216,23 @@ const weatherAnimationPresets: {
         label: 'Scan',
         meta: 'faster preview',
         factor: 7200,
-        opacityScale: 1.08,
-        windDensity: 1.05,
+        opacityScale: 1.14,
+        windDensity: 2,
+        windParticleSize: 3.35,
         windParticleSpeed: 0.00145,
     },
 ];
 
 const marineWindRamp = ColorRamp.fromArrayDefinition([
-    [0, [236, 252, 251, 18]],
-    [1.6, [153, 246, 228, 90]],
-    [3.4, [45, 212, 191, 122]],
-    [5.5, [74, 222, 128, 148]],
-    [8, [250, 204, 21, 176]],
-    [10.8, [249, 115, 22, 208]],
-    [13.9, [239, 68, 68, 232]],
-    [17.2, [147, 51, 234, 238]],
-    [25, [88, 28, 135, 246]],
+    [0, [224, 242, 254, 42]],
+    [1.6, [125, 211, 252, 118]],
+    [3.4, [45, 212, 191, 156]],
+    [5.5, [74, 222, 128, 186]],
+    [8, [250, 204, 21, 214]],
+    [10.8, [249, 115, 22, 236]],
+    [13.9, [239, 68, 68, 250]],
+    [17.2, [147, 51, 234, 252]],
+    [25, [88, 28, 135, 255]],
 ]);
 
 const marineTemperatureRamp = ColorRamp.fromArrayDefinition([
@@ -704,7 +708,7 @@ function weatherLayerLabel(layer: WeatherLayerKey): string {
 
 function baseWeatherOpacity(layer: WeatherLayerKey): number {
     if (layer === 'wind') {
-        return 0.52;
+        return 0.66;
     }
 
     if (layer === 'pressure') {
@@ -720,7 +724,7 @@ function baseWeatherOpacity(layer: WeatherLayerKey): number {
 
 function weatherOpacity(layer: WeatherLayerKey): number {
     return Math.min(
-        0.88,
+        0.94,
         baseWeatherOpacity(layer) *
             animationPreset.value.opacityScale *
             weatherVisibilityScale.value,
@@ -766,16 +770,17 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
 
     return new WindLayer({
         id: 'ykj-weather-wind',
-        color: [248, 250, 252, 210],
-        fastColor: [255, 76, 58, 242],
+        color: [15, 23, 42, 232],
+        fastColor: [239, 68, 68, 255],
         fastIsLarger: true,
-        fastSpeed: 1.28,
+        fastSpeed: 1.04,
         colorramp: marineWindRamp,
         opacity: weatherOpacity(layer),
         density: animationPreset.value.windDensity,
-        size: 1.9,
+        pixelRatio: 2,
+        size: animationPreset.value.windParticleSize,
         speed: animationPreset.value.windParticleSpeed,
-        fadeFactor: 0.075,
+        fadeFactor: 0.058,
     }) as unknown as MappableLayer;
 }
 
@@ -1432,7 +1437,7 @@ async function initializeMap() {
     try {
         map = new maptilersdk.Map({
             container: mapElement.value,
-            style: maptilersdk.MapStyle.TOPO.PASTEL,
+            style: maptilersdk.MapStyle.TOPO.DEFAULT,
             center: [props.defaultView.lng, props.defaultView.lat],
             zoom: props.defaultView.zoom,
             pitch: 0,
