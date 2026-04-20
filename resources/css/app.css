@@ -138,6 +138,9 @@ html[data-theme='journal'] {
     );
     --journal-metric-bg: rgba(255, 255, 255, 0.86);
     --journal-stat-bg: rgba(255, 255, 255, 0.78);
+    --journal-meter-track-bg: rgba(255, 255, 255, 0.72);
+    --journal-meter-thumb-bg: rgba(255, 255, 255, 0.96);
+    --journal-inset-highlight: rgba(255, 255, 255, 0.84);
     --journal-sparkline-bg: linear-gradient(
         180deg,
         rgba(255, 255, 255, 0.72),
@@ -453,16 +456,16 @@ html[data-theme='fjord-mist'] {
 }
 
 html[data-theme='midnight-chart'] {
-    --journal-bg: #0c1430;
-    --journal-bg-soft: #111a3d;
-    --journal-panel: rgba(16, 24, 55, 0.92);
-    --journal-panel-solid: #121a39;
-    --journal-panel-soft: rgba(20, 29, 65, 0.96);
-    --journal-line: rgba(122, 162, 255, 0.18);
-    --journal-line-strong: rgba(122, 162, 255, 0.32);
+    --journal-bg: #060b19;
+    --journal-bg-soft: #0b1227;
+    --journal-panel: rgba(18, 27, 60, 0.97);
+    --journal-panel-solid: #111b38;
+    --journal-panel-soft: rgba(22, 33, 72, 0.98);
+    --journal-line: rgba(148, 184, 255, 0.26);
+    --journal-line-strong: rgba(148, 184, 255, 0.44);
     --journal-text: #ecf2ff;
-    --journal-muted: rgba(226, 234, 255, 0.76);
-    --journal-faint: rgba(226, 234, 255, 0.5);
+    --journal-muted: rgba(231, 238, 255, 0.84);
+    --journal-faint: rgba(231, 238, 255, 0.62);
     --journal-sea: #7aa2ff;
     --journal-sea-strong: #90b6ff;
     --journal-sand: #f0b37c;
@@ -471,8 +474,8 @@ html[data-theme='midnight-chart'] {
     --journal-private: #a89bff;
     --journal-rose: #ff9ea0;
     --journal-success: #6fd4a4;
-    --journal-shadow: 0 26px 60px rgba(3, 8, 24, 0.42);
-    --journal-shadow-float: 0 20px 44px rgba(3, 8, 24, 0.46);
+    --journal-shadow: 0 26px 64px rgba(0, 0, 0, 0.52);
+    --journal-shadow-float: 0 22px 48px rgba(0, 0, 0, 0.56);
     --journal-body-overlay-one: linear-gradient(
         90deg,
         rgba(122, 162, 255, 0.14),
@@ -484,32 +487,35 @@ html[data-theme='midnight-chart'] {
         rgba(122, 215, 208, 0.16),
         transparent 28%
     );
-    --journal-body-base: linear-gradient(180deg, #10183a 0%, #0c1430 100%);
-    --journal-panel-top: rgba(23, 31, 69, 0.96);
-    --journal-card-top: rgba(23, 31, 69, 0.96);
-    --journal-chip-bg: rgba(18, 26, 58, 0.82);
-    --journal-utility-bg: rgba(18, 26, 58, 0.8);
-    --journal-placeholder-bg: rgba(24, 33, 72, 0.72);
-    --journal-banner-soft-bg: rgba(25, 34, 73, 0.94);
-    --journal-input-bg: rgba(14, 22, 51, 0.84);
-    --journal-input-focus-bg: rgba(18, 27, 61, 0.96);
-    --journal-step-bg: rgba(18, 26, 58, 0.84);
+    --journal-body-base: linear-gradient(180deg, #0a1025 0%, #060b19 100%);
+    --journal-panel-top: rgba(31, 43, 88, 0.98);
+    --journal-card-top: rgba(35, 49, 98, 0.98);
+    --journal-chip-bg: rgba(24, 36, 76, 0.94);
+    --journal-utility-bg: rgba(23, 35, 74, 0.92);
+    --journal-placeholder-bg: rgba(29, 42, 84, 0.9);
+    --journal-banner-soft-bg: rgba(29, 41, 82, 0.96);
+    --journal-input-bg: rgba(14, 22, 51, 0.94);
+    --journal-input-focus-bg: rgba(22, 34, 73, 0.98);
+    --journal-step-bg: rgba(23, 35, 74, 0.94);
     --journal-step-active-bg: linear-gradient(
         180deg,
-        rgba(28, 38, 82, 0.98),
+        rgba(35, 49, 98, 0.98),
         rgba(122, 162, 255, 0.12)
     );
-    --journal-metric-bg: rgba(18, 26, 58, 0.88);
-    --journal-stat-bg: rgba(18, 26, 58, 0.84);
+    --journal-metric-bg: rgba(24, 36, 76, 0.97);
+    --journal-stat-bg: rgba(26, 38, 80, 0.95);
+    --journal-meter-track-bg: rgba(8, 14, 32, 0.62);
+    --journal-meter-thumb-bg: rgba(235, 242, 255, 0.96);
+    --journal-inset-highlight: rgba(255, 255, 255, 0.1);
     --journal-sparkline-bg: linear-gradient(
         180deg,
-        rgba(22, 31, 67, 0.92),
-        rgba(14, 22, 51, 0.96)
+        rgba(31, 44, 88, 0.96),
+        rgba(14, 22, 51, 0.98)
     );
     --journal-soft-card-bg: linear-gradient(
         180deg,
-        rgba(24, 33, 72, 0.92),
-        rgba(17, 25, 55, 0.9)
+        rgba(31, 44, 88, 0.96),
+        rgba(18, 28, 62, 0.94)
     );
     --journal-hero-accent-one: radial-gradient(
         circle at 88% 12%,
@@ -527,39 +533,39 @@ html[data-theme='midnight-chart'] {
         rgba(13, 21, 48, 0.96)
     );
 
-    --background: #0c1430;
+    --background: #060b19;
     --foreground: #ecf2ff;
-    --card: rgba(18, 26, 58, 0.9);
+    --card: rgba(24, 36, 76, 0.96);
     --card-foreground: #ecf2ff;
     --popover: #121a39;
     --popover-foreground: #ecf2ff;
     --primary: #ecf2ff;
     --primary-foreground: #0c1430;
-    --secondary: #151f48;
+    --secondary: #172348;
     --secondary-foreground: #ecf2ff;
-    --muted: #151f48;
-    --muted-foreground: rgba(226, 234, 255, 0.72);
+    --muted: #172348;
+    --muted-foreground: rgba(231, 238, 255, 0.78);
     --accent: rgba(122, 162, 255, 0.16);
     --accent-foreground: #ecf2ff;
     --destructive: #ff9ea0;
     --destructive-foreground: #0c1430;
-    --border: rgba(122, 162, 255, 0.16);
-    --input: rgba(122, 162, 255, 0.22);
-    --ring: rgba(122, 162, 255, 0.3);
+    --border: rgba(148, 184, 255, 0.24);
+    --input: rgba(148, 184, 255, 0.3);
+    --ring: rgba(148, 184, 255, 0.38);
     --chart-1: #7aa2ff;
     --chart-2: #7ad7d0;
     --chart-3: #f0b37c;
     --chart-4: #a89bff;
     --chart-5: #ff9ea0;
-    --sidebar-background: rgba(18, 26, 58, 0.92);
+    --sidebar-background: rgba(24, 36, 76, 0.96);
     --sidebar-foreground: #ecf2ff;
     --sidebar-primary: #ecf2ff;
     --sidebar-primary-foreground: #0c1430;
     --sidebar-accent: rgba(122, 162, 255, 0.16);
     --sidebar-accent-foreground: #ecf2ff;
-    --sidebar-border: rgba(122, 162, 255, 0.16);
-    --sidebar-ring: rgba(122, 162, 255, 0.3);
-    --sidebar: rgba(18, 26, 58, 0.92);
+    --sidebar-border: rgba(148, 184, 255, 0.24);
+    --sidebar-ring: rgba(148, 184, 255, 0.38);
+    --sidebar: rgba(24, 36, 76, 0.96);
 }
 
 @layer base {
@@ -609,6 +615,7 @@ html[data-theme='midnight-chart'] {
             var(--journal-panel-top),
             var(--journal-panel)
         );
+        color: var(--journal-text);
         box-shadow: var(--journal-shadow);
         border-radius: 30px;
         backdrop-filter: blur(20px);
@@ -627,6 +634,7 @@ html[data-theme='midnight-chart'] {
             var(--journal-card-top),
             var(--journal-panel-soft)
         );
+        color: var(--journal-text);
         box-shadow: var(--journal-shadow);
         border-radius: 26px;
     }
@@ -935,7 +943,7 @@ html[data-theme='midnight-chart'] {
         border-radius: 18px;
         background: var(--journal-input-bg);
         color: var(--journal-text);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        box-shadow: inset 0 1px 0 var(--journal-inset-highlight);
         transition:
             border-color 160ms ease,
             box-shadow 160ms ease,
@@ -1013,7 +1021,7 @@ html[data-theme='midnight-chart'] {
     }
 
     .journal-mini-sparkline {
-        border: 1px solid rgba(103, 114, 255, 0.08);
+        border: 1px solid var(--journal-line);
         border-radius: 18px;
         background: var(--journal-sparkline-bg);
         padding: 0.45rem 0.55rem 0.35rem;
@@ -1027,7 +1035,7 @@ html[data-theme='midnight-chart'] {
         border-radius: 20px;
         border: 1px solid var(--journal-line);
         background: var(--journal-stat-bg);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+        box-shadow: inset 0 1px 0 var(--journal-inset-highlight);
     }
 
     .journal-stat-pill__label {
@@ -1058,10 +1066,100 @@ html[data-theme='midnight-chart'] {
     }
 
     .journal-soft-card {
-        border: 1px solid rgba(103, 114, 255, 0.14);
+        border: 1px solid var(--journal-line);
         border-radius: 22px;
         background: var(--journal-soft-card-bg);
         padding: 1rem;
+    }
+
+    .journal-meter-track {
+        background: var(--journal-meter-track-bg);
+        box-shadow: inset 0 1px 0 var(--journal-inset-highlight);
+    }
+
+    .journal-meter-thumb {
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        background: var(--journal-meter-thumb-bg);
+        box-shadow: 0 8px 18px rgba(37, 43, 82, 0.14);
+    }
+
+    .journal-surface-shell {
+        border: 1px solid var(--journal-line);
+        background: var(--journal-utility-bg);
+        box-shadow: inset 0 1px 0 var(--journal-inset-highlight);
+    }
+
+    html[data-theme='midnight-chart'] .journal-panel,
+    html[data-theme='midnight-chart'] .journal-card,
+    html[data-theme='midnight-chart'] .journal-metric-card {
+        box-shadow:
+            var(--journal-shadow),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    html[data-theme='midnight-chart'] .journal-banner {
+        border-color: rgba(137, 223, 171, 0.28);
+        background: rgba(18, 54, 43, 0.88);
+        color: #c9f8dd;
+    }
+
+    html[data-theme='midnight-chart'] .journal-banner--success-strong {
+        background: linear-gradient(
+            180deg,
+            rgba(20, 70, 51, 0.94),
+            rgba(13, 50, 39, 0.92)
+        );
+    }
+
+    html[data-theme='midnight-chart'] .journal-banner--danger {
+        border-color: rgba(255, 138, 128, 0.34);
+        background: rgba(83, 29, 36, 0.9);
+        color: #ffd4d1;
+    }
+
+    html[data-theme='midnight-chart']
+        .journal-page
+        :where(
+            .bg-white\/38,
+            .bg-white\/56,
+            .bg-white\/62,
+            .bg-white\/66,
+            .bg-white\/68,
+            .bg-white\/70,
+            .bg-white\/72,
+            .bg-white\/74,
+            .bg-white\/76,
+            .bg-white\/78,
+            .bg-white\/80,
+            .bg-white\/82,
+            .bg-white\/84,
+            .bg-white\/88,
+            .bg-white\/90,
+            .bg-white\/92,
+            .bg-white\/95
+        ):not(.planning-weather-map *) {
+        background-color: var(--journal-utility-bg);
+    }
+
+    html[data-theme='midnight-chart'] .journal-card :where(.bg-white) {
+        background-color: var(--journal-panel-solid);
+    }
+
+    html[data-theme='midnight-chart']
+        .journal-card
+        :where(.bg-slate-50, .bg-slate-50\/70) {
+        background-color: var(--journal-placeholder-bg);
+    }
+
+    html[data-theme='midnight-chart']
+        .journal-card
+        :where(
+            .text-slate-300,
+            .text-slate-500,
+            .text-slate-600,
+            .text-slate-700
+        ) {
+        color: var(--journal-muted);
     }
 
     .journal-session-map-marker-shell {

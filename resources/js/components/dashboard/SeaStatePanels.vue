@@ -368,8 +368,12 @@ function tidePercent(count: number) {
                 style="
                     background: linear-gradient(
                         180deg,
-                        rgba(255, 255, 255, 0.92),
-                        rgba(255, 156, 107, 0.06)
+                        var(--journal-card-top),
+                        color-mix(
+                            in srgb,
+                            var(--journal-sand) 8%,
+                            var(--journal-panel-soft)
+                        )
                     );
                 "
             >

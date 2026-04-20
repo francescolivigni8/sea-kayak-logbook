@@ -153,13 +153,13 @@ const statCards = computed(() => [
         label: 'Distance',
         value: `${props.session.distanceKm.toFixed(1)} km`,
         detail: 'Journey',
-        style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sea) 18%, transparent), var(--journal-metric-bg))',
     },
     {
         label: 'Time',
         value: `${props.session.durationMinutes} min`,
         detail: 'Total duration',
-        style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-mint) 20%, transparent), var(--journal-metric-bg))',
     },
     {
         label: 'Avg speed',
@@ -168,7 +168,7 @@ const statCards = computed(() => [
                 ? `${props.session.averageSpeedKmh.toFixed(1)} km/h`
                 : '—',
         detail: 'Moving pace on the water',
-        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.9))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sand) 18%, transparent), var(--journal-metric-bg))',
     },
     {
         label: 'Wind',
@@ -179,7 +179,7 @@ const statCards = computed(() => [
                   ? `${props.session.windAvgMs.toFixed(1)} m/s`
                   : '—',
         detail: 'Sea state snapshot',
-        style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.9))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-private) 18%, transparent), var(--journal-metric-bg))',
     },
 ]);
 

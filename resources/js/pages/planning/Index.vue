@@ -1111,7 +1111,7 @@ watch(
                         </div>
 
                         <div
-                            class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/68 p-4 text-sm leading-6 text-[color:var(--journal-muted)]"
+                            class="journal-surface-shell rounded-[22px] p-4 text-sm leading-6 text-[color:var(--journal-muted)]"
                         >
                             Saved plans appear in Library under
                             <span
@@ -1194,11 +1194,20 @@ watch(
             </section>
 
             <div v-if="forecastAreaPoint" class="mt-5">
-                <section
-                    class="overflow-hidden rounded-[28px] border border-[color:var(--journal-line)] bg-white/92 shadow-[0_24px_70px_rgba(58,65,111,0.14)]"
-                >
+                <section class="journal-card overflow-hidden rounded-[28px]">
                     <div
-                        class="flex flex-col gap-4 border-b border-[color:var(--journal-line)] bg-gradient-to-r from-white via-[#f8fbff] to-[#edf8fb] px-5 py-4 sm:flex-row sm:items-end sm:justify-between"
+                        class="flex flex-col gap-4 border-b border-[color:var(--journal-line)] px-5 py-4 sm:flex-row sm:items-end sm:justify-between"
+                        style="
+                            background: linear-gradient(
+                                90deg,
+                                var(--journal-card-top),
+                                color-mix(
+                                    in srgb,
+                                    var(--journal-mint) 12%,
+                                    var(--journal-panel-soft)
+                                )
+                            );
+                        "
                     >
                         <div>
                             <p class="journal-kicker">
@@ -1233,7 +1242,7 @@ watch(
                             class="flex flex-wrap items-center gap-2 text-xs font-semibold"
                         >
                             <span
-                                class="rounded-full border border-[color:var(--journal-line)] bg-white px-3 py-1.5 font-mono text-[color:var(--journal-text)]"
+                                class="journal-surface-shell rounded-full px-3 py-1.5 font-mono text-[color:var(--journal-text)]"
                             >
                                 {{ areaSampleTimeLabel }}
                             </span>
@@ -1243,7 +1252,7 @@ watch(
                                 {{ forecastProviderLabel }}
                             </span>
                             <span
-                                class="rounded-full border border-[color:var(--journal-line)] bg-white/80 px-3 py-1.5 text-[color:var(--journal-muted)]"
+                                class="journal-surface-shell rounded-full px-3 py-1.5 text-[color:var(--journal-muted)]"
                             >
                                 {{ forecastProgressLabel }}
                             </span>

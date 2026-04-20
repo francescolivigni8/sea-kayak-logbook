@@ -224,7 +224,7 @@ watch(
                     class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
                 >
                     <nav
-                        class="flex items-center gap-2 overflow-x-auto rounded-[1.65rem] border border-[color:var(--journal-line)] bg-white/74 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] [-ms-overflow-style:none] [scrollbar-width:none] sm:inline-flex sm:flex-wrap [&::-webkit-scrollbar]:hidden"
+                        class="journal-surface-shell flex items-center gap-2 overflow-x-auto rounded-[1.65rem] p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:inline-flex sm:flex-wrap [&::-webkit-scrollbar]:hidden"
                     >
                         <component
                             v-for="item in primaryNav"

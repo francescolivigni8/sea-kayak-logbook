@@ -256,7 +256,7 @@ const cards = computed<MetricCard[]>(() => [
             peakMonth.value.distanceKm > 0
                 ? `Peak ${peakMonth.value.label} · ${peakMonth.value.distanceKm.toFixed(1)} km`
                 : 'No monthly distance logged yet',
-        style: 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.92))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sea) 18%, transparent), var(--journal-metric-bg))',
         type: 'sparkline',
         sparkline: createSparkline(
             monthlySeries.value,
@@ -272,7 +272,7 @@ const cards = computed<MetricCard[]>(() => [
             props.context === 'public'
                 ? `${props.headline.paddledMonths} months active · ${Math.round(averageSessionMinutes.value)}m average day`
                 : `${props.headline.trackSessions} tracked sessions · ${Math.round(averageSessionMinutes.value)}m average day`,
-        style: 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.92))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-mint) 20%, transparent), var(--journal-metric-bg))',
         type: 'bands',
         bands: durationBands.value,
     },
@@ -286,7 +286,7 @@ const cards = computed<MetricCard[]>(() => [
             props.context === 'public'
                 ? 'Across public air logs'
                 : 'Across logged air readings',
-        style: 'linear-gradient(135deg, rgba(255,156,107,0.16), rgba(255,255,255,0.92))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sand) 18%, transparent), var(--journal-metric-bg))',
         type: 'temperature',
         thermometer: describeTemperature(
             props.seaState.temperatureAverages.air,
@@ -306,7 +306,7 @@ const cards = computed<MetricCard[]>(() => [
             props.context === 'public'
                 ? 'Across public sea logs'
                 : 'Across logged sea readings',
-        style: 'linear-gradient(135deg, rgba(148,141,255,0.16), rgba(255,255,255,0.92))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-private) 18%, transparent), var(--journal-metric-bg))',
         type: 'temperature',
         thermometer: describeTemperature(
             props.seaState.temperatureAverages.sea,
@@ -326,7 +326,7 @@ const cards = computed<MetricCard[]>(() => [
             props.headline.averageSpeedSamples > 0
                 ? `Across ${props.headline.averageSpeedSamples} ${props.headline.averageSpeedSamples === 1 ? 'session' : 'sessions'} with distance + time`
                 : 'Add distance and time to calculate knots',
-        style: 'linear-gradient(135deg, rgba(122,162,255,0.18), rgba(255,255,255,0.92))',
+        style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sea-strong) 18%, transparent), var(--journal-metric-bg))',
         type: 'speed',
         speed: describeSpeed(props.headline.averageSpeedKnots),
     },
@@ -354,7 +354,7 @@ const cards = computed<MetricCard[]>(() => [
                         card.type === 'temperature' &&
                         card.thermometer?.hasValue
                     "
-                    class="rounded-full border border-[color:var(--journal-line)] bg-white/72 px-2.5 py-1 text-[11px] font-medium tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                    class="journal-surface-shell rounded-full px-2.5 py-1 text-[11px] font-medium tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
                 >
                     {{ card.thermometer.status }}
                 </p>
@@ -416,7 +416,9 @@ const cards = computed<MetricCard[]>(() => [
                     >
                         {{ band.label }}
                     </span>
-                    <div class="h-2.5 overflow-hidden rounded-full bg-white/70">
+                    <div
+                        class="journal-meter-track h-2.5 overflow-hidden rounded-full"
+                    >
                         <div
                             class="h-full rounded-full"
                             :style="{
@@ -438,7 +440,7 @@ const cards = computed<MetricCard[]>(() => [
                 class="mt-4 grid gap-2"
             >
                 <div
-                    class="relative h-3 overflow-hidden rounded-full bg-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                    class="journal-meter-track relative h-3 overflow-hidden rounded-full"
                 >
                     <div
                         class="absolute inset-0 rounded-full"
@@ -446,7 +448,7 @@ const cards = computed<MetricCard[]>(() => [
                     />
                     <div
                         v-if="card.thermometer.hasValue"
-                        class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/90 bg-white shadow-[0_8px_18px_rgba(37,43,82,0.14)]"
+                        class="journal-meter-thumb absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full"
                         :style="{
                             left: `calc(${card.thermometer.percent}% - 0.5rem)`,
                         }"
@@ -473,7 +475,7 @@ const cards = computed<MetricCard[]>(() => [
                 </div>
 
                 <div
-                    class="relative h-3 overflow-hidden rounded-full bg-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                    class="journal-meter-track relative h-3 overflow-hidden rounded-full"
                 >
                     <div
                         class="absolute inset-0 rounded-full"
@@ -481,7 +483,7 @@ const cards = computed<MetricCard[]>(() => [
                     />
                     <div
                         v-if="card.speed.hasValue"
-                        class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/90 bg-white shadow-[0_8px_18px_rgba(37,43,82,0.14)]"
+                        class="journal-meter-thumb absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full"
                         :style="{
                             left: `calc(${card.speed.percent}% - 0.5rem)`,
                         }"

@@ -226,9 +226,7 @@ function stepMonth(direction: -1 | 1) {
             </div>
 
             <div class="mt-6 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-                <aside
-                    class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/76 px-4 py-4"
-                >
+                <aside class="journal-surface-shell rounded-[28px] px-4 py-4">
                     <div
                         class="flex flex-wrap items-start justify-between gap-3"
                     >
@@ -309,13 +307,13 @@ function stepMonth(direction: -1 | 1) {
                             class="min-h-[58px] rounded-[1rem] border px-1.5 py-2 text-center transition"
                             :class="[
                                 day.inMonth
-                                    ? 'border-[color:var(--journal-line)] bg-white/78'
-                                    : 'border-[rgba(103,114,255,0.08)] bg-white/38 text-[color:var(--journal-faint)]',
+                                    ? 'journal-surface-shell'
+                                    : 'border-[rgba(103,114,255,0.08)] bg-[var(--journal-placeholder-bg)] text-[color:var(--journal-faint)]',
                                 selectedDate === day.iso
                                     ? 'shadow-[0_0_0_3px_rgba(255,156,107,0.18)]'
                                     : '',
                                 day.entries.length
-                                    ? 'hover:border-[color:var(--journal-line-strong)] hover:bg-white/88'
+                                    ? 'hover:border-[color:var(--journal-line-strong)] hover:bg-[var(--journal-utility-bg)]'
                                     : '',
                             ]"
                             @click="
@@ -346,9 +344,7 @@ function stepMonth(direction: -1 | 1) {
                     </div>
                 </aside>
 
-                <article
-                    class="rounded-[28px] border border-[color:var(--journal-line)] bg-white/82 px-5 py-5"
-                >
+                <article class="journal-surface-shell rounded-[28px] px-5 py-5">
                     <div v-if="selectedPrimaryEntry" class="space-y-5">
                         <div
                             class="flex flex-wrap items-start justify-between gap-3"

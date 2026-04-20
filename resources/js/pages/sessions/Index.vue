@@ -368,7 +368,6 @@ watch(visibleSessions, () => {
                 v-for="card in statCards"
                 :key="card.label"
                 class="journal-metric-card"
-                style="background: rgba(255, 255, 255, 0.86)"
             >
                 <p class="journal-kicker">{{ card.label }}</p>
                 <p
@@ -667,8 +666,12 @@ watch(visibleSessions, () => {
                     style="
                         background: linear-gradient(
                             180deg,
-                            rgba(255, 255, 255, 0.95),
-                            rgba(122, 215, 208, 0.12)
+                            var(--journal-card-top),
+                            color-mix(
+                                in srgb,
+                                var(--journal-mint) 14%,
+                                var(--journal-panel-soft)
+                            )
                         );
                     "
                 >

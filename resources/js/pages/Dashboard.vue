@@ -219,7 +219,7 @@ const expeditionMapWarning = computed(() => {
             </div>
 
             <div
-                class="mt-5 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
+                class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
             >
                 <p
                     class="text-base font-semibold text-[color:var(--journal-text)]"
@@ -241,7 +241,7 @@ const expeditionMapWarning = computed(() => {
                 <article
                     v-for="card in expeditionCards"
                     :key="card.label"
-                    class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
+                    class="journal-surface-shell rounded-[24px] px-4 py-4"
                 >
                     <p class="journal-kicker">{{ card.label }}</p>
                     <p
@@ -315,8 +315,8 @@ const expeditionMapWarning = computed(() => {
                 v-if="expeditionSessionChips.length"
                 class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
             >
-                Expedition chips below jump straight into sessions tagged in
-                the expedition checklist.
+                Expedition chips below jump straight into sessions tagged in the
+                expedition checklist.
             </p>
         </section>
     </div>
