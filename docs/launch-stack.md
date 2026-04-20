@@ -52,7 +52,7 @@ RESEND_API_KEY=
 ## Monitoring
 
 - Better Stack can monitor `/health`, which now checks app, database, and cache reachability.
-- Sentry env slots exist, but backend error reporting still needs the official `sentry/sentry-laravel` package before it sends server exceptions.
+- Sentry backend error reporting uses the official `sentry/sentry-laravel` SDK.
 
 Laravel Cloud env:
 
@@ -61,6 +61,9 @@ BETTER_STACK_UPTIME_MONITOR_URL="${APP_URL}/health"
 BETTER_STACK_HEARTBEAT_URL=
 SENTRY_LARAVEL_DSN=
 VITE_SENTRY_DSN=
+SENTRY_SAMPLE_RATE=1.0
+SENTRY_TRACES_SAMPLE_RATE=
+SENTRY_SEND_DEFAULT_PII=false
 ```
 
 ## Product Insights
