@@ -35,6 +35,8 @@ type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     getAnimationTime?: () => number;
     getAnimationTimeDate?: () => Date;
     setAnimationTime?: (time: number) => void;
+    setOpacity?: (opacity: number) => void;
+    pickAt?: (lng: number, lat: number) => unknown;
     isPlaying?: () => boolean;
     on?: (event: string, callback: (event: { time?: number }) => void) => void;
     off?: (event: string, callback: (event: { time?: number }) => void) => void;
@@ -132,6 +134,7 @@ const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
 const page = usePage();
 const activeLayer = ref<WeatherLayerKey>('wind');
 const activeAnimationPreset = ref<WeatherAnimationPresetKey>('calm');
+const weatherVisibilityPercent = ref(82);
 const mapElement = ref<HTMLElement | null>(null);
 const mapError = ref<string | null>(null);
 const isMapReady = ref(false);
@@ -147,6 +150,7 @@ const animationEnd = ref<number | null>(null);
 const animationTime = ref<number | null>(null);
 const timelineProgress = ref(0);
 const isPlaying = ref(false);
+const weatherProbe = ref<string | null>(null);
 
 let map: maptilersdk.Map | null = null;
 let weatherLayer: MappableLayer | null = null;
@@ -160,7 +164,12 @@ const weatherLayerOptions: {
     meta: string;
     icon: string;
 }[] = [
-    { key: 'temperature', label: 'Temperature', meta: 'air forecast', icon: 'T' },
+    {
+        key: 'temperature',
+        label: 'Temperature',
+        meta: 'air forecast',
+        icon: 'T',
+    },
     {
         key: 'precipitation',
         label: 'Precipitation',
@@ -186,9 +195,9 @@ const weatherAnimationPresets: {
         label: 'Calm',
         meta: 'slow + sparse',
         factor: 1800,
-        opacityScale: 0.78,
-        windDensity: 0.36,
-        windParticleSpeed: 0.00072,
+        opacityScale: 0.94,
+        windDensity: 0.7,
+        windParticleSpeed: 0.00082,
     },
     {
         key: 'normal',
@@ -196,7 +205,7 @@ const weatherAnimationPresets: {
         meta: 'balanced',
         factor: 3600,
         opacityScale: 1,
-        windDensity: 0.58,
+        windDensity: 0.92,
         windParticleSpeed: 0.0011,
     },
     {
@@ -205,21 +214,21 @@ const weatherAnimationPresets: {
         meta: 'faster preview',
         factor: 7200,
         opacityScale: 1.08,
-        windDensity: 0.74,
+        windDensity: 1.05,
         windParticleSpeed: 0.00145,
     },
 ];
 
 const marineWindRamp = ColorRamp.fromArrayDefinition([
-    [0, [222, 247, 245, 0]],
-    [1.6, [180, 231, 225, 42]],
-    [3.4, [97, 205, 195, 72]],
-    [5.5, [105, 196, 120, 100]],
-    [8, [237, 208, 84, 125]],
-    [10.8, [235, 146, 76, 148]],
-    [13.9, [210, 76, 70, 168]],
-    [17.2, [130, 58, 87, 184]],
-    [25, [61, 39, 78, 196]],
+    [0, [236, 252, 251, 18]],
+    [1.6, [153, 246, 228, 90]],
+    [3.4, [45, 212, 191, 122]],
+    [5.5, [74, 222, 128, 148]],
+    [8, [250, 204, 21, 176]],
+    [10.8, [249, 115, 22, 208]],
+    [13.9, [239, 68, 68, 232]],
+    [17.2, [147, 51, 234, 238]],
+    [25, [88, 28, 135, 246]],
 ]);
 
 const marineTemperatureRamp = ColorRamp.fromArrayDefinition([
@@ -267,12 +276,14 @@ const legends: Record<
 > = {
     wind: {
         title: 'Wind',
-        unit: 'm/s with animated streamlines',
+        unit: 'Beaufort-style colour bands, m/s at 10 m',
         stops: [
-            { label: 'Light', color: '#61cdc3' },
-            { label: 'Fresh', color: '#69c478' },
-            { label: 'Strong', color: '#edd054' },
-            { label: 'Hard', color: '#d24c46' },
+            { label: 'F0-F2 light', color: '#99f6e4' },
+            { label: 'F3 gentle', color: '#2dd4bf' },
+            { label: 'F4 moderate', color: '#4ade80' },
+            { label: 'F5 fresh', color: '#facc15' },
+            { label: 'F6 strong', color: '#f97316' },
+            { label: 'F7+ hard', color: '#ef4444' },
         ],
     },
     precipitation: {
@@ -333,6 +344,9 @@ const animationPreset = computed(
         weatherAnimationPresets.find(
             (preset) => preset.key === activeAnimationPreset.value,
         ) ?? weatherAnimationPresets[0],
+);
+const weatherVisibilityScale = computed(
+    () => weatherVisibilityPercent.value / 82,
 );
 
 const launchPoint = computed(() =>
@@ -688,8 +702,33 @@ function weatherLayerLabel(layer: WeatherLayerKey): string {
     );
 }
 
-function weatherOpacity(baseOpacity: number): number {
-    return Math.min(0.5, baseOpacity * animationPreset.value.opacityScale);
+function baseWeatherOpacity(layer: WeatherLayerKey): number {
+    if (layer === 'wind') {
+        return 0.52;
+    }
+
+    if (layer === 'pressure') {
+        return 0.2;
+    }
+
+    if (layer === 'temperature') {
+        return 0.24;
+    }
+
+    return 0.3;
+}
+
+function weatherOpacity(layer: WeatherLayerKey): number {
+    return Math.min(
+        0.88,
+        baseWeatherOpacity(layer) *
+            animationPreset.value.opacityScale *
+            weatherVisibilityScale.value,
+    );
+}
+
+function applyWeatherOpacity() {
+    weatherLayer?.setOpacity?.(weatherOpacity(activeLayer.value));
 }
 
 function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
@@ -697,7 +736,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new PrecipitationLayer({
             id: 'ykj-weather-precipitation',
             colorramp: marinePrecipitationRamp,
-            opacity: weatherOpacity(0.24),
+            opacity: weatherOpacity(layer),
         }) as unknown as MappableLayer;
     }
 
@@ -705,7 +744,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new RadarLayer({
             id: 'ykj-weather-radar',
             colorramp: radarCloudRamp,
-            opacity: weatherOpacity(0.24),
+            opacity: weatherOpacity(layer),
         }) as unknown as MappableLayer;
     }
 
@@ -713,7 +752,7 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new PressureLayer({
             id: 'ykj-weather-pressure',
             colorramp: softPressureRamp,
-            opacity: weatherOpacity(0.18),
+            opacity: weatherOpacity(layer),
         }) as unknown as MappableLayer;
     }
 
@@ -721,19 +760,22 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new TemperatureLayer({
             id: 'ykj-weather-temperature',
             colorramp: marineTemperatureRamp,
-            opacity: weatherOpacity(0.2),
+            opacity: weatherOpacity(layer),
         }) as unknown as MappableLayer;
     }
 
     return new WindLayer({
         id: 'ykj-weather-wind',
-        color: [14, 54, 77, 88],
-        fastColor: [216, 75, 70, 152],
+        color: [248, 250, 252, 210],
+        fastColor: [255, 76, 58, 242],
         fastIsLarger: true,
+        fastSpeed: 1.28,
         colorramp: marineWindRamp,
-        opacity: weatherOpacity(0.26),
+        opacity: weatherOpacity(layer),
         density: animationPreset.value.windDensity,
+        size: 1.9,
         speed: animationPreset.value.windParticleSpeed,
+        fadeFactor: 0.075,
     }) as unknown as MappableLayer;
 }
 
@@ -748,6 +790,7 @@ function weatherBeforeLayerId(): string | undefined {
 function removeWeatherLayer() {
     if (!map || !weatherLayer) {
         weatherLayer = null;
+        weatherProbe.value = null;
 
         return;
     }
@@ -759,6 +802,7 @@ function removeWeatherLayer() {
     }
 
     weatherLayer = null;
+    weatherProbe.value = null;
 }
 
 function applyWeatherLayer() {
@@ -911,6 +955,83 @@ function setTimelineProgress(value: string | number) {
 
     weatherLayer.setAnimationTime?.(nextTime);
     syncAnimationTime(nextTime);
+}
+
+function numericWeatherValue(
+    picked: Record<string, unknown>,
+    key: string,
+): number | null {
+    const value = picked[key];
+
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function formatWeatherProbe(picked: unknown): string | null {
+    if (!picked || typeof picked !== 'object') {
+        return null;
+    }
+
+    const values = picked as Record<string, unknown>;
+
+    if (activeLayer.value === 'wind') {
+        const speedMetersPerSecond = numericWeatherValue(
+            values,
+            'speedMetersPerSecond',
+        );
+        const speedKnots = numericWeatherValue(values, 'speedKnots');
+        const compassDirection =
+            typeof values.compassDirection === 'string'
+                ? values.compassDirection
+                : null;
+
+        if (speedMetersPerSecond === null) {
+            return null;
+        }
+
+        return [
+            `Wind ${speedMetersPerSecond.toFixed(1)} m/s`,
+            speedKnots === null ? null : `${speedKnots.toFixed(1)} kt`,
+            compassDirection,
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    }
+
+    const value = numericWeatherValue(values, 'value');
+
+    if (value === null) {
+        return null;
+    }
+
+    if (activeLayer.value === 'temperature') {
+        return `Air ${value.toFixed(1)} C`;
+    }
+
+    if (activeLayer.value === 'precipitation') {
+        return `Precip ${value.toFixed(1)} mm/h`;
+    }
+
+    if (activeLayer.value === 'pressure') {
+        return `Pressure ${Math.round(value)} hPa`;
+    }
+
+    if (activeLayer.value === 'radar') {
+        return `Radar ${Math.round(value)} dBZ`;
+    }
+
+    return null;
+}
+
+function updateWeatherProbe(event: LayerMouseEvent) {
+    if (!liveWeatherEnabled.value || !weatherLayer?.pickAt) {
+        weatherProbe.value = null;
+
+        return;
+    }
+
+    weatherProbe.value = formatWeatherProbe(
+        weatherLayer.pickAt(event.lngLat.lng, event.lngLat.lat),
+    );
 }
 
 function updateSourceData(sourceId: string, data: unknown) {
@@ -1086,15 +1207,15 @@ function registerRouteInteractions() {
     });
 
     map.on('mousemove', (event: LayerMouseEvent) => {
-        if (draggedPointIndex === null) {
-            return;
-        }
+        updateWeatherProbe(event);
 
-        updateCoursePoint(
-            draggedPointIndex,
-            event.lngLat.lat,
-            event.lngLat.lng,
-        );
+        if (draggedPointIndex !== null) {
+            updateCoursePoint(
+                draggedPointIndex,
+                event.lngLat.lat,
+                event.lngLat.lng,
+            );
+        }
     });
 
     map.on('mouseup', () => {
@@ -1371,9 +1492,14 @@ watch(activeAnimationPreset, () => {
     applyWeatherLayer();
 });
 
+watch(weatherVisibilityPercent, () => {
+    applyWeatherOpacity();
+});
+
 watch(liveWeatherEnabled, () => {
     if (!liveWeatherEnabled.value) {
         showLegend.value = false;
+        weatherProbe.value = null;
     }
 
     applyWeatherLayer();
@@ -1527,13 +1653,32 @@ onBeforeUnmount(() => {
                                 {{ preset.label }}
                             </button>
                         </div>
+                        <label
+                            v-if="liveWeatherEnabled"
+                            class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[#29304f] shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
+                        >
+                            <span
+                                class="flex items-center justify-between gap-2 text-[0.58rem] font-black tracking-[0.12em] uppercase opacity-68"
+                            >
+                                <span>Visibility</span>
+                                <span>{{ weatherVisibilityPercent }}%</span>
+                            </span>
+                            <input
+                                v-model.number="weatherVisibilityPercent"
+                                class="mt-1.5 h-1 w-full accent-[#ef4444]"
+                                type="range"
+                                min="25"
+                                max="100"
+                                step="5"
+                            />
+                        </label>
                         <p
                             v-if="liveWeatherEnabled"
                             class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[0.66rem] leading-4 font-semibold text-[#29304f]/78 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
                         >
-                            {{ animationPreset.label }} animation. Visual
-                            broad-area forecast only. Tide, current, and swell
-                            still come from the route forecast board.
+                            {{ animationPreset.label }} animation. Wind uses
+                            Beaufort-style colour bands; exact marine planning
+                            values still come from the route forecast board.
                         </p>
                         <p
                             v-if="!liveWeatherEnabled"
@@ -1663,12 +1808,32 @@ onBeforeUnmount(() => {
                                 {{ preset.label }}
                             </button>
                         </div>
+                        <label
+                            v-if="liveWeatherEnabled"
+                            class="rounded-[6px] bg-white/68 px-2.5 py-2 text-[#29304f]"
+                        >
+                            <span
+                                class="flex items-center justify-between text-[0.62rem] font-black tracking-[0.1em] uppercase opacity-70"
+                            >
+                                <span>Visibility</span>
+                                <span>{{ weatherVisibilityPercent }}%</span>
+                            </span>
+                            <input
+                                v-model.number="weatherVisibilityPercent"
+                                class="mt-1.5 h-1 w-full accent-[#ef4444]"
+                                type="range"
+                                min="25"
+                                max="100"
+                                step="5"
+                            />
+                        </label>
                         <p
                             v-if="liveWeatherEnabled"
                             class="text-[0.66rem] leading-4 font-semibold text-[#29304f]/76"
                         >
-                            {{ animationPreset.label }} animation. Use the
-                            forecast board for tide/current/swell numbers.
+                            {{ animationPreset.label }} animation. Wind colour
+                            bands show light to hard wind; use the forecast
+                            board for tide/current/swell.
                         </p>
                         <form class="flex gap-2" @submit.prevent="searchPlace">
                             <input
@@ -1709,6 +1874,11 @@ onBeforeUnmount(() => {
                                 <span
                                     class="rounded-[6px] bg-white/58 px-2 py-0.5 font-mono"
                                     >{{ routeSummary }}</span
+                                >
+                                <span
+                                    v-if="weatherProbe"
+                                    class="rounded-[6px] bg-[#111827]/86 px-2 py-0.5 font-mono text-white"
+                                    >{{ weatherProbe }}</span
                                 >
                             </div>
                             <input
