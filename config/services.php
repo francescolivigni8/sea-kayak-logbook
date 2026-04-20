@@ -30,6 +30,7 @@ return [
     'maps' => [
         'provider' => $mapProvider,
         'maptiler_key' => $maptilerKey,
+        'weather_enabled' => (bool) env('MAPTILER_WEATHER_ENABLED', true),
         'styles' => [
             'chart' => [
                 'label' => 'Chart',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import PlanningRouteMap from '@/components/maps/PlanningRouteMap.vue';
 import { dashboard } from '@/routes';
 
@@ -138,6 +138,9 @@ interface RouteLeg {
 }
 
 const AREA_FORECAST_KEY = 'area';
+const PlanningWeatherMap = defineAsyncComponent(
+    () => import('@/components/maps/PlanningWeatherMap.vue'),
+);
 
 const props = defineProps<{
     profile: ProfileSummary;
@@ -962,6 +965,16 @@ watch(
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
                     height-class="h-[640px] lg:h-[820px]"
+                />
+                <PlanningWeatherMap
+                    :launch-lat="launchLat"
+                    :launch-lng="launchLng"
+                    :landing-lat="landingLat"
+                    :landing-lng="landingLng"
+                    :route-waypoints-json="routeWaypointsJson"
+                    :default-view="profile.defaultMapView"
+                    :sample-time-label="areaSampleTimeLabel"
+                    height-class="h-[460px] lg:h-[560px]"
                 />
             </div>
 

@@ -3,6 +3,7 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import JournalLayout from '@/layouts/JournalLayout.vue';
 import 'leaflet/dist/leaflet.css';
+import '@maptiler/sdk/dist/maptiler-sdk.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

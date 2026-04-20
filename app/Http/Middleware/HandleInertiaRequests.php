@@ -68,6 +68,8 @@ class HandleInertiaRequests extends Middleware
             'integrations' => [
                 'maps' => [
                     'provider' => config('services.maps.provider'),
+                    'maptilerKey' => config('services.maps.maptiler_key'),
+                    'weatherEnabled' => (bool) config('services.maps.weather_enabled'),
                     'styles' => config('services.maps.styles'),
                 ],
                 'analytics' => [
