@@ -696,26 +696,6 @@ function uppercaseLabel(value?: string | null): string {
     return value ? value.toUpperCase() : '—';
 }
 
-function boardSummaryLabel(slot: ForecastTimelinePoint): string {
-    if (!slot.fields) {
-        return 'No data';
-    }
-
-    const parts = [
-        slot.fields.wind_beaufort !== null &&
-        slot.fields.wind_beaufort !== undefined
-            ? `F${slot.fields.wind_beaufort}`
-            : null,
-        slot.fields.wind_avg_ms !== null &&
-        slot.fields.wind_avg_ms !== undefined
-            ? `${slot.fields.wind_avg_ms.toFixed(1)} m/s`
-            : null,
-        slot.fields.tide_state ?? null,
-    ].filter(Boolean);
-
-    return parts.length ? parts.join(' · ') : 'No data';
-}
-
 function defaultPlanTitle(): string {
     return title.value.trim() || `Planned paddle ${planDate.value}`;
 }
@@ -1525,25 +1505,6 @@ watch(
                                     class="bg-[#eef6fb] px-1 py-2 text-center font-mono text-[0.62rem] text-slate-700"
                                 >
                                     {{ slotTideLabel(slot) }}
-                                </div>
-                            </div>
-
-                            <div
-                                class="mt-2 grid items-stretch gap-px text-[0.68rem]"
-                                :style="forecastBoardGridStyle"
-                            >
-                                <div
-                                    class="rounded-l-[14px] bg-[#1b243f] px-2 py-2 text-right font-semibold text-white/72"
-                                >
-                                    summary
-                                </div>
-                                <div
-                                    v-for="slot in forecastTimeline"
-                                    :key="`summary-${slot.time}`"
-                                    class="bg-[#1b243f] px-1 py-2 text-center font-mono text-white/78 last:rounded-r-[14px]"
-                                    :title="slot.fields?.weather_summary ?? ''"
-                                >
-                                    {{ boardSummaryLabel(slot) }}
                                 </div>
                             </div>
                         </div>
