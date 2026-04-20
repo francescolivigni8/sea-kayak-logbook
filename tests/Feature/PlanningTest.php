@@ -154,6 +154,27 @@ class PlanningTest extends TestCase
             ->assertJsonPath('message', 'Stormglass returned HTTP 401. The API key is missing or invalid in Stormglass. Check STORMGLASS_API_KEY in Laravel Cloud, redeploy, or try STORMGLASS_AUTH_VALUE_PREFIX=Bearer. Stormglass said: Invalid API key');
     }
 
+    public function test_planning_weather_preview_caps_large_route_offsets(): void
+    {
+        config()->set('kayak.weather.providers.stormglass.api_key', null);
+        config()->set('kayak.weather.providers.open_meteo.enabled', false);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('planning.weather-preview', [
+                'plan_date' => '2026-04-18',
+                'start_time_local' => '09:00',
+                'lat' => '64.146600',
+                'lng' => '-21.942600',
+                'label' => 'Route area',
+                'offset_minutes' => '2000',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('status', 'skipped')
+            ->assertJsonPath('point.offsetMinutes', 1440);
+    }
+
     public function test_planning_weather_preview_falls_back_to_open_meteo_when_stormglass_fails(): void
     {
         Cache::flush();

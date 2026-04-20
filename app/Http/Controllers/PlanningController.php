@@ -15,6 +15,8 @@ use Inertia\Response;
 
 class PlanningController extends Controller
 {
+    private const MAX_FORECAST_OFFSET_MINUTES = 1440;
+
     public function __construct(
         private readonly PlanningForecastService $planningForecast,
     ) {}
@@ -77,12 +79,16 @@ class PlanningController extends Controller
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'label' => ['nullable', 'string', 'max:80'],
-            'offset_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
+            'offset_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
         $startAt = $this->buildStartAt($validated['plan_date'], $validated['start_time_local'] ?? null, $profile->timezone);
+        $offsetMinutes = min(
+            (int) ($validated['offset_minutes'] ?? 0),
+            self::MAX_FORECAST_OFFSET_MINUTES,
+        );
 
         if ($startAt && isset($validated['offset_minutes'])) {
-            $startAt = $startAt->copy()->addMinutes((int) $validated['offset_minutes']);
+            $startAt = $startAt->copy()->addMinutes($offsetMinutes);
         }
 
         $previewSession = new PaddleSession([
@@ -101,7 +107,7 @@ class PlanningController extends Controller
                 'label' => $validated['label'] ?? 'Route area',
                 'lat' => $this->nullableFloat($validated['lat'] ?? null),
                 'lng' => $this->nullableFloat($validated['lng'] ?? null),
-                'offsetMinutes' => (int) ($validated['offset_minutes'] ?? 0),
+                'offsetMinutes' => $offsetMinutes,
             ],
             'message' => match ($result['status']) {
                 'filled' => sprintf('Forecast board filled %d fields for %s.', (int) ($result['filledFields'] ?? 0), $validated['label'] ?? 'route area'),

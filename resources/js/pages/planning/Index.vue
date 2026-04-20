@@ -137,6 +137,7 @@ interface RouteLeg {
 }
 
 const AREA_FORECAST_KEY = 'area';
+const MAX_FORECAST_OFFSET_MINUTES = 1440;
 const PlanningWeatherMap = defineAsyncComponent(
     () => import('@/components/maps/PlanningWeatherMap.vue'),
 );
@@ -338,8 +339,14 @@ const forecastAreaPoint = computed<RoutePoint | null>(() => {
     };
 });
 
-const forecastAreaOffsetMinutes = computed(() =>
+const rawForecastAreaOffsetMinutes = computed(() =>
     estimatedMinutes.value ? Math.round(estimatedMinutes.value / 2) : 0,
+);
+const forecastAreaOffsetMinutes = computed(() =>
+    Math.min(rawForecastAreaOffsetMinutes.value, MAX_FORECAST_OFFSET_MINUTES),
+);
+const isForecastAreaOffsetCapped = computed(
+    () => rawForecastAreaOffsetMinutes.value > MAX_FORECAST_OFFSET_MINUTES,
 );
 
 const areaForecast = computed<ForecastResult>(() => {
@@ -425,9 +432,13 @@ const forecastProviderLabel = computed(() =>
 const areaSampleTimeLabel = computed(() => {
     const offset = forecastAreaOffsetMinutes.value;
 
-    return offset === 0
-        ? startTimeLocal.value || 'Start'
-        : `${startTimeLocal.value || 'Start'} + ${formatMinutes(offset)}`;
+    if (offset === 0) {
+        return startTimeLocal.value || 'Start';
+    }
+
+    const cappedLabel = isForecastAreaOffsetCapped.value ? ' (24h cap)' : '';
+
+    return `${startTimeLocal.value || 'Start'} + ${formatMinutes(offset)}${cappedLabel}`;
 });
 
 const forecastProgressLabel = computed(() => {
