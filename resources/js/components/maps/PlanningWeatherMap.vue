@@ -137,6 +137,7 @@ const searchQuery = ref('');
 const searchStatus = ref<string | null>(null);
 const isSearching = ref(false);
 const isGlobe = ref(false);
+const liveWeatherEnabled = ref(false);
 const animationStart = ref<number | null>(null);
 const animationEnd = ref<number | null>(null);
 const animationTime = ref<number | null>(null);
@@ -234,7 +235,8 @@ const maptilerKey = computed(() => integrations.value?.maptilerKey ?? null);
 const weatherEnabled = computed(
     () => integrations.value?.weatherEnabled !== false,
 );
-const canShowWeatherMap = computed(
+const canShowPlanningMap = computed(() => Boolean(maptilerKey.value));
+const weatherLayerAvailable = computed(
     () => weatherEnabled.value && Boolean(maptilerKey.value),
 );
 
@@ -357,11 +359,15 @@ const routeSummary = computed(() => {
         return 'Click the map to add course points. Click point 1 again to close the loop.';
     }
 
+    const context = liveWeatherEnabled.value
+        ? `over ${weatherLayerLabel(activeLayer.value).toLowerCase()}`
+        : 'on basemap';
+
     if (isClosedCourse.value) {
-        return `Closed course, ${totalDistanceKm.value.toFixed(1)} km, over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+        return `Closed course, ${totalDistanceKm.value.toFixed(1)} km, ${context}.`;
     }
 
-    return `${routePoints.value.length} points, ${totalDistanceKm.value.toFixed(1)} km, over ${weatherLayerLabel(activeLayer.value).toLowerCase()}.`;
+    return `${routePoints.value.length} points, ${totalDistanceKm.value.toFixed(1)} km, ${context}.`;
 });
 
 const animationTimeLabel = computed(() =>
@@ -625,6 +631,12 @@ function applyWeatherLayer() {
 
     removeWeatherLayer();
     mapError.value = null;
+
+    if (!weatherLayerAvailable.value || !liveWeatherEnabled.value) {
+        isPlaying.value = false;
+
+        return;
+    }
 
     try {
         weatherLayer = buildWeatherLayer(activeLayer.value);
@@ -995,6 +1007,17 @@ function selectWeatherLayer(key: WeatherLayerKey) {
     activeLayer.value = key;
 }
 
+function toggleLiveWeather() {
+    if (!weatherLayerAvailable.value) {
+        mapError.value =
+            'Live weather needs MapTiler weather enabled in the environment.';
+
+        return;
+    }
+
+    liveWeatherEnabled.value = !liveWeatherEnabled.value;
+}
+
 function zoomIn() {
     map?.zoomIn();
 }
@@ -1105,7 +1128,7 @@ function featureCenter(
 async function initializeMap() {
     await nextTick();
 
-    if (!mapElement.value || map || !canShowWeatherMap.value) {
+    if (!mapElement.value || map || !canShowPlanningMap.value) {
         return;
     }
 
@@ -1115,7 +1138,7 @@ async function initializeMap() {
     try {
         map = new maptilersdk.Map({
             container: mapElement.value,
-            style: maptilersdk.MapStyle.DATAVIZ.DARK,
+            style: maptilersdk.MapStyle.TOPO.PASTEL,
             center: [props.defaultView.lng, props.defaultView.lat],
             zoom: props.defaultView.zoom,
             pitch: 0,
@@ -1166,6 +1189,14 @@ watch(activeLayer, () => {
     applyWeatherLayer();
 });
 
+watch(liveWeatherEnabled, () => {
+    if (!liveWeatherEnabled.value) {
+        showLegend.value = false;
+    }
+
+    applyWeatherLayer();
+});
+
 watch(
     () => [
         props.launchLat,
@@ -1179,8 +1210,8 @@ watch(
     },
 );
 
-watch(canShowWeatherMap, () => {
-    if (canShowWeatherMap.value) {
+watch(canShowPlanningMap, () => {
+    if (canShowPlanningMap.value) {
         initializeMap();
     }
 });
@@ -1198,14 +1229,14 @@ onBeforeUnmount(() => {
 
 <template>
     <section
-        class="overflow-hidden rounded-[28px] border border-[color:var(--journal-line)] bg-[#09111f] text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)]"
+        class="overflow-hidden rounded-[28px] border border-[color:var(--journal-line)] bg-[#dcebf2] text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)]"
     >
         <div class="relative">
             <div
-                v-if="canShowWeatherMap"
+                v-if="canShowPlanningMap"
                 ref="mapElement"
                 :class="heightClass"
-                class="bg-[#09111f]"
+                class="bg-[#dcebf2]"
             />
             <div
                 v-else
@@ -1225,8 +1256,8 @@ onBeforeUnmount(() => {
                         <span class="font-mono"
                             >MAPTILER_WEATHER_ENABLED=true</span
                         >
-                        in Laravel Cloud to use course drawing and animated
-                        weather in one map.
+                        in Laravel Cloud to use the light route-planning basemap
+                        and optional animated weather in one map.
                     </p>
                 </div>
             </div>
@@ -1239,32 +1270,72 @@ onBeforeUnmount(() => {
                         class="pointer-events-auto hidden w-[142px] flex-col gap-1.5 sm:flex"
                     >
                         <button
-                            v-for="option in weatherLayerOptions"
-                            :key="option.key"
                             type="button"
-                            class="flex items-center gap-1.5 rounded-[6px] px-2.5 py-2 text-left text-[0.72rem] font-bold shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition"
+                            class="flex items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-[0.72rem] font-black shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition disabled:cursor-not-allowed disabled:opacity-60"
                             :class="
-                                option.key === activeLayer
-                                    ? 'bg-[#2f7df6]/90 text-white'
-                                    : 'bg-white/78 text-[#29304f] hover:bg-white/92'
+                                liveWeatherEnabled
+                                    ? 'bg-[#2f7df6]/92 text-white'
+                                    : 'bg-white/84 text-[#29304f] hover:bg-white'
                             "
-                            @click="selectWeatherLayer(option.key)"
+                            :disabled="!weatherLayerAvailable"
+                            @click="toggleLiveWeather"
                         >
-                            <span
-                                class="grid h-4 w-4 place-items-center rounded-full border border-current/20 font-mono text-[0.55rem]"
-                                >{{ option.icon }}</span
-                            >
                             <span>
-                                <span class="block">{{ option.label }}</span>
+                                <span class="block">Live weather</span>
                                 <span
-                                    class="block text-[0.54rem] font-semibold tracking-[0.1em] uppercase opacity-58"
-                                    >{{ option.meta }}</span
+                                    class="block text-[0.54rem] tracking-[0.1em] uppercase opacity-62"
                                 >
+                                    {{ liveWeatherEnabled ? 'On' : 'Off' }}
+                                </span>
                             </span>
+                            <span
+                                class="h-3 w-3 rounded-full"
+                                :class="
+                                    liveWeatherEnabled
+                                        ? 'bg-white'
+                                        : 'bg-[#55cfc3]'
+                                "
+                            />
                         </button>
+                        <template v-if="liveWeatherEnabled">
+                            <button
+                                v-for="option in weatherLayerOptions"
+                                :key="option.key"
+                                type="button"
+                                class="flex items-center gap-1.5 rounded-[6px] px-2.5 py-2 text-left text-[0.72rem] font-bold shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition"
+                                :class="
+                                    option.key === activeLayer
+                                        ? 'bg-[#2f7df6]/90 text-white'
+                                        : 'bg-white/78 text-[#29304f] hover:bg-white/92'
+                                "
+                                @click="selectWeatherLayer(option.key)"
+                            >
+                                <span
+                                    class="grid h-4 w-4 place-items-center rounded-full border border-current/20 font-mono text-[0.55rem]"
+                                    >{{ option.icon }}</span
+                                >
+                                <span>
+                                    <span class="block">{{
+                                        option.label
+                                    }}</span>
+                                    <span
+                                        class="block text-[0.54rem] font-semibold tracking-[0.1em] uppercase opacity-58"
+                                        >{{ option.meta }}</span
+                                    >
+                                </span>
+                            </button>
+                        </template>
+                        <p
+                            v-if="!liveWeatherEnabled"
+                            class="rounded-[8px] bg-white/72 px-2.5 py-2 text-[0.66rem] leading-4 font-semibold text-[#29304f]/78 shadow-[0_8px_18px_rgba(0,0,0,0.1)]"
+                        >
+                            Basemap mode for cleaner course drawing.
+                        </p>
                     </div>
 
-                    <div class="pointer-events-auto ml-auto flex gap-2">
+                    <div
+                        class="pointer-events-auto ml-auto flex flex-col items-end gap-2"
+                    >
                         <form
                             class="relative hidden sm:block"
                             @submit.prevent="searchPlace"
@@ -1284,24 +1355,28 @@ onBeforeUnmount(() => {
                             </button>
                         </form>
 
-                        <div class="flex flex-col gap-1">
+                        <div
+                            class="grid grid-cols-5 gap-1.5 rounded-full border border-white/30 bg-white/42 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.12)] backdrop-blur"
+                        >
                             <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
+                                title="Zoom in"
                                 @click="zoomIn"
                             >
                                 +
                             </button>
                             <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
+                                title="Zoom out"
                                 @click="zoomOut"
                             >
                                 -
                             </button>
                             <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
                                 title="Reset north"
                                 @click="resetBearing"
                             >
@@ -1309,7 +1384,7 @@ onBeforeUnmount(() => {
                             </button>
                             <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
                                 title="Locate me"
                                 @click="locateUser"
                             >
@@ -1317,7 +1392,7 @@ onBeforeUnmount(() => {
                             </button>
                             <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
                                 title="Toggle globe"
                                 @click="toggleProjection"
                             >
@@ -1331,7 +1406,23 @@ onBeforeUnmount(() => {
                     <div
                         class="flex flex-col gap-2 rounded-[8px] bg-white/62 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur sm:hidden"
                     >
-                        <div class="flex gap-2 overflow-x-auto">
+                        <button
+                            type="button"
+                            class="rounded-[6px] px-3 py-1.5 text-left text-[0.72rem] font-black disabled:cursor-not-allowed disabled:opacity-60"
+                            :class="
+                                liveWeatherEnabled
+                                    ? 'bg-[#2f7df6]/90 text-white'
+                                    : 'bg-white/82 text-[#29304f]'
+                            "
+                            :disabled="!weatherLayerAvailable"
+                            @click="toggleLiveWeather"
+                        >
+                            Live weather {{ liveWeatherEnabled ? 'on' : 'off' }}
+                        </button>
+                        <div
+                            v-if="liveWeatherEnabled"
+                            class="flex gap-2 overflow-x-auto"
+                        >
                             <button
                                 v-for="option in weatherLayerOptions"
                                 :key="`mobile-${option.key}`"
@@ -1364,11 +1455,12 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                        class="flex flex-col gap-2 rounded-[8px] bg-white/54 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur sm:flex-row sm:items-center"
+                        v-if="liveWeatherEnabled"
+                        class="flex flex-col gap-1.5 rounded-[8px] bg-white/36 p-1.5 text-[#29304f] shadow-[0_10px_26px_rgba(0,0,0,0.13)] backdrop-blur sm:flex-row sm:items-center"
                     >
                         <button
                             type="button"
-                            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/82 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
+                            class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/68 text-sm font-bold text-[#1d2438] shadow-[0_6px_14px_rgba(0,0,0,0.1)]"
                             @click="togglePlayback"
                         >
                             {{ isPlaying ? 'Ⅱ' : '▶' }}
@@ -1376,19 +1468,19 @@ onBeforeUnmount(() => {
 
                         <div class="min-w-0 flex-1">
                             <div
-                                class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-bold"
+                                class="mb-1 flex flex-wrap items-center justify-between gap-2 text-[0.66rem] font-bold"
                             >
                                 <span
-                                    class="rounded-[6px] bg-white/76 px-2 py-1 font-mono text-[#2f4fdb]"
+                                    class="rounded-[6px] bg-white/58 px-2 py-0.5 font-mono text-[#2f4fdb]"
                                     >{{ animationTimeLabel }}</span
                                 >
                                 <span
-                                    class="rounded-[6px] bg-white/76 px-2 py-1 font-mono"
+                                    class="rounded-[6px] bg-white/58 px-2 py-0.5 font-mono"
                                     >{{ routeSummary }}</span
                                 >
                             </div>
                             <input
-                                class="w-full accent-[#2f7df6]"
+                                class="h-1 w-full accent-[#2f7df6]"
                                 type="range"
                                 min="0"
                                 max="100"
@@ -1402,7 +1494,7 @@ onBeforeUnmount(() => {
                                 "
                             />
                             <div
-                                class="mt-1 grid grid-cols-5 text-center text-xs font-bold text-[#29304f]/70"
+                                class="mt-0.5 grid grid-cols-5 text-center text-[0.62rem] font-bold text-[#29304f]/58"
                             >
                                 <span
                                     v-for="label in timelineDayLabels"
@@ -1414,7 +1506,7 @@ onBeforeUnmount(() => {
 
                         <button
                             type="button"
-                            class="rounded-[6px] bg-white/78 px-3 py-2 text-[0.68rem] font-black tracking-[0.08em] uppercase shadow-[0_8px_18px_rgba(0,0,0,0.12)]"
+                            class="rounded-[6px] bg-white/58 px-2.5 py-1.5 text-[0.62rem] font-black tracking-[0.08em] uppercase shadow-[0_6px_14px_rgba(0,0,0,0.1)]"
                             @click="showLegend = !showLegend"
                         >
                             Legend
@@ -1424,7 +1516,10 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-                class="pointer-events-none absolute top-2 left-2 z-20 flex flex-wrap gap-2 sm:top-auto sm:bottom-[5.8rem]"
+                class="pointer-events-none absolute top-2 left-2 z-20 flex flex-wrap gap-2 sm:top-auto"
+                :class="
+                    liveWeatherEnabled ? 'sm:bottom-[6.4rem]' : 'sm:bottom-4'
+                "
             >
                 <button
                     type="button"
@@ -1442,7 +1537,10 @@ onBeforeUnmount(() => {
 
             <div
                 v-if="routeLegs.length"
-                class="pointer-events-none absolute right-2 bottom-[5.8rem] z-20 sm:right-auto sm:left-[8.4rem]"
+                class="pointer-events-none absolute right-2 z-20 sm:right-auto sm:left-[8.4rem]"
+                :class="
+                    liveWeatherEnabled ? 'sm:bottom-[6.4rem]' : 'sm:bottom-4'
+                "
             >
                 <div
                     class="pointer-events-auto flex max-w-[260px] items-center gap-2 rounded-full border border-white/38 bg-white/46 px-3 py-1.5 text-[#29304f] shadow-[0_8px_22px_rgba(0,0,0,0.12)] backdrop-blur"
