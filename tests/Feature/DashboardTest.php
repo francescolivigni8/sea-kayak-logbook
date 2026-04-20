@@ -116,6 +116,8 @@ class DashboardTest extends TestCase
                 ->where('expeditionSummary.tripCount', 3)
                 ->where('expeditionSummary.missingMapPointCount', 1)
                 ->has('expeditionMapData.pins', 2)
+                ->has('expeditionSessionLinks', 3)
+                ->where('expeditionSessionLinks.0.label', '09 Apr 2026 · Unmapped expedition note')
                 ->has('expeditionPlaces', 1));
     }
 

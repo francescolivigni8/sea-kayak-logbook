@@ -92,6 +92,12 @@ interface ExpeditionSummary {
     missingMapPointCount: number;
 }
 
+interface SessionLink {
+    id: number | string;
+    label: string;
+    path: string;
+}
+
 interface FlashPageProps {
     flash?: {
         success?: string;
@@ -108,6 +114,7 @@ const props = defineProps<{
     expeditionSummary: ExpeditionSummary;
     expeditionPlaces: Array<unknown>;
     expeditionMapData: MapData;
+    expeditionSessionLinks: SessionLink[];
 }>();
 
 const page = usePage();
@@ -134,7 +141,7 @@ const expeditionCards = computed(() => [
 ]);
 
 const expeditionSessionChips = computed(() =>
-    props.expeditionMapData.pins.filter((pin) => Boolean(pin.path)).slice(0, 8),
+    props.expeditionSessionLinks.slice(0, 8),
 );
 const expeditionMapWarning = computed(() => {
     const count = props.expeditionSummary.missingMapPointCount;
@@ -296,20 +303,20 @@ const expeditionMapWarning = computed(() => {
                 class="mt-5 flex flex-wrap gap-2"
             >
                 <Link
-                    v-for="pin in expeditionSessionChips"
-                    :key="pin.id"
-                    :href="pin.path ?? '#'"
+                    v-for="session in expeditionSessionChips"
+                    :key="session.id"
+                    :href="session.path"
                     class="journal-chip transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
                 >
-                    {{ pin.label }}
+                    {{ session.label }}
                 </Link>
             </div>
             <p
                 v-if="expeditionSessionChips.length"
                 class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
             >
-                Session chips below jump straight into the latest log entry for
-                that paddled location.
+                Expedition chips below jump straight into sessions tagged in
+                the expedition checklist.
             </p>
         </section>
     </div>

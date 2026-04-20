@@ -70,6 +70,7 @@ class ProfileDashboardData
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
             'expeditionMapData' => $this->buildExpeditionMapData($profile, $sessions, $publicView),
+            'expeditionSessionLinks' => $publicView ? [] : $this->buildExpeditionSessionLinks($expeditionSessions),
             'recentSessions' => $sessions
                 ->take(6)
                 ->map(fn (PaddleSession $session) => $this->mapRecentSession($session))
@@ -652,6 +653,23 @@ class ProfileDashboardData
                     'path' => $publicView
                         ? route('profiles.public.expeditions.show', ['profile' => $profile, 'place' => $slug])
                         : route('expeditions.show', ['place' => $slug]),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildExpeditionSessionLinks(Collection $expeditionSessions): array
+    {
+        return $expeditionSessions
+            ->sortByDesc(fn (PaddleSession $session) => $session->session_date?->toDateString() ?? '')
+            ->map(function (PaddleSession $session) {
+                $date = $session->session_date?->format('d M Y');
+
+                return [
+                    'id' => $session->id,
+                    'label' => trim(($date ? $date.' · ' : '').$session->title),
+                    'path' => route('sessions.show', $session),
                 ];
             })
             ->values()
