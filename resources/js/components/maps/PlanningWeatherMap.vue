@@ -1210,6 +1210,11 @@ async function initializeMap() {
             zoom: props.defaultView.zoom,
             pitch: 0,
             doubleClickZoom: false,
+            fullscreenControl: false,
+            geolocateControl: false,
+            navigationControl: false,
+            scaleControl: false,
+            terrainControl: false,
             attributionControl: {
                 compact: 'auto',
             },
@@ -1332,7 +1337,7 @@ onBeforeUnmount(() => {
             <div
                 class="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-3 sm:p-4"
             >
-                <div class="flex items-start justify-between gap-3">
+                <div class="relative">
                     <div
                         class="pointer-events-auto hidden w-[142px] flex-col gap-1.5 sm:flex"
                     >
@@ -1400,72 +1405,68 @@ onBeforeUnmount(() => {
                         </p>
                     </div>
 
-                    <div
-                        class="pointer-events-auto ml-auto flex flex-col items-end gap-2"
+                    <form
+                        class="pointer-events-auto absolute top-0 left-1/2 hidden w-[min(22rem,42vw)] -translate-x-1/2 sm:block"
+                        @submit.prevent="searchPlace"
                     >
-                        <form
-                            class="relative hidden sm:block"
-                            @submit.prevent="searchPlace"
+                        <input
+                            v-model="searchQuery"
+                            type="search"
+                            class="h-8 w-full rounded-[6px] border border-white/20 bg-white/90 px-3 pr-14 text-xs font-semibold text-[#1d2438] shadow-[0_8px_20px_rgba(0,0,0,0.14)] outline-none"
+                            placeholder="Search"
+                        />
+                        <button
+                            type="submit"
+                            class="absolute top-0.5 right-0.5 rounded-[5px] bg-[#111827] px-2.5 py-1.5 text-[0.65rem] font-bold text-white disabled:opacity-55"
+                            :disabled="isSearching"
                         >
-                            <input
-                                v-model="searchQuery"
-                                type="search"
-                                class="h-8 w-[220px] rounded-[6px] border border-white/16 bg-white/88 px-3 pr-14 text-xs font-semibold text-[#1d2438] shadow-[0_8px_20px_rgba(0,0,0,0.14)] outline-none"
-                                placeholder="Search"
-                            />
-                            <button
-                                type="submit"
-                                class="absolute top-0.5 right-0.5 rounded-[5px] bg-[#111827] px-2.5 py-1.5 text-[0.65rem] font-bold text-white disabled:opacity-55"
-                                :disabled="isSearching"
-                            >
-                                {{ isSearching ? '...' : 'Go' }}
-                            </button>
-                        </form>
+                            {{ isSearching ? '...' : 'Go' }}
+                        </button>
+                    </form>
 
-                        <div
-                            class="grid grid-cols-5 gap-1.5 rounded-full border border-white/30 bg-white/42 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.12)] backdrop-blur"
+                    <div
+                        class="pointer-events-auto absolute top-[9.5rem] right-0 hidden flex-col gap-1.5 rounded-full border border-white/32 bg-white/46 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.12)] backdrop-blur sm:flex"
+                    >
+                        <button
+                            type="button"
+                            class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
+                            title="Zoom in"
+                            @click="zoomIn"
                         >
-                            <button
-                                type="button"
-                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
-                                title="Zoom in"
-                                @click="zoomIn"
-                            >
-                                +
-                            </button>
-                            <button
-                                type="button"
-                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
-                                title="Zoom out"
-                                @click="zoomOut"
-                            >
-                                -
-                            </button>
-                            <button
-                                type="button"
-                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
-                                title="Reset north"
-                                @click="resetBearing"
-                            >
-                                N
-                            </button>
-                            <button
-                                type="button"
-                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
-                                title="Locate me"
-                                @click="locateUser"
-                            >
-                                ⌖
-                            </button>
-                            <button
-                                type="button"
-                                class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
-                                title="Toggle globe"
-                                @click="toggleProjection"
-                            >
-                                ◎
-                            </button>
-                        </div>
+                            +
+                        </button>
+                        <button
+                            type="button"
+                            class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-sm font-black text-[#1d2438]"
+                            title="Zoom out"
+                            @click="zoomOut"
+                        >
+                            -
+                        </button>
+                        <button
+                            type="button"
+                            class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
+                            title="Reset north"
+                            @click="resetBearing"
+                        >
+                            N
+                        </button>
+                        <button
+                            type="button"
+                            class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
+                            title="Locate me"
+                            @click="locateUser"
+                        >
+                            ⌖
+                        </button>
+                        <button
+                            type="button"
+                            class="grid h-7 w-7 place-items-center rounded-full bg-white/88 text-[0.62rem] font-black text-[#1d2438]"
+                            title="Toggle globe"
+                            @click="toggleProjection"
+                        >
+                            ◎
+                        </button>
                     </div>
                 </div>
 
