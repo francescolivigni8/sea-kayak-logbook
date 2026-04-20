@@ -6,17 +6,18 @@ This file parks the remaining launch work so we can switch context and return la
 
 The Laravel app is code-ready for private staging, but not yet ready for a wider public launch. The remaining work is mostly external production setup: domain, mail, Laravel Cloud environment, storage verification, smoke testing, and monitoring/backups.
 
-Status checked on 2026-04-20 at 13:43 Atlantic/Reykjavik:
+Status checked on 2026-04-20 at 14:00 Atlantic/Reykjavik:
 
 - Local launch-readiness tests pass.
 - Local health-check test passes.
 - Public Google and Cloudflare DNS resolve both `yourkayakingjournal.com` and `www.yourkayakingjournal.com` to `103.133.1.1`.
-- Direct HTTPS verification against the Laravel Cloud IP succeeds.
+- Direct HTTPS verification against the Laravel Cloud IP succeeds after redeploy.
 - `https://yourkayakingjournal.com` redirects guests to `/login`.
 - `https://www.yourkayakingjournal.com` redirects to `https://yourkayakingjournal.com/`.
 - `https://yourkayakingjournal.com/health` returns `200`.
 - `X-Robots-Tag: noindex, nofollow, noarchive` is present.
 - Secure session cookies are present.
+- Laravel Cloud env has been cleaned for private staging, with `APP_URL=https://yourkayakingjournal.com`, secure cookies, private profiles, noindex, MapTiler, Sentry, Stormglass source omitted, and Open-Meteo enabled.
 - Local resolver caches may temporarily continue showing the old Namecheap forwarding IP during DNS propagation.
 
 Latest pushed commits at the time this was saved:
