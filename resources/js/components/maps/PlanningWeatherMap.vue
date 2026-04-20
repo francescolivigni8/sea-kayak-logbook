@@ -24,7 +24,6 @@ type WeatherLayerKey =
     | 'temperature'
     | 'pressure'
     | 'radar';
-type WeatherControlKey = WeatherLayerKey | 'isobar-plus' | 'arrow-plus';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
     animateByFactor?: (factor: number) => void;
@@ -151,11 +150,10 @@ let hasRegisteredRouteInteractions = false;
 let draggedPointIndex: number | null = null;
 
 const weatherLayerOptions: {
-    key: WeatherControlKey;
+    key: WeatherLayerKey;
     label: string;
     meta: string;
     icon: string;
-    plus?: boolean;
 }[] = [
     { key: 'temperature', label: 'Temperature', meta: 'air mass', icon: 'T' },
     {
@@ -167,20 +165,6 @@ const weatherLayerOptions: {
     { key: 'wind', label: 'Wind', meta: 'animated flow', icon: 'W' },
     { key: 'pressure', label: 'Pressure', meta: 'systems', icon: 'P' },
     { key: 'radar', label: 'Radar', meta: 'cloud + rain', icon: 'R' },
-    {
-        key: 'isobar-plus',
-        label: 'Isobar',
-        meta: 'PLUS required',
-        icon: 'I',
-        plus: true,
-    },
-    {
-        key: 'arrow-plus',
-        label: 'Arrow',
-        meta: 'PLUS required',
-        icon: 'A',
-        plus: true,
-    },
 ];
 
 const legends: Record<
@@ -574,38 +558,38 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
     if (layer === 'precipitation') {
         return new PrecipitationLayer({
             id: 'ykj-weather-precipitation',
-            opacity: 0.78,
+            opacity: 0.32,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'radar') {
         return new RadarLayer({
             id: 'ykj-weather-radar',
-            opacity: 0.74,
+            opacity: 0.3,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'pressure') {
         return new PressureLayer({
             id: 'ykj-weather-pressure',
-            opacity: 0.58,
+            opacity: 0.24,
         }) as unknown as MappableLayer;
     }
 
     if (layer === 'temperature') {
         return new TemperatureLayer({
             id: 'ykj-weather-temperature',
-            opacity: 0.62,
+            opacity: 0.28,
         }) as unknown as MappableLayer;
     }
 
     return new WindLayer({
         id: 'ykj-weather-wind',
-        color: [255, 255, 255, 215],
-        fastColor: [103, 114, 255, 235],
+        color: [255, 255, 255, 105],
+        fastColor: [103, 114, 255, 145],
         fastIsLarger: true,
-        opacity: 0.92,
-        density: 1.55,
+        opacity: 0.38,
+        density: 0.82,
         speed: 0.0014,
     }) as unknown as MappableLayer;
 }
@@ -1007,16 +991,7 @@ function fitRouteOrDefault(force = false) {
     );
 }
 
-function selectWeatherLayer(key: WeatherControlKey) {
-    if (key === 'isobar-plus' || key === 'arrow-plus') {
-        mapError.value =
-            key === 'isobar-plus'
-                ? 'Isobar needs MapTiler Weather Plus: PressureIsolineLayer.'
-                : 'Arrow needs MapTiler Weather Plus: WindArrowLayer.';
-
-        return;
-    }
-
+function selectWeatherLayer(key: WeatherLayerKey) {
     activeLayer.value = key;
 }
 
@@ -1261,30 +1236,28 @@ onBeforeUnmount(() => {
             >
                 <div class="flex items-start justify-between gap-3">
                     <div
-                        class="pointer-events-auto hidden w-[180px] flex-col gap-2 sm:flex"
+                        class="pointer-events-auto hidden w-[142px] flex-col gap-1.5 sm:flex"
                     >
                         <button
                             v-for="option in weatherLayerOptions"
                             :key="option.key"
                             type="button"
-                            class="flex items-center gap-2 rounded-[3px] px-3 py-3 text-left text-sm font-bold shadow-[0_10px_28px_rgba(0,0,0,0.18)] transition"
+                            class="flex items-center gap-1.5 rounded-[6px] px-2.5 py-2 text-left text-[0.72rem] font-bold shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition"
                             :class="
                                 option.key === activeLayer
-                                    ? 'bg-[#2f7df6] text-white'
-                                    : option.plus
-                                      ? 'bg-white/84 text-[#29304f] opacity-70'
-                                      : 'bg-white text-[#29304f] hover:bg-[#eef4ff]'
+                                    ? 'bg-[#2f7df6]/90 text-white'
+                                    : 'bg-white/78 text-[#29304f] hover:bg-white/92'
                             "
                             @click="selectWeatherLayer(option.key)"
                         >
                             <span
-                                class="grid h-5 w-5 place-items-center rounded-full border border-current/20 font-mono text-[0.65rem]"
+                                class="grid h-4 w-4 place-items-center rounded-full border border-current/20 font-mono text-[0.55rem]"
                                 >{{ option.icon }}</span
                             >
                             <span>
                                 <span class="block">{{ option.label }}</span>
                                 <span
-                                    class="block text-[0.62rem] font-semibold tracking-[0.12em] uppercase opacity-62"
+                                    class="block text-[0.54rem] font-semibold tracking-[0.1em] uppercase opacity-58"
                                     >{{ option.meta }}</span
                                 >
                             </span>
@@ -1299,12 +1272,12 @@ onBeforeUnmount(() => {
                             <input
                                 v-model="searchQuery"
                                 type="search"
-                                class="h-10 w-[300px] rounded-[3px] border border-white/16 bg-white px-4 pr-20 text-sm font-semibold text-[#1d2438] shadow-[0_10px_30px_rgba(0,0,0,0.16)] outline-none"
+                                class="h-8 w-[220px] rounded-[6px] border border-white/16 bg-white/88 px-3 pr-14 text-xs font-semibold text-[#1d2438] shadow-[0_8px_20px_rgba(0,0,0,0.14)] outline-none"
                                 placeholder="Search"
                             />
                             <button
                                 type="submit"
-                                class="absolute top-1 right-1 rounded-[3px] bg-[#111827] px-3 py-2 text-xs font-bold text-white disabled:opacity-55"
+                                class="absolute top-0.5 right-0.5 rounded-[5px] bg-[#111827] px-2.5 py-1.5 text-[0.65rem] font-bold text-white disabled:opacity-55"
                                 :disabled="isSearching"
                             >
                                 {{ isSearching ? '...' : 'Go' }}
@@ -1314,21 +1287,21 @@ onBeforeUnmount(() => {
                         <div class="flex flex-col gap-1">
                             <button
                                 type="button"
-                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                                 @click="zoomIn"
                             >
                                 +
                             </button>
                             <button
                                 type="button"
-                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                                 @click="zoomOut"
                             >
                                 -
                             </button>
                             <button
                                 type="button"
-                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                                 title="Reset north"
                                 @click="resetBearing"
                             >
@@ -1336,7 +1309,7 @@ onBeforeUnmount(() => {
                             </button>
                             <button
                                 type="button"
-                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                                 title="Locate me"
                                 @click="locateUser"
                             >
@@ -1344,7 +1317,7 @@ onBeforeUnmount(() => {
                             </button>
                             <button
                                 type="button"
-                                class="grid h-10 w-10 place-items-center rounded-[3px] bg-white text-sm font-bold text-[#1d2438] shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                                class="grid h-8 w-8 place-items-center rounded-[6px] bg-white/86 text-[0.68rem] font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                                 title="Toggle globe"
                                 @click="toggleProjection"
                             >
@@ -1356,18 +1329,18 @@ onBeforeUnmount(() => {
 
                 <div class="pointer-events-auto flex flex-col gap-3">
                     <div
-                        class="flex flex-col gap-2 rounded-[3px] bg-white/76 p-3 text-[#29304f] shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur sm:hidden"
+                        class="flex flex-col gap-2 rounded-[8px] bg-white/62 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur sm:hidden"
                     >
                         <div class="flex gap-2 overflow-x-auto">
                             <button
                                 v-for="option in weatherLayerOptions"
                                 :key="`mobile-${option.key}`"
                                 type="button"
-                                class="shrink-0 rounded-[3px] px-3 py-2 text-xs font-bold"
+                                class="shrink-0 rounded-[6px] px-2.5 py-1.5 text-[0.68rem] font-bold"
                                 :class="
                                     option.key === activeLayer
-                                        ? 'bg-[#2f7df6] text-white'
-                                        : 'bg-white text-[#29304f]'
+                                        ? 'bg-[#2f7df6]/90 text-white'
+                                        : 'bg-white/82 text-[#29304f]'
                                 "
                                 @click="selectWeatherLayer(option.key)"
                             >
@@ -1378,12 +1351,12 @@ onBeforeUnmount(() => {
                             <input
                                 v-model="searchQuery"
                                 type="search"
-                                class="min-w-0 flex-1 rounded-[3px] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none"
+                                class="min-w-0 flex-1 rounded-[6px] border border-slate-200 bg-white/88 px-3 py-1.5 text-xs font-semibold outline-none"
                                 placeholder="Search"
                             />
                             <button
                                 type="submit"
-                                class="rounded-[3px] bg-[#111827] px-3 py-2 text-xs font-bold text-white"
+                                class="rounded-[6px] bg-[#111827] px-3 py-1.5 text-[0.68rem] font-bold text-white"
                             >
                                 Go
                             </button>
@@ -1391,11 +1364,11 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                        class="flex flex-col gap-3 bg-white/72 p-3 text-[#29304f] shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur sm:flex-row sm:items-center"
+                        class="flex flex-col gap-2 rounded-[8px] bg-white/54 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur sm:flex-row sm:items-center"
                     >
                         <button
                             type="button"
-                            class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white text-xl font-bold text-[#1d2438] shadow-[0_10px_26px_rgba(0,0,0,0.16)]"
+                            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/82 text-base font-bold text-[#1d2438] shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                             @click="togglePlayback"
                         >
                             {{ isPlaying ? 'Ⅱ' : '▶' }}
@@ -1406,11 +1379,11 @@ onBeforeUnmount(() => {
                                 class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-bold"
                             >
                                 <span
-                                    class="rounded-[3px] bg-white px-3 py-1.5 font-mono text-[#2f4fdb]"
+                                    class="rounded-[6px] bg-white/76 px-2 py-1 font-mono text-[#2f4fdb]"
                                     >{{ animationTimeLabel }}</span
                                 >
                                 <span
-                                    class="rounded-[3px] bg-white px-3 py-1.5 font-mono"
+                                    class="rounded-[6px] bg-white/76 px-2 py-1 font-mono"
                                     >{{ routeSummary }}</span
                                 >
                             </div>
@@ -1441,7 +1414,7 @@ onBeforeUnmount(() => {
 
                         <button
                             type="button"
-                            class="rounded-[3px] bg-white px-4 py-3 text-xs font-black tracking-[0.08em] uppercase shadow-[0_10px_26px_rgba(0,0,0,0.12)]"
+                            class="rounded-[6px] bg-white/78 px-3 py-2 text-[0.68rem] font-black tracking-[0.08em] uppercase shadow-[0_8px_18px_rgba(0,0,0,0.12)]"
                             @click="showLegend = !showLegend"
                         >
                             Legend
@@ -1451,60 +1424,39 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-                class="pointer-events-none absolute top-3 right-3 left-3 z-20 flex flex-wrap gap-2 sm:top-auto sm:right-auto sm:bottom-[6.3rem] sm:left-4"
+                class="pointer-events-none absolute top-2 left-2 z-20 flex flex-wrap gap-2 sm:top-auto sm:bottom-[5.8rem]"
             >
                 <button
                     type="button"
-                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-black tracking-[0.08em] text-[#29304f] uppercase shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+                    class="pointer-events-auto rounded-full border border-white/40 bg-white/48 px-3 py-1.5 text-[0.65rem] font-black tracking-[0.08em] text-[#29304f] uppercase shadow-[0_8px_20px_rgba(0,0,0,0.12)] backdrop-blur"
                     @click="clearCourse"
                 >
                     Clear course
                 </button>
-                <button
-                    type="button"
-                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-black tracking-[0.08em] text-[#29304f] uppercase shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
-                    @click="fitRouteOrDefault(true)"
-                >
-                    Fit course
-                </button>
                 <span
                     v-if="searchStatus"
-                    class="pointer-events-auto rounded-[3px] bg-white px-4 py-2 text-xs font-bold text-[#29304f] shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+                    class="pointer-events-auto rounded-full bg-white/62 px-3 py-1.5 text-[0.68rem] font-bold text-[#29304f] shadow-[0_8px_20px_rgba(0,0,0,0.12)] backdrop-blur"
                     >{{ searchStatus }}</span
                 >
             </div>
 
             <div
                 v-if="routeLegs.length"
-                class="pointer-events-none absolute right-3 bottom-[7.6rem] left-3 z-20 sm:right-auto sm:left-4 sm:max-w-[520px]"
+                class="pointer-events-none absolute right-2 bottom-[5.8rem] z-20 sm:right-auto sm:left-[8.4rem]"
             >
                 <div
-                    class="pointer-events-auto rounded-[22px] border border-white/78 bg-white/90 p-3 text-[#29304f] shadow-[0_18px_42px_rgba(0,0,0,0.18)] backdrop-blur"
+                    class="pointer-events-auto flex max-w-[260px] items-center gap-2 rounded-full border border-white/38 bg-white/46 px-3 py-1.5 text-[#29304f] shadow-[0_8px_22px_rgba(0,0,0,0.12)] backdrop-blur"
                 >
-                    <div
-                        class="flex items-center justify-between gap-4 border-b border-slate-200 pb-2"
+                    <span
+                        class="font-mono text-[0.62rem] font-black tracking-[0.1em] uppercase opacity-70"
+                        >Course</span
                     >
-                        <div>
-                            <p class="journal-kicker">Course estimate</p>
-                            <p class="mt-1 text-[1.35rem] leading-none">
-                                {{ totalDistanceKm.toFixed(1) }} km
-                            </p>
-                        </div>
-                        <span class="journal-chip"
-                            >{{ routeLegs.length }} legs</span
-                        >
-                    </div>
-                    <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
-                        <span
-                            v-for="leg in routeLegs"
-                            :key="leg.key"
-                            class="shrink-0 rounded-full border border-slate-200 bg-white/84 px-3 py-1.5 font-mono text-xs"
-                        >
-                            {{ leg.fromLabel }}→{{ leg.toLabel }}
-                            {{ leg.distanceKm.toFixed(1) }} km ·
-                            {{ leg.bearingDeg.toFixed(0) }}°
-                        </span>
-                    </div>
+                    <strong class="text-sm leading-none"
+                        >{{ totalDistanceKm.toFixed(1) }} km</strong
+                    >
+                    <span class="text-[0.65rem] font-bold opacity-70"
+                        >{{ routeLegs.length }} legs</span
+                    >
                 </div>
             </div>
 
