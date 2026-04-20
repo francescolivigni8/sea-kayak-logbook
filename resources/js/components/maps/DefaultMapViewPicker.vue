@@ -8,6 +8,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useMapTileStyles } from '@/lib/mapTiles';
 
 const props = withDefaults(
     defineProps<{
@@ -46,6 +47,7 @@ const fallbackView = {
 };
 
 const mapElement = ref<HTMLElement | null>(null);
+const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
 let marker: L.Marker | null = null;
@@ -92,9 +94,11 @@ function currentView() {
 }
 
 function baseTileLayer() {
-    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: 'Map data © OpenStreetMap contributors',
+    const config = mapTileStyles.value.activity;
+
+    return L.tileLayer(config.url, {
+        maxZoom: config.max_zoom ?? 18,
+        attribution: config.attribution,
     });
 }
 

@@ -8,6 +8,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useMapTileStyles } from '@/lib/mapTiles';
 
 type MapTarget = 'launch' | 'landing' | 'route';
 type CoordinateValue = string | number | null;
@@ -58,6 +59,7 @@ const emit = defineEmits<{
 
 const mapElement = ref<HTMLElement | null>(null);
 const activeTarget = ref<MapTarget>('launch');
+const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
@@ -148,10 +150,11 @@ const totalDistanceKm = computed(() =>
 );
 
 function buildBaseLayer() {
-    return L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        maxZoom: 17,
-        attribution:
-            'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap',
+    const config = mapTileStyles.value.chart;
+
+    return L.tileLayer(config.url, {
+        maxZoom: config.max_zoom ?? 17,
+        attribution: config.attribution,
     });
 }
 

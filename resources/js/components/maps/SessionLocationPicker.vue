@@ -8,6 +8,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useMapTileStyles } from '@/lib/mapTiles';
 
 type MapTarget = 'launch' | 'landing' | 'route';
 
@@ -55,6 +56,7 @@ const emit = defineEmits<{
 
 const mapElement = ref<HTMLElement | null>(null);
 const activeTarget = ref<MapTarget>('launch');
+const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
@@ -123,9 +125,11 @@ const renderedRoutePoints = computed(() => {
 });
 
 function buildBaseLayer() {
-    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: 'Map data © OpenStreetMap contributors',
+    const config = mapTileStyles.value.activity;
+
+    return L.tileLayer(config.url, {
+        maxZoom: config.max_zoom ?? 18,
+        attribution: config.attribution,
     });
 }
 

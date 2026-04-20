@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { capturePageview, initProductAnalytics } from '@/lib/productAnalytics';
 
 type JournalNavShape = {
     homeWater?: string;
@@ -13,6 +14,16 @@ type OwnerToolsShape = {
     canViewUsers?: boolean;
 };
 
+type IntegrationsShape = {
+    analytics?: {
+        posthog?: {
+            enabled?: boolean;
+            key?: string | null;
+            host?: string | null;
+        };
+    };
+};
+
 const page = usePage();
 
 const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
@@ -21,6 +32,9 @@ const journalNav = computed(
 );
 const ownerTools = computed(
     () => (page.props.ownerTools as OwnerToolsShape | undefined) ?? null,
+);
+const integrations = computed(
+    () => (page.props.integrations as IntegrationsShape | undefined) ?? null,
 );
 const heroTitle = 'Your kayaking journal';
 
@@ -121,6 +135,17 @@ function isPlaceholder(item: { placeholder?: boolean }) {
 function isUtilityActive(item: { href: string; match: string[] }) {
     return item.match.some((prefix) => currentPath.value.startsWith(prefix));
 }
+
+onMounted(() => {
+    initProductAnalytics(integrations.value?.analytics?.posthog);
+});
+
+watch(
+    () => page.url,
+    () => {
+        capturePageview();
+    },
+);
 </script>
 
 <template>

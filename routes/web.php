@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiaryController;
 use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\GarminImportController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PlanningController;
@@ -21,6 +22,7 @@ Route::get('/', function (Request $request) {
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
 Route::view('/terms', 'legal.terms')->name('legal.terms');
 Route::view('/contact', 'legal.contact')->name('legal.contact');
+Route::get('/health', HealthCheckController::class)->name('health');
 
 Route::get('/p/{profile:slug}', PublicProfileController::class)->name('profiles.public.show');
 Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, 'publicIndex'])

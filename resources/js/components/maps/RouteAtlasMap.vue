@@ -8,6 +8,8 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useMapTileStyles } from '@/lib/mapTiles';
+import type { MapStyleKey } from '@/lib/mapTiles';
 
 interface LatLngPoint {
     lat: number;
@@ -47,7 +49,7 @@ interface DefaultView {
     zoom: number;
 }
 
-type MapStyle = 'chart' | 'clean' | 'activity';
+type MapStyle = MapStyleKey;
 type SessionKind = 'all' | 'day' | 'expedition';
 type GeometryKind = 'all' | 'routes' | 'pins';
 type PinPresentation = 'dot' | 'pin' | 'expedition';
@@ -97,6 +99,7 @@ const selectedKind = ref<SessionKind>('all');
 const selectedGeometry = ref<GeometryKind>('all');
 const pinnedView = ref<DefaultView | null>(null);
 const pinFeedback = ref<'idle' | 'saved'>('idle');
+const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
 let routeLayerGroup: L.LayerGroup | null = null;
@@ -105,28 +108,7 @@ let currentBaseLayer: L.TileLayer | null = null;
 let pinFeedbackTimeout: number | null = null;
 let initialViewportApplied = false;
 
-const styleOptions: Record<
-    MapStyle,
-    { label: string; url: string; attribution: string }
-> = {
-    chart: {
-        label: 'Chart',
-        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-        attribution:
-            'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap',
-    },
-    clean: {
-        label: 'Clean',
-        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        attribution:
-            'Map data © OpenStreetMap contributors | Map style © CARTO',
-    },
-    activity: {
-        label: 'Activity',
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: 'Map data © OpenStreetMap contributors',
-    },
-};
+const styleOptions = computed(() => mapTileStyles.value);
 
 const storageKeys = computed(() => {
     if (!props.storageKey) {
@@ -245,10 +227,10 @@ const hasGeometry = computed(
 const legendRoutes = computed(() => filteredRoutes.value.slice(0, 10));
 
 function createTileLayer(style: MapStyle) {
-    const config = styleOptions[style];
+    const config = styleOptions.value[style];
 
     return L.tileLayer(config.url, {
-        maxZoom: 18,
+        maxZoom: config.max_zoom ?? 18,
         attribution: config.attribution,
     });
 }
@@ -283,7 +265,7 @@ function readPersistedState() {
         storageKeys.value.pinnedView,
     );
 
-    if (persistedStyle && persistedStyle in styleOptions) {
+    if (persistedStyle && persistedStyle in styleOptions.value) {
         selectedStyle.value = persistedStyle;
     }
 

@@ -39,6 +39,21 @@ return [
                     'swellDirection',
                 ],
             ],
+            'open_meteo' => [
+                'enabled' => (bool) env('OPEN_METEO_ENABLED', true),
+                'api_key' => env('OPEN_METEO_API_KEY'),
+                'base_url' => env('OPEN_METEO_BASE_URL', 'https://api.open-meteo.com/v1/forecast'),
+                'marine_base_url' => env('OPEN_METEO_MARINE_BASE_URL', 'https://marine-api.open-meteo.com/v1/marine'),
+                'timeout' => (int) env('OPEN_METEO_TIMEOUT', 10),
+                'cache_seconds' => (int) env('OPEN_METEO_CACHE_SECONDS', 3600),
+            ],
+            'met_no' => [
+                'enabled' => (bool) env('MET_NO_ENABLED', false),
+                'base_url' => env('MET_NO_BASE_URL', 'https://api.met.no/weatherapi/locationforecast/2.0/complete'),
+                'user_agent' => env('MET_NO_USER_AGENT', 'Your Kayaking Journal/1.0 hello@yourkayakingjournal.com'),
+                'timeout' => (int) env('MET_NO_TIMEOUT', 10),
+                'cache_seconds' => (int) env('MET_NO_CACHE_SECONDS', 3600),
+            ],
         ],
     ],
 ];

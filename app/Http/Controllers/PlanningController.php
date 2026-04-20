@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaddleSession;
 use App\Models\PlannedSession;
 use App\Models\Profile;
-use App\Support\StormglassWeatherService;
+use App\Support\PlanningForecastService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +16,7 @@ use Inertia\Response;
 class PlanningController extends Controller
 {
     public function __construct(
-        private readonly StormglassWeatherService $stormglassWeather,
+        private readonly PlanningForecastService $planningForecast,
     ) {}
 
     public function index(Request $request): Response
@@ -62,7 +62,7 @@ class PlanningController extends Controller
     {
         return Inertia::render('planning/Index', [
             'profile' => $this->mapProfile($profile),
-            'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
+            'weatherAutofillAvailable' => $this->planningForecast->isConfigured(),
             'formDefaults' => $this->formDefaults($profile, $plannedSession),
             'plannedSession' => $plannedSession ? $this->mapPlannedSession($plannedSession) : null,
         ]);
@@ -93,7 +93,7 @@ class PlanningController extends Controller
             'launch_lng' => $this->nullableFloat($validated['lng'] ?? null),
         ]);
 
-        $result = $this->stormglassWeather->previewForecastBoard($previewSession);
+        $result = $this->planningForecast->previewForecastBoard($previewSession);
 
         return response()->json([
             ...$result,

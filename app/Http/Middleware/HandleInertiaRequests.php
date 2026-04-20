@@ -65,6 +65,26 @@ class HandleInertiaRequests extends Middleware
             'ownerTools' => [
                 'canViewUsers' => $request->user()?->canViewOwnerTools() ?? false,
             ],
+            'integrations' => [
+                'maps' => [
+                    'provider' => config('services.maps.provider'),
+                    'styles' => config('services.maps.styles'),
+                ],
+                'analytics' => [
+                    'posthog' => [
+                        'enabled' => (bool) config('services.posthog.enabled') && filled(config('services.posthog.key')),
+                        'key' => config('services.posthog.key'),
+                        'host' => config('services.posthog.host'),
+                    ],
+                ],
+                'monitoring' => [
+                    'sentry' => [
+                        'enabled' => filled(config('services.sentry.frontend_dsn')),
+                        'dsn' => config('services.sentry.frontend_dsn'),
+                        'environment' => config('services.sentry.environment'),
+                    ],
+                ],
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
             ],

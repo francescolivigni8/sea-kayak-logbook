@@ -96,6 +96,8 @@ interface ForecastResult {
     status: 'idle' | 'loading' | 'filled' | 'skipped' | 'failed';
     message?: string;
     httpStatus?: number;
+    provider?: string | null;
+    fallbackFrom?: ForecastFallback | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
@@ -105,8 +107,18 @@ interface ForecastPayload {
     message?: string;
     reason?: string;
     httpStatus?: number;
+    provider?: string | null;
+    fallbackFrom?: ForecastFallback | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
+}
+
+interface ForecastFallback {
+    provider?: string | null;
+    status?: string | null;
+    reason?: string | null;
+    httpStatus?: number | null;
+    providerMessage?: string | null;
 }
 
 interface RoutePoint {
@@ -392,17 +404,21 @@ const forecastBoardGridStyle = computed(() => ({
     gridTemplateColumns: `76px repeat(${Math.max(forecastTimeline.value.length, 1)}, minmax(38px, 1fr))`,
 }));
 
-const estimatedStormglassRequests = computed(() =>
+const estimatedForecastRequests = computed(() =>
     forecastAreaPoint.value ? 2 : 0,
 );
 
 const forecastRequestEstimate = computed(() => {
     if (!forecastAreaPoint.value) {
-        return 'Add route points to estimate Stormglass usage.';
+        return 'Add route points to estimate forecast usage.';
     }
 
-    return `About ${estimatedStormglassRequests.value} Stormglass requests: 1 area weather + 1 tide.`;
+    return `About ${estimatedForecastRequests.value} forecast requests per provider: 1 weather + 1 marine/tide.`;
 });
+
+const forecastProviderLabel = computed(() =>
+    providerLabel(areaForecast.value.provider),
+);
 
 const areaSampleTimeLabel = computed(() => {
     const offset = forecastAreaOffsetMinutes.value;
@@ -426,7 +442,7 @@ const forecastProgressLabel = computed(() => {
     }
 
     if (!props.weatherAutofillAvailable) {
-        return 'Stormglass not configured';
+        return 'Forecast not configured';
     }
 
     return 'Ready';
@@ -544,6 +560,22 @@ function forecastCellMessage(forecast: ForecastResult): string {
     }
 
     return forecast.message || 'No forecast data.';
+}
+
+function providerLabel(provider?: string | null): string {
+    if (provider === 'stormglass') {
+        return 'Stormglass';
+    }
+
+    if (provider === 'open_meteo') {
+        return 'Open-Meteo';
+    }
+
+    if (provider === 'met_no') {
+        return 'MET Norway';
+    }
+
+    return 'Forecast';
 }
 
 function slotTideLabel(slot: ForecastTimelinePoint): string {
@@ -731,7 +763,7 @@ function markForecastStale() {
 async function refreshForecasts() {
     if (!props.weatherAutofillAvailable) {
         forecastStatus.value = 'warning';
-        forecastMessage.value = 'Stormglass is not configured yet.';
+        forecastMessage.value = 'No forecast provider is configured yet.';
 
         return;
     }
@@ -783,6 +815,8 @@ async function refreshForecasts() {
                 status: 'failed',
                 message: payload.message || payload.reason,
                 httpStatus: response.status,
+                provider: payload.provider,
+                fallbackFrom: payload.fallbackFrom,
             };
 
             forecastByPoint.value = nextForecasts;
@@ -799,6 +833,8 @@ async function refreshForecasts() {
             status: payload.status ?? 'failed',
             message: payload.message || payload.reason,
             httpStatus: payload.httpStatus,
+            provider: payload.provider,
+            fallbackFrom: payload.fallbackFrom,
             timeline: payload.timeline ?? [],
             fields: payload.fields ?? {},
         };
@@ -819,7 +855,7 @@ async function refreshForecasts() {
 
     forecastStatus.value = hasFields ? 'filled' : 'warning';
     forecastMessage.value = hasFields
-        ? `Area conditions refreshed for the route centre at ${areaSampleTimeLabel.value}. ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
+        ? `Area conditions refreshed with ${providerLabel(forecast.provider)} for the route centre at ${areaSampleTimeLabel.value}.${forecast.fallbackFrom ? ` Fallback used after ${providerLabel(forecast.fallbackFrom.provider)} returned no usable board.` : ''} ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
         : `No usable area forecast data returned yet. ${forecastRequestEstimate.value}${forecast.message ? ` ${forecast.message}` : ''}`;
 }
 
@@ -1160,7 +1196,7 @@ watch(
                             <span
                                 class="rounded-full bg-[#1b243f] px-3 py-1.5 text-white"
                             >
-                                Stormglass
+                                {{ forecastProviderLabel }}
                             </span>
                             <span
                                 class="rounded-full border border-[color:var(--journal-line)] bg-white/80 px-3 py-1.5 text-[color:var(--journal-muted)]"
