@@ -12,15 +12,15 @@ The pivot keeps the kayak-specific product model, but moves auth, profiles, sess
 - SQLite for local development
 - First-party auth from the Laravel starter
 - Real kayak domain tables:
-  - `profiles`
-  - `profile_memberships`
-  - `paddle_sessions`
+    - `profiles`
+    - `profile_memberships`
+    - `paddle_sessions`
 - Dashboard tied to the authenticated user profile
 - Real session management slice:
-  - sessions index
-  - manual create/edit form
-  - GPX/FIT/photo attachment fields
-  - expedition and notes fields
+    - sessions index
+    - manual create/edit form
+    - GPX/FIT/photo attachment fields
+    - expedition and notes fields
 - Diary/calendar experience
 - Expedition atlas and world-footprint maps
 - Garmin CSV import page with optional GPX and FIT matching
@@ -58,12 +58,15 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 ## Data model notes
 
 `profiles`
+
 - ownership, slug, home water, timezone, private-first profile state
 
 `profile_memberships`
+
 - many-to-many user access to profiles
 
 `paddle_sessions`
+
 - trip basics
 - sea conditions
 - severity checklist values
@@ -85,6 +88,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 - Keep `KAYAK_NOINDEX=true` for staging/private feedback unless we intentionally want search indexing.
 - Password reset and login use Laravel Fortify, so production mail delivery matters before launch. Email verification is currently disabled.
 - Deployment/auth/storage steps are documented in [DEPLOY.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/DEPLOY.md).
+- End-user app instructions are documented in [docs/user-manual.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/user-manual.md).
 
 ## Next slices
 
