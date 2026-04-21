@@ -62,6 +62,7 @@ let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
 let lineLayer: L.Polyline | null = null;
 let baseLayer: L.TileLayer | null = null;
+let hasFitInitialView = false;
 
 const launchPoint = computed(() => {
     if (props.launchLat === null || props.launchLng === null) {
@@ -179,6 +180,12 @@ function fitToPoints() {
     map.fitBounds(bounds.pad(0.18));
 }
 
+function invalidateMapSize() {
+    window.setTimeout(() => {
+        map?.invalidateSize();
+    }, 120);
+}
+
 function emitWaypoints(points: RouteWaypoint[]) {
     emit(
         'update:routeWaypointsJson',
@@ -234,6 +241,11 @@ function removeWaypoint(index: number) {
 
 function clearRouteTrace() {
     emitWaypoints([]);
+}
+
+function fitToCurrentCourse() {
+    map?.invalidateSize();
+    fitToPoints();
 }
 
 function renderMarkers() {
@@ -318,7 +330,10 @@ function renderMarkers() {
         ).addTo(leafletMap);
     }
 
-    fitToPoints();
+    if (!hasFitInitialView) {
+        fitToPoints();
+        hasFitInitialView = true;
+    }
 }
 
 async function initializeMap() {
@@ -342,8 +357,9 @@ async function initializeMap() {
         updateTargetPoint(event.latlng.lat, event.latlng.lng);
     });
 
-    fitToPoints();
     renderMarkers();
+    fitToPoints();
+    invalidateMapSize();
 }
 
 watch(
@@ -436,6 +452,13 @@ onBeforeUnmount(() => {
                     @click="clearRouteTrace"
                 >
                     Clear route
+                </button>
+                <button
+                    type="button"
+                    class="journal-utility-link shrink-0"
+                    @click="fitToCurrentCourse"
+                >
+                    Fit view
                 </button>
             </div>
         </div>

@@ -75,6 +75,11 @@ const weatherPreviewMessage = ref<string | null>(null);
 const flashSuccessMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
+const formErrorEntries = computed(() =>
+    Object.entries(form.errors).filter((entry): entry is [string, string] =>
+        Boolean(entry[1]),
+    ),
+);
 
 const routeCategoryOptions = [
     'journey',
@@ -608,6 +613,25 @@ onMounted(async () => {
         </section>
 
         <section
+            v-if="formErrorEntries.length"
+            class="journal-banner journal-banner--danger"
+        >
+            <p class="journal-kicker">Session not saved</p>
+            <p class="mt-2 text-sm leading-6 font-semibold md:text-base">
+                A required detail needs fixing. I moved you to the first step
+                with a problem.
+            </p>
+            <ul class="mt-3 space-y-1 text-sm leading-6">
+                <li
+                    v-for="[field, message] in formErrorEntries.slice(0, 3)"
+                    :key="field"
+                >
+                    {{ message }}
+                </li>
+            </ul>
+        </section>
+
+        <section
             class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6"
         >
             <div class="space-y-3">
@@ -644,8 +668,7 @@ onMounted(async () => {
                     </p>
                     <span
                         class="w-full text-xs font-medium text-[color:var(--journal-muted)] sm:w-auto sm:text-sm"
-                        >Required: title, date, launch, distance or route
-                        file</span
+                        >Required: title, date, and distance or route file</span
                     >
                 </div>
 
@@ -990,6 +1013,7 @@ onMounted(async () => {
 
                     <div class="sm:col-span-2 xl:col-span-3">
                         <SessionLocationPicker
+                            v-if="currentStep === 0"
                             :launch-lat="launchLatNumber"
                             :launch-lng="launchLngNumber"
                             :landing-lat="landingLatNumber"

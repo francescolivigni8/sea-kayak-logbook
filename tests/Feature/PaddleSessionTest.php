@@ -424,6 +424,51 @@ GPX);
         $this->assertNotNull($session->launch_lng);
     }
 
+    public function test_imported_sessions_can_be_updated_with_observations_without_reuploading_a_track_file(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $session = $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Imported Garmin session',
+            'launch_name' => null,
+            'route_category' => 'journey',
+            'distance_km' => 0,
+            'gpx_path' => 'gpx/imports/garmin-track.gpx',
+            'garmin_gpx_name' => 'garmin-track.gpx',
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('sessions.update', $session), [
+                'title' => 'Imported Garmin session',
+                'session_date' => '2026-04-06',
+                'launch_name' => '',
+                'route_category' => 'journey',
+                'notes_public' => 'Too much faff at the launch. Pack cleaner next time.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas(PaddleSession::class, [
+            'id' => $session->id,
+            'launch_name' => null,
+            'notes_public' => 'Too much faff at the launch. Pack cleaner next time.',
+        ]);
+    }
+
+    public function test_manual_sessions_without_route_files_still_need_distance(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Distance missing',
+                'session_date' => '2026-04-06',
+                'route_category' => 'journey',
+            ])
+            ->assertSessionHasErrors('distance_km');
+    }
+
     public function test_manual_sessions_can_autofill_weather_from_stormglass(): void
     {
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');

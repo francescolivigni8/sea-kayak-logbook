@@ -465,7 +465,7 @@ class PaddleSessionController extends Controller
             'timezone' => $profile->timezone,
             'title' => trim($validated['title']),
             'area_name' => $this->nullIfBlank($validated['area_name'] ?? null),
-            'launch_name' => trim($validated['launch_name']),
+            'launch_name' => $this->nullIfBlank($validated['launch_name'] ?? null),
             'launch_lat' => $launchLat,
             'launch_lng' => $launchLng,
             'landing_name' => $this->nullIfBlank($validated['landing_name'] ?? null),

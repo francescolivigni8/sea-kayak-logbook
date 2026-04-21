@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\PaddleSession;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpsertPaddleSessionRequest extends FormRequest
@@ -22,11 +23,20 @@ class UpsertPaddleSessionRequest extends FormRequest
 
     public function rules(): array
     {
+        $session = $this->route('session');
+        $hasExistingRouteFile = $session instanceof PaddleSession
+            && (filled($session->gpx_path) || filled($session->fit_path));
+        $distanceRules = ['nullable', 'numeric', 'min:0'];
+
+        if (! $hasExistingRouteFile) {
+            $distanceRules[] = 'required_without_all:gpx_file,fit_file';
+        }
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'session_date' => ['required', 'date'],
             'start_time_local' => ['nullable', 'date_format:H:i'],
-            'launch_name' => ['required', 'string', 'max:255'],
+            'launch_name' => ['nullable', 'string', 'max:255'],
             'launch_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'launch_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'landing_name' => ['nullable', 'string', 'max:255'],
@@ -37,7 +47,7 @@ class UpsertPaddleSessionRequest extends FormRequest
             'body_of_water' => ['nullable', 'string', 'max:100'],
             'kayak_used' => ['nullable', 'string', 'max:255'],
             'paddle_used' => ['nullable', 'string', 'max:255'],
-            'distance_km' => ['nullable', 'numeric', 'min:0', 'required_without_all:gpx_file,fit_file'],
+            'distance_km' => $distanceRules,
             'duration_minutes' => ['nullable', 'integer', 'min:0'],
             'moving_minutes' => ['nullable', 'integer', 'min:0'],
             'wind_avg_ms' => ['nullable', 'numeric', 'min:0'],
