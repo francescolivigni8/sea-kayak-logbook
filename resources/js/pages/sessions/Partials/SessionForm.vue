@@ -658,7 +658,7 @@ onMounted(async () => {
             notes once the core paddle is captured.
         </section>
 
-        <form class="space-y-5" @submit.prevent="submit">
+        <form class="space-y-5" novalidate @submit.prevent="submit">
             <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p
@@ -1837,8 +1837,8 @@ onMounted(async () => {
                 class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5"
             >
                 <p class="text-sm text-[color:var(--journal-muted)]">
-                    Minimum save requirement: title, date, launch, and distance
-                    or a route file.
+                    Minimum save requirement: title, date, and distance or a
+                    route file.
                 </p>
 
                 <div
