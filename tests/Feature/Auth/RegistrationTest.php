@@ -36,4 +36,42 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('profile.edit', ['setup' => 1], false));
     }
+
+    public function test_invite_only_registration_blocks_uninvited_emails()
+    {
+        config()->set('kayak.invite_only', true);
+        config()->set('kayak.invite_emails', ['invited@example.com']);
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'Uninvited User',
+            'email' => 'uninvited@example.com',
+            'password' => 'JournalPass123!',
+            'password_confirmation' => 'JournalPass123!',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('email');
+        $this->assertDatabaseMissing('users', [
+            'email' => 'uninvited@example.com',
+        ]);
+    }
+
+    public function test_invite_only_registration_allows_invited_emails()
+    {
+        config()->set('kayak.invite_only', true);
+        config()->set('kayak.invite_emails', ['invited@example.com']);
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'Invited User',
+            'email' => 'Invited@Example.com',
+            'password' => 'JournalPass123!',
+            'password_confirmation' => 'JournalPass123!',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('profile.edit', ['setup' => 1], false));
+        $this->assertDatabaseHas('users', [
+            'email' => 'invited@example.com',
+        ]);
+    }
 }

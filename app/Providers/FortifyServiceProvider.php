@@ -55,6 +55,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(fn (Request $request) => view('auth.login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'canRegister' => Features::enabled(Features::registration()),
+            'inviteOnly' => (bool) config('kayak.invite_only'),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -71,7 +72,9 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => view('auth.register'));
+        Fortify::registerView(fn () => view('auth.register', [
+            'inviteOnly' => (bool) config('kayak.invite_only'),
+        ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));
 

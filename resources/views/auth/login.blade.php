@@ -148,6 +148,9 @@
                 <div class="chip">Email + password</div>
                 <div class="chip">Private workspace</div>
                 <div class="chip">Profile setup first</div>
+                @if ($inviteOnly)
+                    <div class="chip">Invite-only beta</div>
+                @endif
             </div>
 
             @if ($status)
@@ -183,7 +186,11 @@
 
             @if ($canRegister)
                 <p class="muted" style="margin-top:18px;">
-                    Don’t have an account?
+                    @if ($inviteOnly)
+                        Invited to the beta?
+                    @else
+                        Don’t have an account?
+                    @endif
                     <a class="link" href="{{ route('register') }}">Create one</a>
                 </p>
             @endif

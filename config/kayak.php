@@ -1,16 +1,26 @@
 <?php
 
+$ownerEmails = collect(explode(',', (string) env('KAYAK_OWNER_EMAILS', '')))
+    ->map(fn (string $email) => trim(strtolower($email)))
+    ->filter()
+    ->values();
+
+$inviteEmails = collect(explode(',', (string) env('KAYAK_INVITE_EMAILS', '')))
+    ->map(fn (string $email) => trim(strtolower($email)))
+    ->filter()
+    ->merge($ownerEmails)
+    ->unique()
+    ->values();
+
 return [
     'media_disk' => env('KAYAK_MEDIA_DISK', 'public'),
     'media_temporary_urls' => (bool) env('KAYAK_MEDIA_TEMPORARY_URLS', false),
     'media_temporary_url_minutes' => (int) env('KAYAK_MEDIA_TEMPORARY_URL_MINUTES', 30),
     'public_profiles_enabled' => (bool) env('KAYAK_PUBLIC_PROFILES_ENABLED', false),
     'noindex' => (bool) env('KAYAK_NOINDEX', true),
-    'owner_emails' => collect(explode(',', (string) env('KAYAK_OWNER_EMAILS', '')))
-        ->map(fn (string $email) => trim(strtolower($email)))
-        ->filter()
-        ->values()
-        ->all(),
+    'owner_emails' => $ownerEmails->all(),
+    'invite_only' => (bool) env('KAYAK_INVITE_ONLY', false),
+    'invite_emails' => $inviteEmails->all(),
     'weather' => [
         'providers' => [
             'stormglass' => [

@@ -83,6 +83,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 - For production object storage, set `FILESYSTEM_DISK=s3` and `KAYAK_MEDIA_DISK=s3`.
 - For private production media links, keep the bucket private and set `KAYAK_MEDIA_TEMPORARY_URLS=true`.
 - To unlock the internal users/insights page, set `KAYAK_OWNER_EMAILS` to a comma-separated list of owner emails.
+- To restrict beta registration, set `KAYAK_INVITE_ONLY=true` and add comma-separated allowed emails to `KAYAK_INVITE_EMAILS`. Owner emails are automatically allowed.
 - To enable Stormglass weather autofill on manual sessions and Garmin imports, set `STORMGLASS_API_KEY` in the environment. The app derives Beaufort from returned wind speed automatically.
 - Keep `KAYAK_PUBLIC_PROFILES_ENABLED=false` for the private-first launch. Public read-only sharing can be reintroduced later.
 - Keep `KAYAK_NOINDEX=true` for staging/private feedback unless we intentionally want search indexing.

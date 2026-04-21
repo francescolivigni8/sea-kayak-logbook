@@ -143,7 +143,16 @@
                 <div class="chip">Private journal</div>
                 <div class="chip">Profile-based</div>
                 <div class="chip">Photos + GPX + FIT</div>
+                @if ($inviteOnly)
+                    <div class="chip">Invite-only beta</div>
+                @endif
             </div>
+
+            @if ($inviteOnly)
+                <p class="hint" style="margin-top:18px;">
+                    Registration is temporarily limited to invited emails. Use the exact email address Francesco added to the beta list.
+                </p>
+            @endif
 
             <form method="POST" action="{{ route('register.store') }}">
                 @csrf
@@ -157,6 +166,9 @@
                 <div class="field">
                     <label for="email">Email address</label>
                     <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="email@example.com">
+                    @if ($inviteOnly)
+                        <div class="hint">This email must already be on the invite list.</div>
+                    @endif
                     @error('email') <div class="error">{{ $message }}</div> @enderror
                 </div>
 
