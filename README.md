@@ -89,7 +89,7 @@ On fresh installs, `npm install` triggers the local-node setup automatically thr
 - Keep `KAYAK_NOINDEX=true` for staging/private feedback unless we intentionally want search indexing.
 - Password reset and login use Laravel Fortify, so production mail delivery matters before launch. Email verification is currently disabled.
 - Deployment/auth/storage steps are documented in [DEPLOY.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/DEPLOY.md).
-- End-user app instructions are documented in [docs/user-manual.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/user-manual.md).
+- End-user app instructions are documented in [docs/user-manual.md](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/user-manual.md), with a printable PDF at [docs/user-manual.pdf](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/user-manual.pdf).
 
 ## Next slices
 
