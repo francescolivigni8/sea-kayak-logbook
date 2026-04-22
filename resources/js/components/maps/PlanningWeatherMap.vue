@@ -4,8 +4,6 @@ import * as maptilersdk from '@maptiler/sdk';
 import {
     ColorRamp,
     PrecipitationLayer,
-    PressureLayer,
-    RadarLayer,
     TemperatureLayer,
     WindLayer,
 } from '@maptiler/weather';
@@ -19,12 +17,7 @@ import {
 } from 'vue';
 
 type CoordinateValue = string | number | null;
-type WeatherLayerKey =
-    | 'wind'
-    | 'precipitation'
-    | 'temperature'
-    | 'pressure'
-    | 'radar';
+type WeatherLayerKey = 'wind' | 'precipitation' | 'temperature';
 type WeatherAnimationPresetKey = 'calm' | 'normal' | 'scan';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
@@ -176,8 +169,6 @@ const weatherLayerOptions: {
         icon: 'P',
     },
     { key: 'wind', label: 'Wind', meta: 'speed + flow', icon: 'W' },
-    { key: 'pressure', label: 'Pressure', meta: 'broad systems', icon: 'P' },
-    { key: 'radar', label: 'Radar', meta: 'reflectivity', icon: 'R' },
 ];
 
 const weatherAnimationPresets: {
@@ -252,23 +243,6 @@ const marinePrecipitationRamp = ColorRamp.fromArrayDefinition([
     [20, [90, 55, 122, 166]],
 ]);
 
-const softPressureRamp = ColorRamp.fromArrayDefinition([
-    [950, [76, 103, 176, 72]],
-    [990, [122, 215, 208, 58]],
-    [1015, [255, 255, 255, 20]],
-    [1035, [245, 180, 109, 70]],
-    [1060, [203, 96, 92, 92]],
-]);
-
-const radarCloudRamp = ColorRamp.fromArrayDefinition([
-    [0, [255, 255, 255, 0]],
-    [8, [180, 192, 205, 58]],
-    [20, [100, 181, 205, 84]],
-    [35, [74, 179, 128, 110]],
-    [50, [238, 183, 72, 135]],
-    [65, [210, 77, 71, 158]],
-]);
-
 const legends: Record<
     WeatherLayerKey,
     {
@@ -307,25 +281,6 @@ const legends: Record<
             { label: 'Cool', color: '#44a7c9' },
             { label: 'Mild', color: '#fae49a' },
             { label: 'Warm', color: '#cd4e55' },
-        ],
-    },
-    pressure: {
-        title: 'Pressure',
-        unit: 'hPa',
-        stops: [
-            { label: 'Low', color: '#4c67b0' },
-            { label: 'Normal', color: '#7ad7d0' },
-            { label: 'High', color: '#cb605c' },
-        ],
-    },
-    radar: {
-        title: 'Radar',
-        unit: 'dBZ reflectivity',
-        stops: [
-            { label: 'Cloud', color: '#b4c0cd' },
-            { label: 'Showers', color: '#4ab380' },
-            { label: 'Heavy', color: '#eeb748' },
-            { label: 'Severe', color: '#d24d47' },
         ],
     },
 };
@@ -709,10 +664,6 @@ function baseWeatherOpacity(layer: WeatherLayerKey): number {
         return 0.66;
     }
 
-    if (layer === 'pressure') {
-        return 0.2;
-    }
-
     if (layer === 'temperature') {
         return 0.24;
     }
@@ -738,22 +689,6 @@ function buildWeatherLayer(layer: WeatherLayerKey): MappableLayer {
         return new PrecipitationLayer({
             id: 'ykj-weather-precipitation',
             colorramp: marinePrecipitationRamp,
-            opacity: weatherOpacity(layer),
-        }) as unknown as MappableLayer;
-    }
-
-    if (layer === 'radar') {
-        return new RadarLayer({
-            id: 'ykj-weather-radar',
-            colorramp: radarCloudRamp,
-            opacity: weatherOpacity(layer),
-        }) as unknown as MappableLayer;
-    }
-
-    if (layer === 'pressure') {
-        return new PressureLayer({
-            id: 'ykj-weather-pressure',
-            colorramp: softPressureRamp,
             opacity: weatherOpacity(layer),
         }) as unknown as MappableLayer;
     }
@@ -1012,14 +947,6 @@ function formatWeatherProbe(picked: unknown): string | null {
 
     if (activeLayer.value === 'precipitation') {
         return `Precip ${value.toFixed(1)} mm/h`;
-    }
-
-    if (activeLayer.value === 'pressure') {
-        return `Pressure ${Math.round(value)} hPa`;
-    }
-
-    if (activeLayer.value === 'radar') {
-        return `Radar ${Math.round(value)} dBZ`;
     }
 
     return null;
