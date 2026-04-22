@@ -348,10 +348,35 @@ class GarminImportService
 
     private function parseNumber(string $value): float
     {
-        $normalized = str_replace(',', '', trim($value));
+        $normalized = trim($value);
 
         if ($normalized === '' || $normalized === '--') {
             return 0.0;
+        }
+
+        $normalized = str_replace(["\xc2\xa0", ' '], '', $normalized);
+        $normalized = preg_replace('/[^0-9,\.\-]/', '', $normalized) ?? '';
+
+        if ($normalized === '' || $normalized === '-' || $normalized === '--') {
+            return 0.0;
+        }
+
+        $lastComma = strrpos($normalized, ',');
+        $lastDot = strrpos($normalized, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            $normalized = $lastComma > $lastDot
+                ? str_replace(',', '.', str_replace('.', '', $normalized))
+                : str_replace(',', '', $normalized);
+        } elseif ($lastComma !== false) {
+            $commaGroups = explode(',', $normalized);
+            $looksLikeThousands = count($commaGroups) > 2
+                && collect(array_slice($commaGroups, 1))
+                    ->every(fn (string $group) => strlen($group) === 3);
+
+            $normalized = $looksLikeThousands
+                ? str_replace(',', '', $normalized)
+                : str_replace(',', '.', $normalized);
         }
 
         return is_numeric($normalized) ? (float) $normalized : 0.0;
