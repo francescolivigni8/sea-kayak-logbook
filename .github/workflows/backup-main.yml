@@ -1,0 +1,69 @@
+name: backup main
+
+on:
+  schedule:
+    # Daily at 03:17 UTC. Iceland is UTC year-round.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      label:
+        description: 'Optional backup label, for example pre-live-merge'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backup-main
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create backup branch and tag
+        env:
+          BACKUP_LABEL: ${{ github.event.inputs.label || '' }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main --tags
+
+          commit="$(git rev-parse origin/main)"
+          date_utc="$(date -u +%F)"
+          label="${BACKUP_LABEL:-$date_utc}"
+          safe_label="$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//')"
+
+          if [ -z "$safe_label" ]; then
+            safe_label="$date_utc"
+          fi
+
+          rolling_branch="backup/main-latest"
+          backup_tag="backup-main-${safe_label}"
+
+          echo "Backing up origin/main at ${commit}"
+          echo "Rolling branch: ${rolling_branch}"
+          echo "Point-in-time tag: ${backup_tag}"
+
+          git checkout --detach "$commit"
+          git branch -f "$rolling_branch" "$commit"
+          git push origin "+refs/heads/${rolling_branch}:refs/heads/${rolling_branch}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${backup_tag}" >/dev/null 2>&1; then
+            echo "Tag ${backup_tag} already exists. Keeping the existing immutable backup."
+            exit 0
+          fi
+
+          git tag -a "$backup_tag" "$commit" -m "Backup main ${safe_label} at ${commit}"
+          git push origin "refs/tags/${backup_tag}"
