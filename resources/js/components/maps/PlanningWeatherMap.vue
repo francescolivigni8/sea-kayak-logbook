@@ -138,7 +138,6 @@ const weatherVisibilityPercent = ref(92);
 const mapElement = ref<HTMLElement | null>(null);
 const mapError = ref<string | null>(null);
 const isMapReady = ref(false);
-const hasFitInitialRoute = ref(false);
 const showLegend = ref(false);
 const searchQuery = ref('');
 const searchStatus = ref<string | null>(null);
@@ -635,7 +634,6 @@ function closeCourse() {
 
 function clearCourse() {
     setCoursePoints([]);
-    hasFitInitialRoute.value = false;
 }
 
 function formatPoint(lat: number, lng: number): RouteWaypoint {
@@ -1160,11 +1158,6 @@ function upsertRouteOverlay() {
     }
 
     registerRouteInteractions();
-
-    if (!hasFitInitialRoute.value && routePoints.value.length) {
-        hasFitInitialRoute.value = true;
-        fitRouteOrDefault();
-    }
 }
 
 function registerRouteInteractions() {
@@ -1267,6 +1260,10 @@ function fitRouteOrDefault(force = false) {
     const points = routePoints.value;
 
     if (!points.length) {
+        if (!force) {
+            return;
+        }
+
         map.easeTo({
             center: [props.defaultView.lng, props.defaultView.lat],
             zoom: props.defaultView.zoom,
@@ -1277,6 +1274,10 @@ function fitRouteOrDefault(force = false) {
     }
 
     if (points.length === 1) {
+        if (!force) {
+            return;
+        }
+
         map.easeTo({
             center: [points[0].lng, points[0].lat],
             zoom: Math.max(props.defaultView.zoom, 10),
@@ -1458,7 +1459,10 @@ async function initializeMap() {
             isMapReady.value = true;
             applyWeatherLayer();
             upsertRouteOverlay();
-            fitRouteOrDefault();
+
+            if (routePoints.value.length > 1) {
+                fitRouteOrDefault();
+            }
         });
 
         map.on('error', (event) => {

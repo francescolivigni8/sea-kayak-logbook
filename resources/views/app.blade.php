@@ -18,23 +18,29 @@
                 const cookieMatch = document.cookie.match(/(?:^|;\s*)appearance=([^;]+)/);
                 const cookieAppearance = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
                 const storedAppearance = localStorage.getItem('appearance');
-                const preference = storedAppearance || cookieAppearance || 'system';
-                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const resolvedTheme = preference === 'system'
-                    ? (systemPrefersDark ? 'midnight-chart' : 'journal')
-                    : preference;
+                const lightThemes = new Set([
+                    'journal',
+                    'sea-glass',
+                    'sand-dusk',
+                    'fjord-mist',
+                ]);
+                const preference = storedAppearance || cookieAppearance || 'journal';
+                const resolvedTheme = lightThemes.has(preference) ? preference : 'journal';
 
                 const backgroundByTheme = {
                     journal: '#edf0ff',
                     'sea-glass': '#e7f6f6',
                     'sand-dusk': '#fbf2e7',
                     'fjord-mist': '#f2f6fb',
-                    'midnight-chart': '#0c1430',
                 };
 
                 document.documentElement.dataset.theme = resolvedTheme;
-                document.documentElement.classList.toggle('dark', resolvedTheme === 'midnight-chart');
+                document.documentElement.classList.remove('dark');
                 document.documentElement.style.backgroundColor = backgroundByTheme[resolvedTheme] || backgroundByTheme.journal;
+
+                if (storedAppearance && storedAppearance !== resolvedTheme) {
+                    localStorage.setItem('appearance', resolvedTheme);
+                }
             })();
         </script>
 

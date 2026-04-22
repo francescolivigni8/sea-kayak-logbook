@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Monitor } from 'lucide-vue-next';
+import { Check } from 'lucide-vue-next';
 import { appearanceThemes, useAppearance } from '@/composables/useAppearance';
 
 const { appearance, updateAppearance } = useAppearance();
@@ -22,10 +22,6 @@ const { appearance, updateAppearance } = useAppearance();
             <div class="flex items-start justify-between gap-4">
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
-                        <Monitor
-                            v-if="theme.value === 'system'"
-                            class="h-4 w-4 text-[color:var(--journal-muted)]"
-                        />
                         <p
                             class="text-sm font-semibold text-[color:var(--journal-text)]"
                         >

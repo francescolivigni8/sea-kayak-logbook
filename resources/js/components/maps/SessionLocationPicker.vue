@@ -62,7 +62,6 @@ let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
 let lineLayer: L.Polyline | null = null;
 let baseLayer: L.TileLayer | null = null;
-let hasFitInitialView = false;
 
 const launchPoint = computed(() => {
     if (props.launchLat === null || props.launchLng === null) {
@@ -329,11 +328,6 @@ function renderMarkers() {
             },
         ).addTo(leafletMap);
     }
-
-    if (!hasFitInitialView) {
-        fitToPoints();
-        hasFitInitialView = true;
-    }
 }
 
 async function initializeMap() {
@@ -352,13 +346,21 @@ async function initializeMap() {
     markerLayer = L.layerGroup().addTo(map);
     baseLayer = buildBaseLayer();
     baseLayer.addTo(map);
+    map.setView(
+        [props.defaultView.lat, props.defaultView.lng],
+        props.defaultView.zoom,
+    );
 
     map.on('click', (event: L.LeafletMouseEvent) => {
         updateTargetPoint(event.latlng.lat, event.latlng.lng);
     });
 
     renderMarkers();
-    fitToPoints();
+
+    if (renderedRoutePoints.value.length > 1) {
+        fitToPoints();
+    }
+
     invalidateMapSize();
 }
 
