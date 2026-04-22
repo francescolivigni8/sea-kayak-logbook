@@ -13,6 +13,7 @@ use App\Http\Controllers\SessionCategoryController;
 use App\Http\Controllers\UserInsightsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
 
 Route::get('/', function (Request $request) {
     return $request->user()
@@ -31,7 +32,10 @@ Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, '
 Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::class, 'publicShow'])
     ->name('profiles.public.expeditions.show');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(array_filter([
+    'auth',
+    Features::enabled(Features::emailVerification()) ? 'verified' : null,
+]))->group(function () {
     Route::get('workspace', function (Request $request) {
         return response()->view('workspace', [
             'user' => $request->user(),

@@ -5,6 +5,7 @@ namespace Tests\Feature\Settings;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -70,7 +71,7 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
+        $this->assertNotNull($user->email_verified_at);
         $this->assertSame('Francesco Li Vigni', data_get($profile->settings, 'paddler_name'));
         $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
         $this->assertSame(['Valley Etain 17-7', 'P&H Scorpio MV'], data_get($profile->settings, 'kayaks_owned'));
@@ -101,6 +102,33 @@ class ProfileUpdateTest extends TestCase
             ->assertRedirect(route('profile.edit'));
 
         $this->assertNotNull($user->refresh()->email_verified_at);
+    }
+
+    public function test_changing_email_resets_verification_when_email_verification_is_enabled(): void
+    {
+        config()->set('fortify.features', [
+            Features::registration(),
+            Features::resetPasswords(),
+            Features::emailVerification(),
+        ]);
+
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = ['setup_required' => false];
+        $profile->save();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => 'Test User',
+                'email' => 'new-address@example.com',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertNull($user->refresh()->email_verified_at);
     }
 
     public function test_user_can_delete_their_account()

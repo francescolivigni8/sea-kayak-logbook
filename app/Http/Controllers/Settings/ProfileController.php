@@ -63,7 +63,9 @@ class ProfileController extends Controller
         $request->user()->fill(Arr::only($validated, ['name', 'email']));
 
         if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+            $request->user()->email_verified_at = Features::enabled(Features::emailVerification())
+                ? null
+                : now();
         }
 
         $request->user()->save();
@@ -179,7 +181,7 @@ class ProfileController extends Controller
         $filename = 'your-kayaking-journal-export-'.now()->format('Y-m-d').'.json';
 
         return response()->streamDownload(
-            fn () => print(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            fn () => print (json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
             $filename,
             ['Content-Type' => 'application/json; charset=utf-8'],
         );
