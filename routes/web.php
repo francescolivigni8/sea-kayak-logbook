@@ -31,7 +31,7 @@ Route::get('/p/{profile:slug}/expeditions', [ExpeditionPlaceController::class, '
 Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::class, 'publicShow'])
     ->name('profiles.public.expeditions.show');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspace', function (Request $request) {
         return response()->view('workspace', [
             'user' => $request->user(),

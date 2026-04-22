@@ -8,6 +8,9 @@ Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('settings/profile/export', [ProfileController::class, 'export'])
+        ->middleware('throttle:6,1')
+        ->name('profile.export');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 

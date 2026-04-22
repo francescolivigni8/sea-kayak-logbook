@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddNoindexHeader;
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureJournalOwner;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             AddNoindexHeader::class,
+            AddSecurityHeaders::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

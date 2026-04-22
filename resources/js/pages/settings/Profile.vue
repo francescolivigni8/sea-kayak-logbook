@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { ShieldCheck } from 'lucide-vue-next';
+import { Download, ShieldCheck } from 'lucide-vue-next';
 import { onUnmounted, ref, toRefs } from 'vue';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -495,6 +495,42 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                         <div class="mt-6">
                             <AppearanceTabs />
+                        </div>
+                    </section>
+
+                    <section
+                        id="privacy"
+                        class="journal-panel px-5 py-5 md:px-6"
+                    >
+                        <div class="space-y-2">
+                            <p class="journal-kicker">Privacy</p>
+                            <h2
+                                class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]"
+                            >
+                                Your data
+                            </h2>
+                            <p class="journal-copy text-sm md:text-base">
+                                Download a JSON copy of your account, profile,
+                                logged sessions, planned sessions, folders, and
+                                journal metadata.
+                            </p>
+                        </div>
+
+                        <div class="mt-6 flex flex-wrap items-center gap-3">
+                            <a
+                                href="/settings/profile/export"
+                                class="journal-primary-link"
+                            >
+                                <Download class="h-4 w-4" />
+                                Download my data
+                            </a>
+                            <p
+                                class="max-w-sm text-xs leading-5 text-[color:var(--journal-muted)]"
+                            >
+                                Uploaded GPX/FIT/photo files stay private in
+                                storage; this export includes their saved
+                                filenames and journal references.
+                            </p>
                         </div>
                     </section>
                 </div>
