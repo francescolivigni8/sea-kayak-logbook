@@ -122,7 +122,20 @@ Run these on the real staging/live URL after every launch candidate deploy:
 12. Confirm `/p/{slug}` and public expedition URLs return `404` while `KAYAK_PUBLIC_PROFILES_ENABLED=false`.
 13. Confirm responses include `X-Robots-Tag: noindex, nofollow, noarchive` while `KAYAK_NOINDEX=true`.
 
-## 7. Useful private routes
+## 7. Code backups
+
+The repo includes a GitHub Actions workflow named `backup main`.
+
+It creates:
+
+- a rolling branch: `backup/main-latest`
+- an immutable point-in-time tag: `backup-main-YYYY-MM-DD`
+
+The workflow runs daily at 03:17 UTC and can also be run manually from GitHub Actions before a live merge. For manual pre-merge backups, use a label like `pre-live-merge-2026-04-22`; the workflow will create `backup-main-pre-live-merge-2026-04-22`.
+
+This backs up code only. Live data still depends on Laravel Cloud database backups and object-storage retention.
+
+## 8. Useful private routes
 
 - Dashboard: `/dashboard`
 - Diary: `/diary`
@@ -134,7 +147,7 @@ Run these on the real staging/live URL after every launch candidate deploy:
 - Expedition notes: `/expedition-notes`
 - Owner user insights: `/insights/users`
 
-## 8. Later public launch
+## 9. Later public launch
 
 When we decide to expose a public read-only surface:
 

@@ -598,7 +598,7 @@ class PaddleSessionController extends Controller
         if ($request->hasFile('session_photo')) {
             $this->deleteIfPresent($session->session_photo_path);
             $file = $request->file('session_photo');
-            $session->session_photo_path = $this->media->storeUploadedFile($file, 'session-photos/'.$session->profile->slug);
+            $session->session_photo_path = $this->media->storeSanitizedImage($file, 'session-photos/'.$session->profile->slug);
             $session->session_photo_name = $file->getClientOriginalName();
             $dirty = true;
         }

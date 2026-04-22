@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Laravel\Fortify\Features;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -39,6 +40,12 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+
+        if (! Features::enabled(Features::emailVerification())) {
+            $user->forceFill([
+                'email_verified_at' => now(),
+            ])->save();
+        }
 
         $user->resolveActiveProfile();
 

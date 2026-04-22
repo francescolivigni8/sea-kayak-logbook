@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
@@ -62,7 +63,9 @@ class ProfileController extends Controller
         $request->user()->fill(Arr::only($validated, ['name', 'email']));
 
         if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+            $request->user()->email_verified_at = Features::enabled(Features::emailVerification())
+                ? null
+                : now();
         }
 
         $request->user()->save();
@@ -89,6 +92,99 @@ class ProfileController extends Controller
         }
 
         return to_route('profile.edit')->with('status', 'Profile saved.');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $user = $request->user();
+        $ownedProfiles = $user->ownedProfiles()
+            ->with([
+                'memberships',
+                'sessions.categories',
+                'plannedSessions',
+                'sessionCategories.sessions:id,title,session_date,distance_km',
+            ])
+            ->get();
+
+        $payload = [
+            'app' => config('app.name', 'Your Kayaking Journal'),
+            'exported_at' => now()->toIso8601String(),
+            'scope' => 'Owned journal data for the signed-in account.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'created_at' => $user->created_at?->toIso8601String(),
+                'updated_at' => $user->updated_at?->toIso8601String(),
+            ],
+            'profile_memberships' => $user->profileMemberships()
+                ->with('profile:id,name,slug')
+                ->get()
+                ->map(fn ($membership) => [
+                    'profile' => $membership->profile?->only(['id', 'name', 'slug']),
+                    'role' => $membership->role,
+                    'created_at' => $membership->created_at?->toIso8601String(),
+                ])
+                ->values(),
+            'profiles' => $ownedProfiles
+                ->map(fn ($profile) => [
+                    'id' => $profile->id,
+                    'slug' => $profile->slug,
+                    'name' => $profile->name,
+                    'home_water' => $profile->home_water,
+                    'timezone' => $profile->timezone,
+                    'default_map_style' => $profile->default_map_style,
+                    'is_public' => (bool) $profile->is_public,
+                    'settings' => $profile->settings,
+                    'created_at' => $profile->created_at?->toIso8601String(),
+                    'updated_at' => $profile->updated_at?->toIso8601String(),
+                    'memberships' => $profile->memberships
+                        ->map(fn ($membership) => [
+                            'user_id' => $membership->user_id,
+                            'role' => $membership->role,
+                            'created_at' => $membership->created_at?->toIso8601String(),
+                        ])
+                        ->values(),
+                    'session_categories' => $profile->sessionCategories
+                        ->map(fn ($category) => [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                            'slug' => $category->slug,
+                            'color' => $category->color,
+                            'description' => $category->description,
+                            'sessions' => $category->sessions
+                                ->map(fn ($session) => [
+                                    'id' => $session->id,
+                                    'title' => $session->title,
+                                    'session_date' => $session->session_date?->toDateString(),
+                                    'distance_km' => $session->distance_km,
+                                ])
+                                ->values(),
+                        ])
+                        ->values(),
+                    'sessions' => $profile->sessions
+                        ->map(fn ($session) => [
+                            ...$session->makeHidden(['profile'])->toArray(),
+                            'categories' => $session->categories
+                                ->map(fn ($category) => $category->only(['id', 'name', 'slug']))
+                                ->values(),
+                        ])
+                        ->values(),
+                    'planned_sessions' => $profile->plannedSessions
+                        ->map(fn ($plannedSession) => $plannedSession->makeHidden(['profile'])->toArray())
+                        ->values(),
+                ])
+                ->values(),
+        ];
+
+        $filename = 'your-kayaking-journal-export-'.now()->format('Y-m-d').'.json';
+
+        return response()->streamDownload(
+            fn () => print (json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            $filename,
+            ['Content-Type' => 'application/json; charset=utf-8'],
+        );
     }
 
     private function blankToNull(mixed $value): ?string

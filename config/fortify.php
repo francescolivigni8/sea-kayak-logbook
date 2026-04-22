@@ -143,14 +143,17 @@ return [
     |
     */
 
-    'features' => [
+    'features' => array_values(array_filter([
         Features::registration(),
         Features::resetPasswords(),
+        env('KAYAK_EMAIL_VERIFICATION_ENABLED', false)
+            ? Features::emailVerification()
+            : null,
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,
             // 'window' => 0
         ]),
-    ],
+    ])),
 
 ];
