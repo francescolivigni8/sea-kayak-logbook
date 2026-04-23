@@ -106,6 +106,55 @@
             ['label' => 'GPX', 'value' => $session['gpxName'] ?? null],
             ['label' => 'FIT', 'value' => $session['fitName'] ?? null],
         ], fn (array $item) => filled($item['value'])));
+
+        $heroSummary = $session['notesPublic']
+            ?? $session['routeSummary']
+            ?? $session['weatherSummary']
+            ?? 'A complete private session sheet for sharing the day without screenshots.';
+
+        $routeLine = implode(' → ', array_values(array_filter([
+            $session['launchName'] ?? null,
+            $session['landingName'] ?? null,
+        ])));
+
+        $summaryHighlights = array_values(array_filter([
+            [
+                'label' => 'Route line',
+                'value' => $routeLine ?: ($session['areaName'] ?? 'Area not named yet'),
+            ],
+            [
+                'label' => 'Conditions snapshot',
+                'value' => collect([
+                    isset($session['beaufort']) && $session['beaufort'] !== null ? 'F'.$session['beaufort'] : null,
+                    $session['tideState'] ?? null,
+                    isset($session['waveHeightM']) && $session['waveHeightM'] !== null ? number_format((float) $session['waveHeightM'], 1).' m wave' : null,
+                ])->filter()->implode(' · ') ?: 'Conditions not fully logged yet',
+            ],
+            [
+                'label' => 'Files attached',
+                'value' => $attachmentFacts !== []
+                    ? collect($attachmentFacts)->pluck('label')->implode(' · ')
+                    : 'No files attached',
+            ],
+        ], fn (array $item) => filled($item['value'])));
+
+        $scoreMeters = array_values(array_filter([
+            isset($session['confidenceScore']) && $session['confidenceScore'] !== null ? [
+                'label' => 'Confidence',
+                'value' => (int) $session['confidenceScore'],
+                'percent' => max(0, min(100, ((int) $session['confidenceScore']) * 20)),
+            ] : null,
+            isset($session['fatigueScore']) && $session['fatigueScore'] !== null ? [
+                'label' => 'Fatigue',
+                'value' => (int) $session['fatigueScore'],
+                'percent' => max(0, min(100, ((int) $session['fatigueScore']) * 20)),
+            ] : null,
+            isset($session['decisionScore']) && $session['decisionScore'] !== null ? [
+                'label' => 'Decision',
+                'value' => (int) $session['decisionScore'],
+                'percent' => max(0, min(100, ((int) $session['decisionScore']) * 20)),
+            ] : null,
+        ]));
     @endphp
     <style>
         :root {
@@ -134,6 +183,8 @@
                 radial-gradient(circle at left, rgba(255, 218, 202, 0.26), transparent 28%),
                 var(--page-bg);
             color: var(--text);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         a {
@@ -181,6 +232,8 @@
         }
 
         .sheet {
+            position: relative;
+            overflow: hidden;
             background: var(--paper);
             border: 1px solid rgba(117, 130, 211, 0.16);
             border-radius: 30px;
@@ -189,12 +242,62 @@
             backdrop-filter: blur(18px);
         }
 
+        .sheet::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(121, 217, 244, 0.14), transparent 32%),
+                radial-gradient(circle at bottom left, rgba(255, 156, 99, 0.1), transparent 28%);
+            pointer-events: none;
+        }
+
         .brand-row {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
             gap: 16px;
             align-items: flex-start;
+        }
+
+        .hero-grid {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(250px, 0.75fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-summary {
+            margin-top: 22px;
+            padding: 18px 20px;
+            border-radius: 24px;
+            border: 1px solid rgba(117, 130, 211, 0.16);
+            background:
+                linear-gradient(135deg, rgba(92, 116, 255, 0.1), rgba(255, 255, 255, 0.84)),
+                rgba(255, 255, 255, 0.84);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .hero-summary-title {
+            margin: 0 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.24em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .hero-summary-body {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.75;
+            color: var(--text);
         }
 
         .kicker {
@@ -227,12 +330,45 @@
             border: 1px solid var(--line);
             border-radius: 22px;
             background: var(--panel);
+            position: relative;
+            z-index: 1;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
         }
 
         .profile-card strong {
             display: block;
             font-size: 18px;
             line-height: 1.2;
+        }
+
+        .profile-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .profile-meta {
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(117, 130, 211, 0.12);
+        }
+
+        .profile-meta-label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .profile-meta-value {
+            font-size: 14px;
+            line-height: 1.35;
+            font-weight: 700;
         }
 
         .chip-row {
@@ -258,6 +394,8 @@
             display: grid;
             gap: 18px;
             margin-top: 22px;
+            position: relative;
+            z-index: 1;
         }
 
         .stats-grid {
@@ -268,12 +406,17 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
         .card {
             border: 1px solid var(--line);
             border-radius: 24px;
             padding: 20px;
             background: var(--panel);
             break-inside: avoid;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
         }
 
         .card h2,
@@ -288,12 +431,38 @@
             background: linear-gradient(135deg, rgba(92, 116, 255, 0.09), rgba(255, 255, 255, 0.92));
         }
 
+        .stats-grid .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, rgba(102, 208, 208, 0.14), rgba(255, 255, 255, 0.92));
+        }
+
+        .stats-grid .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, rgba(255, 202, 143, 0.16), rgba(255, 255, 255, 0.92));
+        }
+
+        .stats-grid .stat-card:nth-child(4) {
+            background: linear-gradient(135deg, rgba(164, 162, 255, 0.16), rgba(255, 255, 255, 0.92));
+        }
+
         .stat-card .value {
             margin-top: 16px;
             font-size: 34px;
             line-height: 1;
             font-weight: 700;
             letter-spacing: -0.04em;
+        }
+
+        .summary-card {
+            padding: 16px 18px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 248, 255, 0.92));
+        }
+
+        .summary-value {
+            margin-top: 12px;
+            font-size: 18px;
+            line-height: 1.45;
+            font-weight: 700;
+            color: var(--text);
         }
 
         .fact-list {
@@ -332,7 +501,7 @@
             overflow: hidden;
             border: 1px solid var(--line);
             background:
-                linear-gradient(180deg, rgba(235, 243, 255, 0.88), rgba(247, 249, 255, 0.98));
+                linear-gradient(180deg, rgba(229, 240, 255, 0.92), rgba(249, 250, 255, 0.99));
         }
 
         .route-preview svg {
@@ -359,6 +528,56 @@
             display: block;
         }
 
+        .score-meters {
+            display: grid;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .score-meter {
+            padding: 14px 15px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid rgba(117, 130, 211, 0.12);
+        }
+
+        .score-meter-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .score-meter-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .score-meter-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .score-meter-track {
+            position: relative;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(92, 116, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .score-meter-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #5c74ff, #80b7ff);
+        }
+
         .notes-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -370,6 +589,7 @@
         .note-card--lead {
             grid-column: span 2;
             min-height: 210px;
+            background: linear-gradient(135deg, rgba(92, 116, 255, 0.08), rgba(255, 255, 255, 0.94));
         }
 
         .note-body {
@@ -378,6 +598,11 @@
             font-size: 16px;
             line-height: 1.75;
             white-space: pre-wrap;
+        }
+
+        .note-card--lead .note-body {
+            font-size: 18px;
+            line-height: 1.8;
         }
 
         .footer {
@@ -392,6 +617,7 @@
 
         @media (max-width: 900px) {
             .stats-grid,
+            .summary-grid,
             .two-col,
             .notes-grid {
                 grid-template-columns: 1fr;
@@ -402,6 +628,10 @@
             }
 
             .fact-list {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -434,10 +664,18 @@
                 background: #fff;
             }
 
+            .sheet::before {
+                display: none;
+            }
+
             .card,
             .profile-card,
             .fact,
-            .route-preview {
+            .route-preview,
+            .summary-card,
+            .hero-summary,
+            .score-meter,
+            .profile-meta {
                 box-shadow: none;
                 background: #fff;
             }
@@ -458,13 +696,18 @@
 
         <main class="sheet">
             <section>
-                <div class="brand-row">
-                    <div>
+                <div class="hero-grid">
+                    <div class="hero-copy">
                         <p class="kicker">Sea kayak logbook</p>
                         <h1 class="title">{{ $session['title'] }}</h1>
                         <p class="subtitle">
                             {{ implode(' | ', array_values(array_filter([$session['date'] ?? null, $session['launchName'] ?? $session['areaName'] ?? null, filled($session['startTimeLocal'] ?? null) ? ($session['startTimeLocal'].' '.$session['timezone']) : null]))) ?: 'Shared session summary' }}
                         </p>
+
+                        <div class="hero-summary">
+                            <p class="hero-summary-title">Session snapshot</p>
+                            <p class="hero-summary-body">{{ $heroSummary }}</p>
+                        </div>
                     </div>
 
                     <aside class="profile-card">
@@ -476,6 +719,17 @@
                         <p class="meta-text" style="margin-top: 10px;">
                             Print this page or save it as PDF to send a complete session summary without screenshots.
                         </p>
+
+                        <div class="profile-meta-grid">
+                            <div class="profile-meta">
+                                <span class="profile-meta-label">Session type</span>
+                                <div class="profile-meta-value">{{ !empty($session['isExpedition']) ? 'Expedition' : 'Day session' }}</div>
+                            </div>
+                            <div class="profile-meta">
+                                <span class="profile-meta-label">Export</span>
+                                <div class="profile-meta-value">Private PDF share</div>
+                            </div>
+                        </div>
                     </aside>
                 </div>
 
@@ -483,6 +737,17 @@
                     <div class="chip-row">
                         @foreach ($chipValues as $chip)
                             <span class="chip">{{ $chip }}</span>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if ($summaryHighlights !== [])
+                    <div class="grid summary-grid">
+                        @foreach ($summaryHighlights as $highlight)
+                            <article class="card summary-card">
+                                <p class="kicker">{{ $highlight['label'] }}</p>
+                                <div class="summary-value">{{ $highlight['value'] }}</div>
+                            </article>
                         @endforeach
                     </div>
                 @endif
@@ -578,6 +843,21 @@
                 <article class="card">
                     <p class="kicker">Development</p>
                     <h2>Skills and outcomes</h2>
+                    @if ($scoreMeters !== [])
+                        <div class="score-meters">
+                            @foreach ($scoreMeters as $score)
+                                <div class="score-meter">
+                                    <div class="score-meter-head">
+                                        <span class="score-meter-title">{{ $score['label'] }}</span>
+                                        <span class="score-meter-value">{{ $score['value'] }}/5</span>
+                                    </div>
+                                    <div class="score-meter-track">
+                                        <div class="score-meter-fill" style="width: {{ $score['percent'] }}%;"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                     <div class="fact-list">
                         @forelse ($developmentFacts as $fact)
                             <div class="fact">
