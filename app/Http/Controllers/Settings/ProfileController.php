@@ -41,6 +41,7 @@ class ProfileController extends Controller
                 'name' => $profile->name,
                 'email' => $request->user()->email,
                 'homeWater' => $profile->home_water,
+                'reportUrl' => route('profile.report'),
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),

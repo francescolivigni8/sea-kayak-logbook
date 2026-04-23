@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { Download, ShieldCheck } from 'lucide-vue-next';
+import { Download, FileText, ShieldCheck } from 'lucide-vue-next';
 import { onUnmounted, ref, toRefs } from 'vue';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -29,6 +29,7 @@ type Props = {
         name: string;
         email: string;
         homeWater: string;
+        reportUrl: string;
         settings: {
             paddlerName: string;
             kayakClub: string;
@@ -495,6 +496,44 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                         <div class="mt-6">
                             <AppearanceTabs />
+                        </div>
+                    </section>
+
+                    <section
+                        id="reports"
+                        class="journal-panel px-5 py-5 md:px-6"
+                    >
+                        <div class="space-y-2">
+                            <p class="journal-kicker">Reports</p>
+                            <h2
+                                class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]"
+                            >
+                                Application report
+                            </h2>
+                            <p class="journal-copy text-sm md:text-base">
+                                Generate a polished report from your full
+                                journal data when you need to apply for an
+                                advanced course, assessment, or coaching block.
+                            </p>
+                        </div>
+
+                        <div class="mt-6 flex flex-wrap items-center gap-3">
+                            <a
+                                :href="profile.reportUrl"
+                                target="_blank"
+                                rel="noopener"
+                                class="journal-primary-link"
+                            >
+                                <FileText class="h-4 w-4" />
+                                Generate report
+                            </a>
+                            <p
+                                class="max-w-sm text-xs leading-5 text-[color:var(--journal-muted)]"
+                            >
+                                Opens a print-ready application report. Use
+                                browser Save as PDF when you want the final
+                                file.
+                            </p>
                         </div>
                     </section>
 

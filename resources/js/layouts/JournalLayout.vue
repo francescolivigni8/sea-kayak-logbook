@@ -55,11 +55,6 @@ const primaryNav = [
         match: ['/expedition-notes', '/expeditions'],
     },
     {
-        label: 'Courses',
-        href: '/courses',
-        match: ['/courses'],
-    },
-    {
         label: 'Planning',
         href: '/planning',
         match: ['/planning'],

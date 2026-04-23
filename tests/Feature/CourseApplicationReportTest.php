@@ -11,7 +11,7 @@ class CourseApplicationReportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_authenticated_users_can_view_the_courses_page(): void
+    public function test_profile_page_includes_generate_report_entry_point(): void
     {
         $this->withoutVite();
 
@@ -41,18 +41,14 @@ class CourseApplicationReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('courses.index'))
+            ->get(route('profile.edit'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('courses/Index')
-                ->where('report.profile.paddlerName', 'Francesco Li Vigni')
-                ->where('report.profile.kayakClub', 'Brokey Kayak Club')
-                ->where('report.headline.sessionCount', 1)
-                ->where('report.observationCount', 1)
-                ->has('report.evidenceSessions', 1));
+                ->component('settings/Profile')
+                ->where('profile.reportUrl', route('profile.report')));
     }
 
-    public function test_authenticated_users_can_open_the_course_report_print_view(): void
+    public function test_authenticated_users_can_open_the_profile_report_print_view(): void
     {
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
@@ -70,7 +66,7 @@ class CourseApplicationReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('courses.report'))
+            ->get(route('profile.report'))
             ->assertOk()
             ->assertViewIs('courses.report')
             ->assertSee('Advanced sea kayak course application')

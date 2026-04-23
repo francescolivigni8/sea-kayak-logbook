@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\CourseApplicationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiaryController;
 use App\Http\Controllers\ExpeditionPlaceController;
@@ -52,8 +51,6 @@ Route::middleware(array_filter([
         ->name('imports.garmin.store');
     Route::get('expeditions', [ExpeditionPlaceController::class, 'index'])->name('expeditions.index');
     Route::get('expeditions/{place}', [ExpeditionPlaceController::class, 'show'])->name('expeditions.show');
-    Route::get('courses', [CourseApplicationController::class, 'index'])->name('courses.index');
-    Route::get('courses/report', [CourseApplicationController::class, 'report'])->name('courses.report');
     Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
     Route::post('planning', [PlanningController::class, 'store'])->name('planning.store');
     Route::get('planning/{plannedSession}/edit', [PlanningController::class, 'edit'])->name('planning.edit');

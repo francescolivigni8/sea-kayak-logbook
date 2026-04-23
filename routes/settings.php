@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CourseApplicationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/profile/export', [ProfileController::class, 'export'])
         ->middleware('throttle:6,1')
         ->name('profile.export');
+    Route::get('settings/profile/report', [CourseApplicationController::class, 'report'])
+        ->name('profile.report');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 

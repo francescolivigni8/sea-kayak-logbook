@@ -74,11 +74,14 @@
         $averageBeaufort = $report['seaState']['averageBeaufort'] ?? null;
         $temperatureAverages = $report['seaState']['temperatureAverages'] ?? ['air' => null, 'sea' => null];
         $routeMixMax = max(array_merge([1], collect($report['routeMix'] ?? [])->pluck('distanceKm')->map(fn ($value) => (float) $value)->all()));
-        $coverageItems = $report['dataCoverage'] ?? [];
+        $yearSnapshots = $report['yearSnapshots'] ?? [];
+        $monthlyDistance = $report['monthlyDistance'] ?? [];
+        $monthlyDistanceMax = max(array_merge([1], collect($monthlyDistance)->pluck('distanceKm')->map(fn ($value) => (float) $value)->all()));
         $beaufortBands = collect($report['seaState']['beaufortBands'] ?? [])->filter(fn (array $band) => ($band['count'] ?? 0) > 0)->values();
         $beaufortMax = max(array_merge([1], $beaufortBands->pluck('count')->map(fn ($value) => (int) $value)->all()));
         $tideStates = collect($report['seaState']['tideStates'] ?? [])->filter(fn (array $state) => ($state['count'] ?? 0) > 0)->values();
         $rescueTotals = $report['seaState']['rescueTotals'] ?? [];
+        $recentSessions = $report['recentSessions'] ?? [];
         $sessionLog = $report['sessionLog'] ?? [];
     @endphp
     <style>
@@ -708,7 +711,7 @@
     <div class="page">
         <div class="actions no-print">
             <div class="action-group">
-                <a class="action-link" href="{{ route('courses.index') }}">Back to courses</a>
+                <a class="action-link" href="{{ route('profile.edit') }}">Back to account</a>
                 <a class="action-link" href="{{ route('dashboard') }}">Dashboard</a>
             </div>
             <div class="action-group">
@@ -836,18 +839,64 @@
                 </article>
 
                 <article class="card">
-                    <p class="kicker">Coverage</p>
-                    <h2 class="card-title">How complete the journal is</h2>
-                    <div class="bar-list">
-                        @foreach ($coverageItems as $item)
-                            <div class="bar-row">
-                                <div class="bar-label">{{ $item['label'] }}</div>
-                                <div class="bar-track">
-                                    <div class="bar-fill" style="width: {{ (int) ($item['percent'] ?? 0) }}%;"></div>
-                                </div>
-                                <div class="bar-value">{{ (int) ($item['count'] ?? 0) }} · {{ (int) ($item['percent'] ?? 0) }}%</div>
+                    <p class="kicker">Distance windows</p>
+                    <h2 class="card-title">All time, year, and rolling view</h2>
+                    <div class="mini-grid">
+                        @foreach ($yearSnapshots as $snapshot)
+                            <div class="mini-card">
+                                <span class="fact-label">{{ $snapshot['label'] }}</span>
+                                <div class="mini-card-value">{{ number_format((float) ($snapshot['value'] ?? 0), 1) }} {{ $snapshot['unit'] ?? 'km' }}</div>
+                                <p class="summary-detail">{{ $snapshot['detail'] }}</p>
                             </div>
                         @endforeach
+                    </div>
+                </article>
+            </section>
+
+            <section class="grid two-col">
+                <article class="card">
+                    <p class="kicker">Consistency</p>
+                    <h2 class="card-title">Distance by month</h2>
+                    <div class="bar-list">
+                        @foreach ($monthlyDistance as $month)
+                            <div class="bar-row">
+                                <div class="bar-label">{{ $month['label'] }}</div>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width: {{ round((((float) $month['distanceKm']) / $monthlyDistanceMax) * 100, 1) }}%;"></div>
+                                </div>
+                                <div class="bar-value">{{ number_format((float) $month['distanceKm'], 1) }} km</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </article>
+
+                <article class="card">
+                    <p class="kicker">Recent form</p>
+                    <h2 class="card-title">Recent sessions snapshot</h2>
+                    <div class="note-list">
+                        @forelse ($recentSessions as $session)
+                            <article class="note-card">
+                                <p class="kicker">{{ $session['date'] ?? 'Session' }}</p>
+                                <p style="margin: 10px 0 0; font-size: 20px; font-weight: 800; line-height: 1.1;">{{ $session['title'] }}</p>
+                                <p class="copy">{{ $session['routeCategoryLabel'] }} · {{ number_format((float) $session['distanceKm'], 1) }} km · {{ $formatDuration($session['durationMinutes']) }}</p>
+                                <div class="hero-facts" style="margin-top: 12px;">
+                                    @if ($session['launchName'])
+                                        <span class="chip">{{ $session['launchName'] }}</span>
+                                    @endif
+                                    @if ($session['beaufort'] !== null)
+                                        <span class="chip">F{{ $session['beaufort'] }}</span>
+                                    @endif
+                                    @if ($session['hasTrack'])
+                                        <span class="chip">Track attached</span>
+                                    @endif
+                                    @if ($session['isExpedition'])
+                                        <span class="chip">Expedition</span>
+                                    @endif
+                                </div>
+                            </article>
+                        @empty
+                            <p class="copy">No recent sessions available yet.</p>
+                        @endforelse
                     </div>
                 </article>
             </section>
