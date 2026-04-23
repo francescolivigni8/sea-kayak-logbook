@@ -75,6 +75,100 @@ class GarminImportTest extends TestCase
         $this->assertSame(14.5, (float) $session->air_temp_c);
     }
 
+    public function test_garmin_import_handles_semicolon_activity_exports(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activities-semicolon.csv', implode("\n", [
+            'Activity Type;Date;Favorite;Title;Distance;Calories;Time;Avg HR;Max HR;Aerobic TE;Avg Pace;Best Pace;Total Ascent;Total Descent;Training Stress Score®;Body Battery Drain;Min Temp;Decompression;Best Lap Time;Number of Laps;Max Temp;Moving Time;Elapsed Time;Min Elevation;Max Elevation',
+            'Kayaking;2026-04-18 10:03:35;false;"Reykjavik Kayak";"7,00";"315";"01:40:55";"83";"108";"0,2";"14:26";"8:11";"28";"50";"0,0";"--";"9,0";"No";"01:40:55";"1";"20,0";"01:22:59";"01:41:01";"-120";"-67"',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Reykjavik Kayak')
+            ->firstOrFail();
+
+        $this->assertSame(7.0, (float) $session->distance_km);
+        $this->assertSame(101, (int) $session->duration_minutes);
+        $this->assertSame(83, (int) $session->moving_minutes);
+        $this->assertSame(14.5, (float) $session->air_temp_c);
+    }
+
+    public function test_single_activity_garmin_csv_can_import_when_uploaded_with_gpx(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activity_22629961007.csv', implode("\n", [
+            '"Laps","Time","Cumulative Time","Distance","Avg Pace","Avg HR","Max HR","Total Ascent","Total Descent","Calories","Avg Temperature","Best Pace","Moving Time","Avg Moving Pace"',
+            '"1","1:56:53","1:56:53","11.00","10:38","93","106","10","6","644","23.0","6:45","1:45:41","9:37"',
+            '"Summary","1:56:53","1:56:53","11.00","10:38","93","106","10","6","644","23.0","6:45","1:45:41","9:37"',
+        ]));
+
+        $gpx = UploadedFile::fake()->createWithContent('activity_22629961007.gpx', <<<'GPX'
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test">
+  <metadata>
+    <time>2026-04-22T09:15:00Z</time>
+  </metadata>
+  <trk>
+    <name>Imported activity</name>
+    <trkseg>
+      <trkpt lat="53.308900" lon="-4.633000"><time>2026-04-22T09:15:00Z</time></trkpt>
+      <trkpt lat="53.318900" lon="-4.623000"><time>2026-04-22T09:45:00Z</time></trkpt>
+      <trkpt lat="53.328900" lon="-4.613000"><time>2026-04-22T10:15:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
+GPX);
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+                'gpx_files' => [$gpx],
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Imported kayaking session')
+            ->firstOrFail();
+
+        $this->assertSame(11.0, (float) $session->distance_km);
+        $this->assertSame(117, (int) $session->duration_minutes);
+        $this->assertSame(106, (int) $session->moving_minutes);
+        $this->assertSame(23.0, (float) $session->air_temp_c);
+        $this->assertNotNull($session->gpx_path);
+        $this->assertNotEmpty($session->route_profile);
+        $this->assertSame('activity_22629961007.gpx', $session->garmin_gpx_name);
+    }
+
+    public function test_single_activity_garmin_csv_requires_exactly_one_track_file(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activity_22629961007.csv', implode("\n", [
+            '"Laps","Time","Cumulative Time","Distance","Avg Pace","Avg HR","Max HR","Total Ascent","Total Descent","Calories","Avg Temperature","Best Pace","Moving Time","Avg Moving Pace"',
+            '"Summary","1:56:53","1:56:53","11.00","10:38","93","106","10","6","644","23.0","6:45","1:45:41","9:37"',
+        ]));
+
+        $this->actingAs($user)
+            ->from(route('imports.garmin.create'))
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+            ])
+            ->assertRedirect(route('imports.garmin.create'))
+            ->assertSessionHasErrors('csv_file');
+    }
+
     public function test_gpx_files_can_be_attached_to_existing_garmin_sessions_without_csv(): void
     {
         $user = User::factory()->create();

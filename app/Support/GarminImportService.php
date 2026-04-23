@@ -6,6 +6,7 @@ use App\Models\PaddleSession;
 use App\Models\Profile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class GarminImportService
 {
@@ -18,10 +19,29 @@ class GarminImportService
 
     public function import(Profile $profile, string $csvPath, ?string $gpxDirectory = null, ?string $fitDirectory = null, bool $autofillWeather = false): array
     {
-        $rows = collect($this->parseCsvFile($csvPath))
-            ->filter(fn (array $row) => strtolower(trim((string) ($row['Activity Type'] ?? ''))) === 'kayaking')
-            ->sortBy(fn (array $row) => strtotime((string) ($row['Date'] ?? '')))
+        $parsedCsv = $this->parseCsvFile($csvPath);
+
+        if ($parsedCsv['shape'] === 'single_activity_summary') {
+            return $this->importSingleActivitySummary(
+                $profile,
+                $parsedCsv['rows'],
+                $gpxDirectory,
+                $fitDirectory,
+                $autofillWeather,
+            );
+        }
+
+        $rows = collect($parsedCsv['rows'])
+            ->filter(fn (array $row) => $this->isKayakingRow($row))
+            ->filter(fn (array $row) => $this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha') !== '')
+            ->sortBy(fn (array $row) => strtotime($this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha')) ?: 0)
             ->values();
+
+        if ($rows->isEmpty()) {
+            throw ValidationException::withMessages([
+                'csv_file' => 'No kayaking sessions were found in that CSV. Use Garmin Activities.csv, or upload a single-activity CSV together with exactly one GPX or FIT file.',
+            ]);
+        }
 
         $externalRefs = [];
         $sessions = collect();
@@ -160,10 +180,14 @@ class GarminImportService
             throw new \RuntimeException("Unable to open CSV file: {$csvPath}");
         }
 
+        $firstLine = fgets($handle);
+        rewind($handle);
+
+        $delimiter = $this->detectDelimiter((string) $firstLine);
         $header = null;
         $rows = [];
 
-        while (($record = fgetcsv($handle)) !== false) {
+        while (($record = fgetcsv($handle, 0, $delimiter)) !== false) {
             if ($header === null) {
                 $header = $record;
                 if ($header && isset($header[0])) {
@@ -182,23 +206,30 @@ class GarminImportService
 
         fclose($handle);
 
-        return $rows;
+        return [
+            'delimiter' => $delimiter,
+            'header' => $header ?? [],
+            'rows' => $rows,
+            'shape' => $this->detectCsvShape($header ?? []),
+        ];
     }
 
     private function mapRowToRecord(array $row, string $timezone, array &$externalRefs): array
     {
-        $distanceKm = $this->parseNumber($row['Distance'] ?? '');
-        $movingMinutes = (int) round($this->parseDurationMinutes($row['Moving Time'] ?? ''));
-        $elapsedMinutes = (int) round($this->parseDurationMinutes($row['Elapsed Time'] ?? $row['Time'] ?? ''));
-        $startAt = $this->parseDateTime($row['Date'] ?? null, $timezone);
+        $distanceKm = $this->parseNumber($this->field($row, 'distance', 'distanza', 'distancia', 'distanz'));
+        $movingMinutes = (int) round($this->parseDurationMinutes($this->field($row, 'moving_time', 'tempo_in_movimento', 'tempo_movimento')));
+        $elapsedMinutes = (int) round($this->parseDurationMinutes($this->field($row, 'elapsed_time', 'time', 'tempo_trascorso', 'durata')));
+        $startAt = $this->parseDateTime($this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha'), $timezone);
         $dateText = $startAt?->toDateString() ?? now($timezone)->toDateString();
-        $minTemp = $this->parseNumber($row['Min Temp'] ?? '');
-        $maxTemp = $this->parseNumber($row['Max Temp'] ?? '');
-        $location = $this->inferLocation($row['Title'] ?? '');
-        $title = $this->inferTitle((string) ($row['Title'] ?? ''), $location['area_name'], $distanceKm, $movingMinutes);
+        $minTemp = $this->parseNumber($this->field($row, 'min_temp', 'temperatura_min', 'temperatura_minima'));
+        $maxTemp = $this->parseNumber($this->field($row, 'max_temp', 'temperatura_max', 'temperatura_massima'));
+        $sourceTitle = $this->field($row, 'title', 'activity_name', 'name', 'titolo', 'nome');
+        $location = $this->inferLocation($sourceTitle);
+        $title = $this->inferTitle($sourceTitle, $location['area_name'], $distanceKm, $movingMinutes);
         $category = $this->inferCategory($distanceKm, $movingMinutes);
 
-        $baseRef = 'garmin:'.($row['Date'] ?? $dateText);
+        $externalDate = $this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha');
+        $baseRef = 'garmin:'.($externalDate !== '' ? $externalDate : $dateText);
         $index = ($externalRefs[$baseRef] ?? 0) + 1;
         $externalRefs[$baseRef] = $index;
         $externalRef = $index === 1 ? $baseRef : "{$baseRef}:{$index}";
@@ -229,6 +260,118 @@ class GarminImportService
             'wet_exits_count' => 0,
             'tow_rescues_count' => 0,
             'is_expedition' => false,
+        ];
+    }
+
+    private function importSingleActivitySummary(
+        Profile $profile,
+        array $rows,
+        ?string $gpxDirectory,
+        ?string $fitDirectory,
+        bool $autofillWeather,
+    ): array {
+        $trackSource = $this->singleTrackSource($gpxDirectory, $fitDirectory);
+
+        if (! $trackSource) {
+            throw ValidationException::withMessages([
+                'csv_file' => 'That Garmin CSV is a single-activity lap export. Upload it together with exactly one GPX or FIT file, or use Garmin Activities.csv instead.',
+            ]);
+        }
+
+        $summaryRow = collect($rows)
+            ->first(fn (array $row) => strtolower(trim($this->field($row, 'laps', 'giri', 'tours'))) === 'summary')
+            ?? ($rows[0] ?? null);
+
+        if (! is_array($summaryRow)) {
+            throw ValidationException::withMessages([
+                'csv_file' => 'That Garmin activity CSV did not contain a usable summary row.',
+            ]);
+        }
+
+        $trackSummary = $trackSource['summary'];
+        $startAt = ! empty($trackSummary['startAt'])
+            ? Carbon::parse($trackSummary['startAt'], $profile->timezone)
+            : null;
+        $dateText = $startAt?->toDateString() ?? now($profile->timezone)->toDateString();
+        $distanceKm = $this->parseNumber($this->field($summaryRow, 'distance', 'distanza', 'distancia', 'distanz'));
+        $movingMinutes = (int) round($this->parseDurationMinutes($this->field($summaryRow, 'moving_time', 'tempo_in_movimento', 'tempo_movimento')));
+        $elapsedMinutes = (int) round($this->parseDurationMinutes($this->field($summaryRow, 'time', 'elapsed_time', 'tempo_trascorso', 'durata')));
+        $title = $this->inferSingleActivityTitle($distanceKm, $movingMinutes);
+
+        $session = PaddleSession::updateOrCreate(
+            [
+                'profile_id' => $profile->id,
+                'external_ref' => 'garmin:single:'.($startAt?->format('Y-m-d H:i:s') ?? $dateText),
+            ],
+            [
+                'session_date' => $dateText,
+                'start_at' => $startAt?->toDateTimeString(),
+                'timezone' => $profile->timezone,
+                'title' => $title,
+                'route_category' => $this->inferCategory($distanceKm, $movingMinutes),
+                'body_of_water' => 'sea',
+                'distance_km' => $distanceKm > 0 ? $distanceKm : ($trackSummary['distanceKm'] ?? 0.0),
+                'duration_minutes' => $elapsedMinutes > 0 ? $elapsedMinutes : (int) ($trackSummary['durationMinutes'] ?? 0),
+                'moving_minutes' => $movingMinutes > 0 ? $movingMinutes : (($trackSummary['movingMinutes'] ?? 0) ?: null),
+                'air_temp_c' => $this->parseAverageTemperature($summaryRow),
+                'visibility_code' => 'good',
+                'route_tags' => $this->genericImportTags($dateText),
+                'route_summary' => 'Imported from a Garmin single-activity export. Review the title and notes after import.',
+                'notes_private' => 'Imported from Garmin activity CSV.',
+                'is_public' => false,
+                'conditions_logged' => false,
+                'development_logged' => false,
+                'successful_rolls_count' => 0,
+                'wet_exits_count' => 0,
+                'tow_rescues_count' => 0,
+                'is_expedition' => false,
+            ],
+        );
+
+        $sessions = collect([$session->fresh()]);
+
+        $gpxSummary = [
+            'matched' => 0,
+            'unmatched' => [],
+            'matchedIds' => [],
+        ];
+        $fitSummary = [
+            'matched' => 0,
+            'unmatched' => [],
+            'matchedIds' => [],
+        ];
+
+        if ($gpxDirectory && is_dir($gpxDirectory)) {
+            $gpxSummary = $this->attachGpxRoutes($profile, $sessions, $gpxDirectory);
+            $sessions = $profile->sessions()->whereIn('id', $sessions->pluck('id'))->get();
+        }
+
+        if ($fitDirectory && is_dir($fitDirectory)) {
+            $fitSummary = $this->attachFitFiles($profile, $sessions, $fitDirectory);
+            $sessions = $profile->sessions()->whereIn('id', $sessions->pluck('id'))->get();
+        }
+
+        $weatherSummary = [
+            'filled' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+        ];
+
+        if ($autofillWeather) {
+            $weatherSummary = $this->stormglassWeather->enrichSessions($sessions);
+        }
+
+        return [
+            'imported' => $sessions->count(),
+            'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
+            'profile' => $profile->name,
+            'gpxMatched' => $gpxSummary['matched'],
+            'gpxUnmatched' => $gpxSummary['unmatched'],
+            'fitMatched' => $fitSummary['matched'],
+            'fitUnmatched' => $fitSummary['unmatched'],
+            'weatherFilled' => $weatherSummary['filled'],
+            'weatherSkipped' => $weatherSummary['skipped'],
+            'weatherFailed' => $weatherSummary['failed'],
         ];
     }
 
@@ -411,7 +554,26 @@ class GarminImportService
             return null;
         }
 
-        return Carbon::createFromFormat('Y-m-d H:i:s', $value, $timezone);
+        foreach ([
+            'Y-m-d H:i:s',
+            'Y-m-d H:i',
+            'd/m/Y H:i:s',
+            'd/m/Y H:i',
+            'm/d/Y H:i:s',
+            'm/d/Y H:i',
+        ] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value, $timezone);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        try {
+            return Carbon::parse($value, $timezone);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function midpoint(float $minValue, float $maxValue): ?float
@@ -508,6 +670,159 @@ class GarminImportService
         $size = $distanceKm >= 15 ? 'longer-day' : ($distanceKm >= 8 ? 'mid-distance' : 'short-day');
 
         return ['garmin-import', $season, $location, $size];
+    }
+
+    private function genericImportTags(string $dateText): array
+    {
+        $month = (int) Carbon::parse($dateText)->month;
+        $season = match (true) {
+            $month === 12 || $month <= 2 => 'winter',
+            $month <= 5 => 'spring',
+            $month <= 8 => 'summer',
+            default => 'autumn',
+        };
+
+        return ['garmin-import', 'single-activity', $season];
+    }
+
+    private function isKayakingRow(array $row): bool
+    {
+        $activityType = strtolower(trim($this->field(
+            $row,
+            'activity_type',
+            'type',
+            'tipo_attivita',
+            'tipo_de_actividad',
+            'type_d_activite',
+        )));
+
+        return $activityType !== '' && str_contains($activityType, 'kayak');
+    }
+
+    private function field(array $row, string ...$aliases): string
+    {
+        foreach ($aliases as $alias) {
+            foreach ($row as $key => $value) {
+                if ($this->normalizeHeader((string) $key) === $alias) {
+                    return trim((string) $value);
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function normalizeHeader(string $value): string
+    {
+        $normalized = trim($value);
+        $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $normalized) ?? $normalized;
+        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized) ?: $normalized;
+        $normalized = strtolower($normalized);
+        $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? $normalized;
+
+        return trim($normalized, '_');
+    }
+
+    private function detectDelimiter(string $line): string
+    {
+        $candidates = [',', ';', "\t"];
+        $bestDelimiter = ',';
+        $bestColumns = 0;
+
+        foreach ($candidates as $candidate) {
+            $columns = count(str_getcsv($line, $candidate));
+
+            if ($columns > $bestColumns) {
+                $bestColumns = $columns;
+                $bestDelimiter = $candidate;
+            }
+        }
+
+        return $bestDelimiter;
+    }
+
+    private function detectCsvShape(array $header): string
+    {
+        $normalized = collect($header)->map(fn ($column) => $this->normalizeHeader((string) $column));
+
+        if ($normalized->contains('activity_type') && $normalized->contains('date')) {
+            return 'activities_export';
+        }
+
+        if ($normalized->contains('laps') && $normalized->contains('cumulative_time') && $normalized->contains('distance')) {
+            return 'single_activity_summary';
+        }
+
+        return 'unknown';
+    }
+
+    private function parseAverageTemperature(array $row): ?float
+    {
+        $average = $this->parseNumber($this->field($row, 'avg_temperature', 'average_temperature', 'temperatura_media'));
+
+        return $average > 0 ? $average : null;
+    }
+
+    private function inferSingleActivityTitle(float $distanceKm, int $movingMinutes): string
+    {
+        if ($distanceKm >= 15 || $movingMinutes >= 160) {
+            return 'Imported longer paddle';
+        }
+
+        if ($distanceKm > 0 || $movingMinutes > 0) {
+            return 'Imported kayaking session';
+        }
+
+        return 'Imported Garmin session';
+    }
+
+    private function singleTrackSource(?string $gpxDirectory, ?string $fitDirectory): ?array
+    {
+        $sources = collect();
+
+        if ($gpxDirectory && is_dir($gpxDirectory)) {
+            $gpxFiles = collect(scandir($gpxDirectory) ?: [])
+                ->filter(fn (string $file) => str_ends_with(strtolower($file), '.gpx'))
+                ->values();
+
+            if ($gpxFiles->count() === 1) {
+                $path = rtrim($gpxDirectory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$gpxFiles->first();
+                $summary = $this->gpxTrackService->parseFile($path);
+
+                if ($summary) {
+                    $sources->push([
+                        'type' => 'gpx',
+                        'path' => $path,
+                        'summary' => $summary,
+                    ]);
+                }
+            }
+        }
+
+        if ($fitDirectory && is_dir($fitDirectory)) {
+            $fitFiles = collect(scandir($fitDirectory) ?: [])
+                ->filter(fn (string $file) => str_ends_with(strtolower($file), '.fit'))
+                ->values();
+
+            if ($fitFiles->count() === 1) {
+                $path = rtrim($fitDirectory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$fitFiles->first();
+                $summary = $this->fitTrackService->parseFile($path);
+
+                if ($summary) {
+                    $sources->push([
+                        'type' => 'fit',
+                        'path' => $path,
+                        'summary' => $summary,
+                    ]);
+                }
+            }
+        }
+
+        if ($sources->count() !== 1) {
+            return null;
+        }
+
+        return $sources->first();
     }
 
     private function matchSession(Collection $sessions, array $summary, ?string $metadataTime): ?PaddleSession
