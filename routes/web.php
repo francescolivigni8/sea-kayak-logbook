@@ -61,6 +61,8 @@ Route::middleware(array_filter([
     Route::get('sessions/weather-preview', [PaddleSessionController::class, 'weatherPreview'])
         ->middleware('throttle:20,1')
         ->name('sessions.weather-preview');
+    Route::get('sessions/{session}/share', [PaddleSessionController::class, 'share'])
+        ->name('sessions.share');
     Route::post('session-categories', [SessionCategoryController::class, 'store'])
         ->name('session-categories.store');
     Route::post(

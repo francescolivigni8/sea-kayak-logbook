@@ -449,6 +449,14 @@ const routeMapData = computed(() => {
                     <Link href="/sessions" class="journal-utility-link"
                         >Library</Link
                     >
+                    <a
+                        :href="`/sessions/${session.id}/share`"
+                        target="_blank"
+                        rel="noopener"
+                        class="journal-utility-link"
+                    >
+                        Share / PDF
+                    </a>
                     <Link
                         :href="
                             session.notesPublic

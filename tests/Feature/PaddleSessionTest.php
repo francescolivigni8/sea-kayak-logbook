@@ -103,6 +103,47 @@ class PaddleSessionTest extends TestCase
             ->assertSee('Faxafloi detail page');
     }
 
+    public function test_authenticated_users_can_open_a_session_share_page(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $session = $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Shared Reykjanes paddle',
+            'launch_name' => 'Hafnarfjordur',
+            'route_category' => 'journey',
+            'distance_km' => 11.2,
+            'notes_public' => 'Useful dry-run before the bigger crossing.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.share', $session))
+            ->assertOk()
+            ->assertViewIs('sessions.share')
+            ->assertSee('Shared Reykjanes paddle')
+            ->assertSee('Print / Save PDF')
+            ->assertSee('Useful dry-run before the bigger crossing.');
+    }
+
+    public function test_users_cannot_open_share_pages_for_other_profiles(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $session = $owner->resolveActiveProfile()->sessions()->create([
+            'recorded_by_user_id' => $owner->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Private owner session',
+            'launch_name' => 'Reykjavik',
+            'route_category' => 'journey',
+            'distance_km' => 7.5,
+        ]);
+
+        $this->actingAs($otherUser)
+            ->get(route('sessions.share', $session))
+            ->assertNotFound();
+    }
+
     public function test_authenticated_users_can_store_a_paddle_session(): void
     {
         $user = User::factory()->create();

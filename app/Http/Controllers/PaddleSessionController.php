@@ -11,6 +11,7 @@ use App\Support\GpxTrackService;
 use App\Support\SessionMediaService;
 use App\Support\StormglassWeatherService;
 use Carbon\Carbon;
+use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,17 @@ class PaddleSessionController extends Controller
         $this->ensureSessionBelongsToProfile($session, $profile);
 
         return Inertia::render('sessions/Show', [
+            'profile' => $this->mapProfile($profile),
+            'session' => $this->mapSessionDetail($session),
+        ]);
+    }
+
+    public function share(Request $request, PaddleSession $session): ViewContract
+    {
+        $profile = $request->user()->resolveActiveProfile();
+        $this->ensureSessionBelongsToProfile($session, $profile);
+
+        return view('sessions.share', [
             'profile' => $this->mapProfile($profile),
             'session' => $this->mapSessionDetail($session),
         ]);
