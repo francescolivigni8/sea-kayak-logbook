@@ -58,7 +58,6 @@ const primaryNav = [
         label: 'Courses',
         href: '/courses',
         match: ['/courses'],
-        placeholder: true,
     },
     {
         label: 'Planning',
@@ -124,11 +123,11 @@ function isActive(item: {
     return currentPath.value.startsWith(item.href);
 }
 
-function isPrimaryCta(item: { href: string }) {
+function isPrimaryCta(item: PrimaryNavItem) {
     return item.href === '/sessions/create';
 }
 
-function isPlaceholder(item: { placeholder?: boolean }) {
+function isPlaceholder(item: PrimaryNavItem) {
     return Boolean(item.placeholder);
 }
 
