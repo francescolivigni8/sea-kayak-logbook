@@ -54,6 +54,7 @@ Route::middleware(array_filter([
     Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
     Route::post('planning', [PlanningController::class, 'store'])->name('planning.store');
     Route::get('planning/{plannedSession}/edit', [PlanningController::class, 'edit'])->name('planning.edit');
+    Route::get('planning/{plannedSession}/gpx', [PlanningController::class, 'gpx'])->name('planning.gpx');
     Route::put('planning/{plannedSession}', [PlanningController::class, 'update'])->name('planning.update');
     Route::get('planning/weather-preview', [PlanningController::class, 'weatherPreview'])
         ->middleware('throttle:20,1')

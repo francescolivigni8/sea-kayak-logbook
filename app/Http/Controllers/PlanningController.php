@@ -10,8 +10,10 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PlanningController extends Controller
 {
@@ -58,6 +60,24 @@ class PlanningController extends Controller
         $plannedSession->save();
 
         return back()->with('success', 'Planned session updated.');
+    }
+
+    public function gpx(Request $request, PlannedSession $plannedSession): StreamedResponse
+    {
+        $profile = $request->user()->resolveActiveProfile();
+        $this->ensurePlanBelongsToProfile($plannedSession, $profile);
+
+        $gpx = $this->plannedSessionGpx($plannedSession);
+        abort_if($gpx === null, 404);
+
+        $filename = (Str::slug($plannedSession->title ?: 'planned-route') ?: 'planned-route')
+            .'-'.$plannedSession->id.'.gpx';
+
+        return response()->streamDownload(
+            fn () => print $gpx,
+            $filename,
+            ['Content-Type' => 'application/gpx+xml; charset=utf-8'],
+        );
     }
 
     private function renderPlanner(Profile $profile, ?PlannedSession $plannedSession = null): Response
@@ -119,12 +139,18 @@ class PlanningController extends Controller
 
     private function mapProfile(Profile $profile): array
     {
+        $settings = $profile->settings ?? [];
+
         return [
             'name' => $profile->name,
             'slug' => $profile->slug,
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
+            'planningUnitSystem' => in_array(data_get($settings, 'planning_unit_system'), ['metric', 'marine'], true)
+                ? data_get($settings, 'planning_unit_system')
+                : 'metric',
             'defaultMapView' => $this->defaultMapView($profile),
+            'hasCustomDefaultMapView' => is_array(data_get($settings, 'default_map_view')),
         ];
     }
 
@@ -150,6 +176,7 @@ class PlanningController extends Controller
             'forecastByPoint' => $plannedSession->forecast_points ?? [],
             'notes' => $plannedSession->notes ?? '',
             'updatedAt' => $plannedSession->updated_at?->toIso8601String(),
+            'gpxUrl' => route('planning.gpx', $plannedSession),
         ];
     }
 
@@ -399,5 +426,45 @@ class PlanningController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadiusKm * $c;
+    }
+
+    private function plannedSessionGpx(PlannedSession $plannedSession): ?string
+    {
+        $points = collect($plannedSession->route_profile ?? [])
+            ->filter(fn (mixed $point) => is_array($point) && isset($point['lat'], $point['lng']))
+            ->values();
+
+        if ($points->count() < 2) {
+            return null;
+        }
+
+        $name = e($plannedSession->title ?: 'Planned route');
+        $time = ($plannedSession->start_at ?? Carbon::parse($plannedSession->plan_date ?? now(), $plannedSession->timezone ?: 'UTC'))
+            ->copy()
+            ->utc()
+            ->toIso8601String();
+
+        $routePoints = $points
+            ->map(function (array $point): string {
+                $lat = number_format((float) $point['lat'], 6, '.', '');
+                $lng = number_format((float) $point['lng'], 6, '.', '');
+
+                return sprintf('    <rtept lat="%s" lon="%s" />', $lat, $lng);
+            })
+            ->implode("\n");
+
+        return <<<GPX
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Your Kayaking Journal" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>{$name}</name>
+    <time>{$time}</time>
+  </metadata>
+  <rte>
+    <name>{$name}</name>
+{$routePoints}
+  </rte>
+</gpx>
+GPX;
     }
 }

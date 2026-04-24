@@ -19,6 +19,7 @@ import {
 type CoordinateValue = string | number | null;
 type WeatherLayerKey = 'wind' | 'precipitation' | 'temperature';
 type WeatherAnimationPresetKey = 'calm' | 'normal' | 'scan';
+type PlanningUnitSystem = 'metric' | 'marine';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
     animateByFactor?: (factor: number) => void;
@@ -90,6 +91,7 @@ const props = withDefaults(
         defaultView?: DefaultView;
         heightClass?: string;
         sampleTimeLabel?: string;
+        unitSystem?: PlanningUnitSystem;
     }>(),
     {
         launchLat: null,
@@ -104,6 +106,7 @@ const props = withDefaults(
         }),
         heightClass: 'h-[720px] lg:h-[900px]',
         sampleTimeLabel: 'Start',
+        unitSystem: 'metric',
     },
 );
 
@@ -445,6 +448,9 @@ const routeGeoJson = computed(() => {
 });
 
 const activeLegend = computed(() => legends[activeLayer.value]);
+const distanceUnitLabel = computed(() =>
+    props.unitSystem === 'marine' ? 'nm' : 'km',
+);
 
 const routeSummary = computed(() => {
     if (routePoints.value.length < 2) {
@@ -456,10 +462,10 @@ const routeSummary = computed(() => {
         : 'on basemap';
 
     if (isClosedCourse.value) {
-        return `Closed course, ${totalDistanceKm.value.toFixed(1)} km, ${context}.`;
+        return `Closed course, ${formatRouteDistance(totalDistanceKm.value)}, ${context}.`;
     }
 
-    return `${routePoints.value.length} points, ${totalDistanceKm.value.toFixed(1)} km, ${context}.`;
+    return `${routePoints.value.length} points, ${formatRouteDistance(totalDistanceKm.value)}, ${context}.`;
 });
 
 const animationTimeLabel = computed(() =>
@@ -645,11 +651,22 @@ function bearingDeg(left: RouteWaypoint, right: RouteWaypoint): number {
 }
 
 function formatSegmentDistance(distanceKm: number): string {
+    if (props.unitSystem === 'marine') {
+        return `${(distanceKm / 1.852).toFixed(1)} nm`;
+    }
+
     if (distanceKm < 1) {
         return `${Math.round(distanceKm * 1000)} m`;
     }
 
     return `${distanceKm.toFixed(1)} km`;
+}
+
+function formatRouteDistance(distanceKm: number): string {
+    const converted =
+        props.unitSystem === 'marine' ? distanceKm / 1.852 : distanceKm;
+
+    return `${converted.toFixed(1)} ${distanceUnitLabel.value}`;
 }
 
 function weatherLayerLabel(layer: WeatherLayerKey): string {
@@ -926,9 +943,16 @@ function formatWeatherProbe(picked: unknown): string | null {
             return null;
         }
 
+        const displayWind =
+            props.unitSystem === 'marine'
+                ? `Wind ${(speedMetersPerSecond * 1.943844).toFixed(1)} kt`
+                : `Wind ${(speedMetersPerSecond * 3.6).toFixed(0)} km/h`;
+
         return [
-            `Wind ${speedMetersPerSecond.toFixed(1)} m/s`,
-            speedKnots === null ? null : `${speedKnots.toFixed(1)} kt`,
+            displayWind,
+            props.unitSystem === 'marine' || speedKnots === null
+                ? null
+                : `${speedKnots.toFixed(1)} kt marine`,
             compassDirection,
         ]
             .filter(Boolean)
@@ -1888,7 +1912,7 @@ onBeforeUnmount(() => {
                         >Course</span
                     >
                     <strong class="text-sm leading-none"
-                        >{{ totalDistanceKm.toFixed(1) }} km</strong
+                        >{{ formatRouteDistance(totalDistanceKm) }}</strong
                     >
                     <span class="text-[0.65rem] font-bold opacity-70"
                         >{{ routeLegs.length }} legs</span

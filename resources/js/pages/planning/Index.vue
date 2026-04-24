@@ -8,6 +8,8 @@ interface ProfileSummary {
     slug: string;
     homeWater: string;
     timezone: string;
+    planningUnitSystem: 'metric' | 'marine';
+    hasCustomDefaultMapView: boolean;
     defaultMapView: {
         lat: number;
         lng: number;
@@ -51,6 +53,7 @@ interface PlannedSessionSummary {
     forecastByPoint: Record<string, ForecastResult>;
     notes: string;
     updatedAt: string | null;
+    gpxUrl: string | null;
 }
 
 interface FlashPageProps {
@@ -138,8 +141,17 @@ interface RouteLeg {
     bearingDeg: number;
 }
 
+interface PlanningNotesFields {
+    tideWindows: string;
+    flowChanges: string;
+    shuttleAccess: string;
+    safetyFallback: string;
+    general: string;
+}
+
 const AREA_FORECAST_KEY = 'area';
 const MAX_FORECAST_OFFSET_MINUTES = 1440;
+const KM_PER_NAUTICAL_MILE = 1.852;
 const PlanningWeatherMap = defineAsyncComponent(
     () => import('@/components/maps/PlanningWeatherMap.vue'),
 );
@@ -186,7 +198,12 @@ const landingName = ref(props.formDefaults.landing_name);
 const landingLat = ref(props.formDefaults.landing_lat);
 const landingLng = ref(props.formDefaults.landing_lng);
 const routeWaypointsJson = ref(props.formDefaults.route_waypoints);
-const notes = ref(props.formDefaults.notes);
+const parsedPlanningNotes = parsePlanningNotes(props.formDefaults.notes);
+const tideWindows = ref(parsedPlanningNotes.tideWindows);
+const flowChanges = ref(parsedPlanningNotes.flowChanges);
+const shuttleAccess = ref(parsedPlanningNotes.shuttleAccess);
+const safetyFallback = ref(parsedPlanningNotes.safetyFallback);
+const generalPlanningNotes = ref(parsedPlanningNotes.general);
 const forecastStatus = ref<
     'idle' | 'loading' | 'filled' | 'warning' | 'error' | 'stale'
 >(Object.keys(initialForecastByPoint).length ? 'filled' : 'idle');
@@ -218,8 +235,54 @@ const saveForm = useForm({
     notes: '',
 });
 
+const unitSystem = computed<'metric' | 'marine'>(() =>
+    props.profile.planningUnitSystem === 'marine' ? 'marine' : 'metric',
+);
+const distanceUnitLabel = computed(() =>
+    unitSystem.value === 'marine' ? 'nm' : 'km',
+);
+const speedUnitLabel = computed(() =>
+    unitSystem.value === 'marine' ? 'kt' : 'km/h',
+);
+const windBoardUnitLabel = computed(() =>
+    unitSystem.value === 'marine' ? 'kt' : 'km/h',
+);
+const currentUnitLabel = computed(() =>
+    unitSystem.value === 'marine' ? 'kt' : 'km/h',
+);
+const speedDisplayValue = computed({
+    get() {
+        const knots = Math.max(parseFloat(speedKnots.value) || 0, 0);
+
+        return formatEditableNumber(
+            unitSystem.value === 'marine' ? knots : knots * KM_PER_NAUTICAL_MILE,
+        );
+    },
+    set(value: string) {
+        if (value.trim() === '') {
+            speedKnots.value = '';
+
+            return;
+        }
+
+        const parsed = parseFloat(value);
+
+        if (!Number.isFinite(parsed)) {
+            speedKnots.value = '';
+
+            return;
+        }
+
+        const knots =
+            unitSystem.value === 'marine'
+                ? parsed
+                : parsed / KM_PER_NAUTICAL_MILE;
+
+        speedKnots.value = formatEditableNumber(Math.max(knots, 0));
+    },
+});
 const speedKmh = computed(
-    () => Math.max(parseFloat(speedKnots.value) || 0, 0) * 1.852,
+    () => Math.max(parseFloat(speedKnots.value) || 0, 0) * KM_PER_NAUTICAL_MILE,
 );
 
 const isEditing = computed(() => props.plannedSession !== null);
@@ -464,6 +527,16 @@ const forecastRequestEstimate = computed(() => {
 const forecastProviderLabel = computed(() =>
     providerLabel(areaForecast.value.provider),
 );
+const canExportRoute = computed(
+    () => Boolean(props.plannedSession?.gpxUrl) && routePoints.value.length > 1,
+);
+const forecastTrustNote = computed(() => {
+    if (!hasForecastFields(areaForecast.value)) {
+        return 'Forecast values are guidance only until the route area is checked.';
+    }
+
+    return `Source: ${forecastProviderLabel.value}. Gusts are model peaks and can read hotter than harbour or inshore forecasts, so cross-check with a local marine forecast and tide table before launching.`;
+});
 
 const areaSampleTimeLabel = computed(() => {
     const offset = forecastAreaOffsetMinutes.value;
@@ -581,6 +654,45 @@ function formatMinutes(minutes: number | null): string {
     }
 
     return `${hours} h ${remainder} min`;
+}
+
+function formatEditableNumber(value: number): string {
+    return Number(value.toFixed(1)).toString();
+}
+
+function toDisplayDistance(km: number): number {
+    return unitSystem.value === 'marine' ? km / KM_PER_NAUTICAL_MILE : km;
+}
+
+function formatDistance(km: number, digits = 1): string {
+    return `${toDisplayDistance(km).toFixed(digits)} ${distanceUnitLabel.value}`;
+}
+
+function formatWindSpeed(value?: number | null): string {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const converted =
+        unitSystem.value === 'marine'
+            ? value * 1.943844
+            : value * 3.6;
+    const digits = unitSystem.value === 'marine' ? 1 : 0;
+
+    return converted.toFixed(digits);
+}
+
+function formatCurrentSpeed(value?: number | null): string {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const converted =
+        unitSystem.value === 'marine'
+            ? value
+            : value * KM_PER_NAUTICAL_MILE;
+
+    return converted.toFixed(1);
 }
 
 function fieldLabel(value?: number | string | null, suffix = ''): string {
@@ -738,6 +850,89 @@ function compactNumber(value?: number | null, digits = 0): string {
     return value.toFixed(digits);
 }
 
+function parsePlanningNotes(value: string): PlanningNotesFields {
+    if (!value.trim()) {
+        return {
+            tideWindows: '',
+            flowChanges: '',
+            shuttleAccess: '',
+            safetyFallback: '',
+            general: '',
+        };
+    }
+
+    const markers = [
+        {
+            key: 'tideWindows',
+            label: 'HW / LW and tide windows',
+        },
+        {
+            key: 'flowChanges',
+            label: 'Flow changes / tidal gates',
+        },
+        {
+            key: 'shuttleAccess',
+            label: 'Shuttle / access',
+        },
+        {
+            key: 'safetyFallback',
+            label: 'Safety / fallback',
+        },
+        {
+            key: 'general',
+            label: 'General planning notes',
+        },
+    ] as const;
+
+    const parsed: PlanningNotesFields = {
+        tideWindows: '',
+        flowChanges: '',
+        shuttleAccess: '',
+        safetyFallback: '',
+        general: '',
+    };
+
+    const pattern = new RegExp(
+        `(${markers.map((marker) => `${marker.label}:`).join('|')})`,
+        'g',
+    );
+
+    if (!pattern.test(value)) {
+        parsed.general = value.trim();
+
+        return parsed;
+    }
+
+    const parts = value.split(pattern).filter(Boolean);
+
+    for (let index = 0; index < parts.length; index += 2) {
+        const label = parts[index]?.replace(/:$/, '').trim();
+        const content = parts[index + 1]?.trim() ?? '';
+        const marker = markers.find((candidate) => candidate.label === label);
+
+        if (marker) {
+            parsed[marker.key] = content;
+        }
+    }
+
+    return parsed;
+}
+
+function serializePlanningNotes(fields: PlanningNotesFields): string {
+    const sections = [
+        ['HW / LW and tide windows', fields.tideWindows],
+        ['Flow changes / tidal gates', fields.flowChanges],
+        ['Shuttle / access', fields.shuttleAccess],
+        ['Safety / fallback', fields.safetyFallback],
+        ['General planning notes', fields.general],
+    ]
+        .map(([label, value]) => [label, value.trim()] as const)
+        .filter(([, value]) => value !== '')
+        .map(([label, value]) => `${label}:\n${value}`);
+
+    return sections.join('\n\n');
+}
+
 function uppercaseLabel(value?: string | null): string {
     return value ? value.toUpperCase() : '—';
 }
@@ -763,7 +958,13 @@ function syncSaveForm() {
         Object.keys(forecastByPoint.value).length
             ? JSON.stringify(forecastByPoint.value)
             : '';
-    saveForm.notes = notes.value;
+    saveForm.notes = serializePlanningNotes({
+        tideWindows: tideWindows.value,
+        flowChanges: flowChanges.value,
+        shuttleAccess: shuttleAccess.value,
+        safetyFallback: safetyFallback.value,
+        general: generalPlanningNotes.value,
+    });
 }
 
 function savePlan() {
@@ -965,9 +1166,9 @@ watch(
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:w-[520px]">
                     <div class="journal-stat-pill">
                         <span class="journal-stat-pill__label">Distance</span>
-                        <span class="journal-stat-pill__value"
-                            >{{ totalDistanceKm.toFixed(1) }} km</span
-                        >
+                        <span class="journal-stat-pill__value">{{
+                            formatDistance(totalDistanceKm)
+                        }}</span>
                     </div>
                     <div class="journal-stat-pill">
                         <span class="journal-stat-pill__label">ETA</span>
@@ -995,6 +1196,18 @@ watch(
             {{ successMessage }}
         </section>
 
+        <section
+            v-if="!profile.hasCustomDefaultMapView"
+            class="journal-banner journal-banner--soft"
+        >
+            Planner maps are still opening on the fallback Iceland view. Save
+            your own local map area once in
+            <Link href="/settings/profile" class="font-semibold underline">
+                Account settings
+            </Link>
+            and new plans will start there.
+        </section>
+
         <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="flex flex-col gap-5">
                 <PlanningWeatherMap
@@ -1005,6 +1218,7 @@ watch(
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
                     :sample-time-label="areaSampleTimeLabel"
+                    :unit-system="unitSystem"
                     height-class="h-[760px] lg:h-[920px]"
                 />
             </div>
@@ -1058,14 +1272,25 @@ watch(
                             <div class="flex items-center gap-2">
                                 <input
                                     id="speed_knots"
-                                    v-model="speedKnots"
+                                    v-model="speedDisplayValue"
                                     type="number"
                                     min="0"
                                     step="0.1"
                                     class="journal-input"
                                 />
-                                <span class="journal-chip">kt</span>
+                                <span class="journal-chip">{{
+                                    speedUnitLabel
+                                }}</span>
                             </div>
+                            <p
+                                class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
+                            >
+                                {{
+                                    unitSystem === 'marine'
+                                        ? 'Saved internally in knots for route timing and GPX export.'
+                                        : 'Metric mode keeps speed and distance aligned while you plan.'
+                                }}
+                            </p>
                         </div>
                         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                             <div>
@@ -1098,16 +1323,66 @@ watch(
                             </div>
                         </div>
                         <div>
-                            <label class="journal-field-label" for="notes"
+                            <label class="journal-field-label"
                                 >Planning notes</label
                             >
-                            <textarea
-                                id="notes"
-                                v-model="notes"
-                                rows="4"
-                                class="journal-input min-h-28"
-                                placeholder="Parking, bail-out options, timings, food, shuttle, kit checks..."
-                            />
+                            <div class="grid gap-3">
+                                <div class="space-y-2">
+                                    <p class="journal-field-label">
+                                        HW / LW and tide windows
+                                    </p>
+                                    <textarea
+                                        v-model="tideWindows"
+                                        rows="3"
+                                        class="journal-input min-h-24"
+                                        placeholder="HW / LW times, tidal windows, stand times..."
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <p class="journal-field-label">
+                                        Flow changes / tidal gates
+                                    </p>
+                                    <textarea
+                                        v-model="flowChanges"
+                                        rows="3"
+                                        class="journal-input min-h-24"
+                                        placeholder="Flow changes, overfalls, tidal gates, commit points..."
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <p class="journal-field-label">
+                                        Shuttle / access
+                                    </p>
+                                    <textarea
+                                        v-model="shuttleAccess"
+                                        rows="2"
+                                        class="journal-input min-h-20"
+                                        placeholder="Shuttle, parking, access, landing logistics..."
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <p class="journal-field-label">
+                                        Safety / fallback
+                                    </p>
+                                    <textarea
+                                        v-model="safetyFallback"
+                                        rows="2"
+                                        class="journal-input min-h-20"
+                                        placeholder="Bail-out options, shelters, call-offs, group safety notes..."
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <p class="journal-field-label">
+                                        General planning notes
+                                    </p>
+                                    <textarea
+                                        v-model="generalPlanningNotes"
+                                        rows="3"
+                                        class="journal-input min-h-24"
+                                        placeholder="Anything else worth keeping with the plan."
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div
@@ -1136,7 +1411,21 @@ watch(
                             >
                                 Open Library
                             </Link>
+                            <a
+                                v-if="canExportRoute && plannedSession?.gpxUrl"
+                                :href="plannedSession.gpxUrl"
+                                class="journal-utility-link justify-center"
+                            >
+                                Export GPX
+                            </a>
                         </div>
+                        <p
+                            v-if="!canExportRoute"
+                            class="text-xs leading-5 text-[color:var(--journal-muted)]"
+                        >
+                            Save the plan with at least two route points to
+                            export a GPX route for GPS use.
+                        </p>
                     </div>
                 </section>
             </aside>
@@ -1235,6 +1524,23 @@ watch(
                                     Area sample from the route midpoint, shown
                                     as a planning strip instead of per-waypoint
                                     weather.
+                                </p>
+                                <p
+                                    class="text-xs font-semibold leading-5 text-[color:var(--journal-muted)]"
+                                >
+                                    Avg
+                                    {{
+                                        formatWindSpeed(
+                                            areaForecast.fields?.wind_avg_ms,
+                                        )
+                                    }}
+                                    {{ windBoardUnitLabel }} · gust
+                                    {{
+                                        formatWindSpeed(
+                                            areaForecast.fields?.wind_gust_ms,
+                                        )
+                                    }}
+                                    {{ windBoardUnitLabel }}
                                 </p>
                             </div>
                         </div>
@@ -1337,6 +1643,28 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
+                                    avg {{ windBoardUnitLabel }}
+                                </div>
+                                <div
+                                    v-for="slot in forecastTimeline"
+                                    :key="`avg-${slot.time}`"
+                                    class="bg-white px-1 py-2 text-center font-semibold text-slate-700"
+                                >
+                                    {{
+                                        formatWindSpeed(
+                                            slot.fields?.wind_avg_ms,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid items-stretch gap-px text-xs font-bold"
+                                :style="forecastBoardGridStyle"
+                            >
+                                <div
+                                    class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
+                                >
                                     bft
                                 </div>
                                 <div
@@ -1364,7 +1692,7 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    gust
+                                    gust {{ windBoardUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
@@ -1373,9 +1701,9 @@ watch(
                                     :class="
                                         gustCellClass(slot.fields?.wind_gust_ms)
                                     "
-                                >
+                                    >
                                     {{
-                                        compactNumber(slot.fields?.wind_gust_ms)
+                                        formatWindSpeed(slot.fields?.wind_gust_ms)
                                     }}
                                 </div>
                             </div>
@@ -1533,7 +1861,7 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    current
+                                    current {{ currentUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
@@ -1541,9 +1869,8 @@ watch(
                                     class="bg-white px-1 py-2 text-center font-semibold text-slate-700"
                                 >
                                     {{
-                                        compactNumber(
+                                        formatCurrentSpeed(
                                             slot.fields?.current_knots,
-                                            1,
                                         )
                                     }}
                                 </div>
@@ -1583,6 +1910,11 @@ watch(
                                 </span>
                             </span>
                             <span>{{ forecastRequestEstimate }}</span>
+                        </div>
+                        <div
+                            class="border-t border-[color:var(--journal-line)] bg-white/74 px-5 py-3 text-xs leading-5 text-[color:var(--journal-muted)]"
+                        >
+                            {{ forecastTrustNote }}
                         </div>
                     </div>
                     <div v-else class="p-5">

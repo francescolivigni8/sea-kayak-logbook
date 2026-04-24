@@ -6,15 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Models\PaddleSession;
+use App\Models\PlannedSession;
+use App\Models\Profile;
+use App\Models\User;
 use App\Support\SessionMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class ProfileController extends Controller
 {
@@ -42,14 +48,18 @@ class ProfileController extends Controller
                 'email' => $request->user()->email,
                 'homeWater' => $profile->home_water,
                 'reportUrl' => route('profile.report'),
+                'backupUrl' => route('profile.backup'),
+                'exportUrl' => route('profile.export'),
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
                     'kayaksOwnedText' => implode(', ', data_get($settings, 'kayaks_owned', [])),
                     'paddlesOwnedText' => implode(', ', data_get($settings, 'paddles_owned', [])),
+                    'planningUnitSystem' => (string) data_get($settings, 'planning_unit_system', 'metric'),
                     'defaultMapLat' => (string) data_get($settings, 'default_map_view.lat', '64.1670'),
                     'defaultMapLng' => (string) data_get($settings, 'default_map_view.lng', '-21.8210'),
                     'defaultMapZoom' => (string) data_get($settings, 'default_map_view.zoom', '10'),
+                    'hasCustomDefaultMapView' => is_array(data_get($settings, 'default_map_view')),
                 ],
             ],
         ]);
@@ -78,6 +88,10 @@ class ProfileController extends Controller
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
         $settings['kayaks_owned'] = $this->explodeManualTags($validated['kayaks_owned_text'] ?? null);
         $settings['paddles_owned'] = $this->explodeManualTags($validated['paddles_owned_text'] ?? null);
+        $planningUnitSystem = $validated['planning_unit_system'] ?? 'metric';
+        $settings['planning_unit_system'] = in_array($planningUnitSystem, ['metric', 'marine'], true)
+            ? $planningUnitSystem
+            : 'metric';
         $settings['default_map_view'] = [
             'lat' => round((float) ($validated['default_map_lat'] ?? 64.1670), 6),
             'lng' => round((float) ($validated['default_map_lng'] ?? -21.8210), 6),
@@ -97,17 +111,114 @@ class ProfileController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $user = $request->user();
-        $ownedProfiles = $user->ownedProfiles()
-            ->with([
-                'memberships',
-                'sessions.categories',
-                'plannedSessions',
-                'sessionCategories.sessions:id,title,session_date,distance_km',
-            ])
-            ->get();
+        $payload = $this->buildExportPayload($request->user());
 
-        $payload = [
+        $filename = 'your-kayaking-journal-export-'.now()->format('Y-m-d').'.json';
+
+        return response()->streamDownload(
+            fn () => print (json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            $filename,
+            ['Content-Type' => 'application/json; charset=utf-8'],
+        );
+    }
+
+    public function backup(Request $request): StreamedResponse
+    {
+        $user = $request->user();
+        $payload = $this->buildExportPayload($user);
+        $ownedProfiles = $this->ownedProfilesForExport($user);
+        $media = app(SessionMediaService::class);
+        $zipPath = storage_path('app/tmp/'.Str::uuid().'.zip');
+        $zipDirectory = dirname($zipPath);
+
+        if (! is_dir($zipDirectory)) {
+            mkdir($zipDirectory, 0775, true);
+        }
+
+        $zip = new ZipArchive;
+        $status = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        abort_unless($status === true, 500, 'Backup archive could not be created.');
+
+        $zip->addFromString(
+            'journal-export.json',
+            json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
+        );
+
+        $disk = $media->disk();
+
+        foreach ($ownedProfiles as $profile) {
+            $profileDirectory = 'profiles/'.$this->safeZipPath($profile->slug ?: $profile->name ?: 'profile-'.$profile->id);
+
+            foreach ($profile->plannedSessions as $plannedSession) {
+                $gpx = $this->plannedSessionGpx($plannedSession);
+
+                if ($gpx !== null) {
+                    $zip->addFromString(
+                        $profileDirectory.'/planned-routes/'.$this->plannedRouteFilename($plannedSession),
+                        $gpx,
+                    );
+                }
+            }
+
+            foreach ($profile->sessions as $session) {
+                foreach ([
+                    'gpx_path' => 'gpx',
+                    'fit_path' => 'fit',
+                    'session_photo_path' => 'photos',
+                ] as $attribute => $bucket) {
+                    $path = $session->{$attribute};
+
+                    if (! $path || ! $disk->exists($path)) {
+                        continue;
+                    }
+
+                    $stream = $disk->readStream($path);
+
+                    if (! is_resource($stream)) {
+                        continue;
+                    }
+
+                    $contents = stream_get_contents($stream);
+                    fclose($stream);
+
+                    if (! is_string($contents) || $contents === '') {
+                        continue;
+                    }
+
+                    $zip->addFromString(
+                        $profileDirectory.'/media/'.$bucket.'/'.$this->safeZipPath(basename($path)),
+                        $contents,
+                    );
+                }
+            }
+        }
+
+        $zip->close();
+
+        $filename = 'your-kayaking-journal-backup-'.now()->format('Y-m-d').'.zip';
+
+        return response()->streamDownload(
+            function () use ($zipPath): void {
+                $stream = fopen($zipPath, 'rb');
+
+                if (is_resource($stream)) {
+                    fpassthru($stream);
+                    fclose($stream);
+                }
+
+                @unlink($zipPath);
+            },
+            $filename,
+            ['Content-Type' => 'application/zip'],
+        );
+    }
+
+    private function buildExportPayload(User $user): array
+    {
+        $ownedProfiles = $this->ownedProfilesForExport($user);
+
+        return [
             'app' => config('app.name', 'Your Kayaking Journal'),
             'exported_at' => now()->toIso8601String(),
             'scope' => 'Owned journal data for the signed-in account.',
@@ -129,7 +240,7 @@ class ProfileController extends Controller
                 ])
                 ->values(),
             'profiles' => $ownedProfiles
-                ->map(fn ($profile) => [
+                ->map(fn (Profile $profile) => [
                     'id' => $profile->id,
                     'slug' => $profile->slug,
                     'name' => $profile->name,
@@ -178,14 +289,72 @@ class ProfileController extends Controller
                 ])
                 ->values(),
         ];
+    }
 
-        $filename = 'your-kayaking-journal-export-'.now()->format('Y-m-d').'.json';
+    private function ownedProfilesForExport(User $user)
+    {
+        return $user->ownedProfiles()
+            ->with([
+                'memberships',
+                'sessions.categories',
+                'plannedSessions',
+                'sessionCategories.sessions:id,title,session_date,distance_km',
+            ])
+            ->get();
+    }
 
-        return response()->streamDownload(
-            fn () => print (json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
-            $filename,
-            ['Content-Type' => 'application/json; charset=utf-8'],
-        );
+    private function plannedSessionGpx(PlannedSession $plannedSession): ?string
+    {
+        $points = collect($plannedSession->route_profile ?? [])
+            ->filter(fn (mixed $point) => is_array($point) && isset($point['lat'], $point['lng']))
+            ->values();
+
+        if ($points->count() < 2) {
+            return null;
+        }
+
+        $name = e($plannedSession->title ?: 'Planned route');
+        $time = ($plannedSession->start_at ?? Carbon::parse($plannedSession->plan_date ?? now(), $plannedSession->timezone ?: 'UTC'))
+            ->copy()
+            ->utc()
+            ->toIso8601String();
+
+        $routePoints = $points
+            ->map(function (array $point): string {
+                $lat = number_format((float) $point['lat'], 6, '.', '');
+                $lng = number_format((float) $point['lng'], 6, '.', '');
+
+                return sprintf('    <rtept lat="%s" lon="%s" />', $lat, $lng);
+            })
+            ->implode("\n");
+
+        return <<<GPX
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Your Kayaking Journal" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>{$name}</name>
+    <time>{$time}</time>
+  </metadata>
+  <rte>
+    <name>{$name}</name>
+{$routePoints}
+  </rte>
+</gpx>
+GPX;
+    }
+
+    private function plannedRouteFilename(PlannedSession $plannedSession): string
+    {
+        $slug = Str::slug($plannedSession->title ?: 'planned-route');
+
+        return trim($slug !== '' ? $slug : 'planned-route', '-').'-'.$plannedSession->id.'.gpx';
+    }
+
+    private function safeZipPath(string $value): string
+    {
+        $sanitized = preg_replace('/[^A-Za-z0-9._-]+/', '-', trim($value)) ?: 'item';
+
+        return trim($sanitized, '-.') ?: 'item';
     }
 
     private function blankToNull(mixed $value): ?string

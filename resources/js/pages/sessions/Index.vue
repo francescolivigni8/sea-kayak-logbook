@@ -52,6 +52,7 @@ interface PlannedSessionListItem {
     pointCount: number;
     hasForecast: boolean;
     notes: string | null;
+    gpxUrl: string | null;
 }
 
 interface CategoryGroup {
@@ -927,13 +928,20 @@ watch(visibleSessions, () => {
                             >
                         </div>
 
-                        <div class="mt-auto">
+                        <div class="mt-auto flex flex-col gap-2">
                             <Link
                                 :href="`/planning/${plan.id}/edit`"
                                 class="journal-utility-link w-full justify-center"
                             >
                                 Open planned session
                             </Link>
+                            <a
+                                v-if="plan.gpxUrl && plan.pointCount > 1"
+                                :href="plan.gpxUrl"
+                                class="journal-utility-link w-full justify-center"
+                            >
+                                Export GPX
+                            </a>
                         </div>
                     </div>
                 </article>

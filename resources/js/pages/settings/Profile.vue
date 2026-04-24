@@ -30,14 +30,18 @@ type Props = {
         email: string;
         homeWater: string;
         reportUrl: string;
+        backupUrl: string;
+        exportUrl: string;
         settings: {
             paddlerName: string;
             kayakClub: string;
             kayaksOwnedText: string;
             paddlesOwnedText: string;
+            planningUnitSystem: 'metric' | 'marine';
             defaultMapLat: string;
             defaultMapLng: string;
             defaultMapZoom: string;
+            hasCustomDefaultMapView: boolean;
         };
     };
 };
@@ -58,6 +62,7 @@ defineOptions({
 
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
 const showSetupModal = ref(false);
+const planningUnitSystem = ref(profile.value.settings.planningUnitSystem);
 const defaultMapLat = ref(profile.value.settings.defaultMapLat);
 const defaultMapLng = ref(profile.value.settings.defaultMapLng);
 const defaultMapZoom = ref(profile.value.settings.defaultMapZoom);
@@ -275,15 +280,93 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                             <article class="journal-soft-card md:col-span-2">
                                 <Label class="journal-field-label"
-                                    >Default session map view</Label
+                                    >Planning units</Label
                                 >
                                 <p
                                     class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
                                 >
-                                    The Place session map opens here when a new
-                                    session has no pin yet. Click the map or
-                                    drag the pin to choose the default starting
-                                    area.
+                                    Keep planning consistent: metric uses
+                                    kilometres and km/h, marine uses nautical
+                                    miles and knots.
+                                </p>
+
+                                <div
+                                    class="mt-4 grid gap-3 md:grid-cols-2"
+                                    role="radiogroup"
+                                    aria-label="Planning units"
+                                >
+                                    <label
+                                        class="journal-soft-card cursor-pointer border-2 transition"
+                                        :class="
+                                            planningUnitSystem === 'metric'
+                                                ? 'border-[color:var(--journal-accent)] bg-white'
+                                                : 'border-transparent'
+                                        "
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="planning_unit_system"
+                                            value="metric"
+                                            class="sr-only"
+                                            :checked="planningUnitSystem === 'metric'"
+                                            @change="planningUnitSystem = 'metric'"
+                                        />
+                                        <span
+                                            class="text-sm font-semibold text-[color:var(--journal-text)]"
+                                            >Metric</span
+                                        >
+                                        <span
+                                            class="mt-2 block text-sm leading-6 text-[color:var(--journal-muted)]"
+                                            >Distance in km, speed in km/h,
+                                            wind board in km/h.</span
+                                        >
+                                    </label>
+
+                                    <label
+                                        class="journal-soft-card cursor-pointer border-2 transition"
+                                        :class="
+                                            planningUnitSystem === 'marine'
+                                                ? 'border-[color:var(--journal-accent)] bg-white'
+                                                : 'border-transparent'
+                                        "
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="planning_unit_system"
+                                            value="marine"
+                                            class="sr-only"
+                                            :checked="planningUnitSystem === 'marine'"
+                                            @change="planningUnitSystem = 'marine'"
+                                        />
+                                        <span
+                                            class="text-sm font-semibold text-[color:var(--journal-text)]"
+                                            >Marine</span
+                                        >
+                                        <span
+                                            class="mt-2 block text-sm leading-6 text-[color:var(--journal-muted)]"
+                                            >Distance in nautical miles, speed
+                                            in knots, wind board in knots.</span
+                                        >
+                                    </label>
+                                </div>
+
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.planning_unit_system"
+                                />
+                            </article>
+
+                            <article class="journal-soft-card md:col-span-2">
+                                <Label class="journal-field-label"
+                                    >Default planning + session map area</Label
+                                >
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    New planning maps and the Place session map
+                                    both open here when there is no saved pin
+                                    yet. Click the map or drag the marker to
+                                    set your local starting area once.
                                 </p>
 
                                 <DefaultMapViewPicker
@@ -327,6 +410,16 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                         Reykjavik
                                     </button>
                                 </div>
+                                <p
+                                    v-if="
+                                        !profile.settings.hasCustomDefaultMapView
+                                    "
+                                    class="mt-3 text-xs leading-5 text-[color:var(--journal-muted)]"
+                                >
+                                    You are still on the fallback area, so the
+                                    planner will open around Iceland until you
+                                    save your own local map.
+                                </p>
                             </article>
                         </div>
 
@@ -557,18 +650,27 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                         <div class="mt-6 flex flex-wrap items-center gap-3">
                             <a
-                                href="/settings/profile/export"
+                                :href="profile.backupUrl"
                                 class="journal-primary-link"
                             >
                                 <Download class="h-4 w-4" />
-                                Download my data
+                                Download backup package
+                            </a>
+                            <a
+                                :href="profile.exportUrl"
+                                class="journal-utility-link"
+                            >
+                                Raw JSON export
                             </a>
                             <p
-                                class="max-w-sm text-xs leading-5 text-[color:var(--journal-muted)]"
+                                class="max-w-md text-xs leading-5 text-[color:var(--journal-muted)]"
                             >
-                                Uploaded GPX/FIT/photo files stay private in
-                                storage; this export includes their saved
-                                filenames and journal references.
+                                The hosted journal is backed up on the server
+                                side, and this gives you a local copy under
+                                your control too. The backup package includes a
+                                JSON export, planned-route GPX files, and any
+                                uploaded GPX, FIT, or photo files that still
+                                exist in storage.
                             </p>
                         </div>
                     </section>

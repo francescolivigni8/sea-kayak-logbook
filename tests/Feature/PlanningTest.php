@@ -39,7 +39,40 @@ class PlanningTest extends TestCase
                 ->where('profile.defaultMapView.lat', 65.6885)
                 ->where('profile.defaultMapView.lng', -18.1262)
                 ->where('profile.defaultMapView.zoom', 12)
+                ->where('profile.planningUnitSystem', 'metric')
                 ->where('weatherAutofillAvailable', true));
+    }
+
+    public function test_saved_plan_can_be_downloaded_as_gpx(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $plannedSession = $profile->plannedSessions()->create([
+            'created_by_user_id' => $user->id,
+            'status' => 'planned',
+            'plan_date' => '2026-04-18',
+            'timezone' => 'Atlantic/Reykjavik',
+            'title' => 'South stack loop',
+            'distance_km' => 12.4,
+            'speed_knots' => 3.4,
+            'route_profile' => [
+                ['lat' => 53.309, 'lng' => -4.633],
+                ['lat' => 53.321, 'lng' => -4.621],
+                ['lat' => 53.337, 'lng' => -4.612],
+            ],
+        ]);
+
+        $response = $this->actingAs($user)->get(route('planning.gpx', $plannedSession));
+
+        $response
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
+
+        $content = $response->streamedContent();
+
+        $this->assertStringContainsString('<gpx version="1.1"', $content);
+        $this->assertStringContainsString('<name>South stack loop</name>', $content);
+        $this->assertStringContainsString('<rtept lat="53.309000" lon="-4.633000" />', $content);
     }
 
     public function test_planning_weather_preview_returns_waypoint_conditions(): void

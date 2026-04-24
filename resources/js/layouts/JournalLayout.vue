@@ -155,9 +155,9 @@ watch(
                         <img
                             src="/brand/ykj-logo-clean.png"
                             alt="Your Kayaking Journal logo"
-                            class="size-[4.75rem] shrink-0 rounded-[1.35rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-[5.75rem]"
-                            width="92"
-                            height="92"
+                            class="size-[5.15rem] shrink-0 rounded-[1.35rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-[6.15rem]"
+                            width="98"
+                            height="98"
                         />
                         <div class="space-y-2">
                             <p class="journal-kicker">Sea kayak logbook</p>

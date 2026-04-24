@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\SessionMediaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use ZipArchive;
 
 class LaunchReadinessTest extends TestCase
 {
@@ -111,6 +113,68 @@ class LaunchReadinessTest extends TestCase
         $this->assertSame('North Stack lap', $payload['profiles'][0]['sessions'][0]['title']);
         $this->assertSame('Anglesey', $payload['profiles'][0]['session_categories'][0]['name']);
         $this->assertSame('Practice plan', $payload['profiles'][0]['planned_sessions'][0]['title']);
+    }
+
+    public function test_user_can_download_local_backup_package(): void
+    {
+        Storage::fake('public');
+        config()->set('kayak.media_disk', 'public');
+
+        $user = User::factory()->create([
+            'name' => 'Francesco Li Vigni',
+            'email' => 'francesco@example.com',
+        ]);
+        $profile = $user->resolveActiveProfile();
+        $session = $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-16',
+            'title' => 'North Stack lap',
+            'launch_name' => 'Holyhead',
+            'route_category' => 'journey',
+            'distance_km' => 12.4,
+            'duration_minutes' => 180,
+            'gpx_path' => 'gpx/manual/north-stack.gpx',
+        ]);
+        Storage::disk('public')->put($session->gpx_path, '<gpx>saved-route</gpx>');
+
+        $profile->plannedSessions()->create([
+            'created_by_user_id' => $user->id,
+            'status' => 'planned',
+            'plan_date' => '2026-04-18',
+            'timezone' => 'Atlantic/Reykjavik',
+            'title' => 'Practice plan',
+            'distance_km' => 5.5,
+            'estimated_duration_minutes' => 90,
+            'speed_knots' => 3.2,
+            'route_profile' => [
+                ['lat' => 53.309, 'lng' => -4.633],
+                ['lat' => 53.321, 'lng' => -4.621],
+            ],
+        ]);
+
+        $response = $this->actingAs($user)->get(route('profile.backup'));
+
+        $response
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/zip');
+
+        $archivePath = storage_path('app/testing-profile-backup.zip');
+        file_put_contents($archivePath, $response->streamedContent());
+
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($archivePath));
+        $profileDirectory = 'profiles/'.$profile->slug;
+
+        $this->assertNotFalse($zip->locateName('journal-export.json'));
+        $this->assertNotFalse($zip->locateName($profileDirectory.'/media/gpx/north-stack.gpx'));
+        $this->assertNotFalse($zip->locateName($profileDirectory.'/planned-routes/practice-plan-1.gpx'));
+        $this->assertStringContainsString(
+            'North Stack lap',
+            $zip->getFromName('journal-export.json'),
+        );
+
+        $zip->close();
+        @unlink($archivePath);
     }
 
     public function test_basic_legal_pages_are_available(): void

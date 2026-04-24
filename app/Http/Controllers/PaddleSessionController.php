@@ -291,6 +291,7 @@ class PaddleSessionController extends Controller
             'pointCount' => $pointCount,
             'hasForecast' => filled($plannedSession->forecast_points),
             'notes' => $plannedSession->notes,
+            'gpxUrl' => route('planning.gpx', $plannedSession),
         ];
     }
 

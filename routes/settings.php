@@ -9,6 +9,9 @@ Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('settings/profile/backup', [ProfileController::class, 'backup'])
+        ->middleware('throttle:3,1')
+        ->name('profile.backup');
     Route::get('settings/profile/export', [ProfileController::class, 'export'])
         ->middleware('throttle:6,1')
         ->name('profile.export');
