@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue';
 interface ProfileSummary {
     name: string;
     homeWater: string;
+    planningUnitSystem: 'metric' | 'marine';
 }
 
 interface SessionStats {
@@ -119,6 +120,12 @@ const visibleSessions = computed(() => {
 const activeCategorySessions = computed(() =>
     activeCategory.value ? visibleSessions.value : [],
 );
+const planningDistanceUnitLabel = computed(() =>
+    props.profile.planningUnitSystem === 'marine' ? 'nm' : 'km',
+);
+const planningSpeedUnitLabel = computed(() =>
+    props.profile.planningUnitSystem === 'marine' ? 'kt' : 'km/h',
+);
 const selectedSessionCount = computed(() => selectedSessionIds.value.length);
 const allVisibleSessionsSelected = computed(
     () =>
@@ -174,6 +181,25 @@ function formatMinutes(minutes: number | null): string {
     }
 
     return `${hours} h ${remainder} min`;
+}
+
+function formatPlanningDistance(distanceKm: number): string {
+    const converted =
+        props.profile.planningUnitSystem === 'marine'
+            ? distanceKm / 1.852
+            : distanceKm;
+
+    return `${converted.toFixed(1)} ${planningDistanceUnitLabel.value}`;
+}
+
+function formatPlanningSpeed(speedKnots: number): string {
+    const converted =
+        props.profile.planningUnitSystem === 'marine'
+            ? speedKnots
+            : speedKnots * 1.852;
+    const digits = props.profile.planningUnitSystem === 'marine' ? 1 : 0;
+
+    return `${converted.toFixed(digits)} ${planningSpeedUnitLabel.value}`;
 }
 
 function submitCategory() {
@@ -881,7 +907,7 @@ watch(visibleSessions, () => {
                                 <p
                                     class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
                                 >
-                                    {{ plan.distanceKm.toFixed(1) }} km
+                                    {{ formatPlanningDistance(plan.distanceKm) }}
                                 </p>
                             </div>
                             <div class="journal-soft-card">
@@ -917,9 +943,9 @@ watch(visibleSessions, () => {
                         <div
                             class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
                         >
-                            <span class="journal-chip"
-                                >{{ plan.speedKnots.toFixed(1) }} kt</span
-                            >
+                            <span class="journal-chip">{{
+                                formatPlanningSpeed(plan.speedKnots)
+                            }}</span>
                             <span class="journal-chip"
                                 >{{ plan.pointCount }} points</span
                             >

@@ -199,14 +199,19 @@ class PaddleSessionController extends Controller
 
     private function mapProfile(Profile $profile): array
     {
+        $settings = $profile->settings ?? [];
+
         return [
             'name' => $profile->name,
             'slug' => $profile->slug,
             'homeWater' => $profile->home_water,
             'timezone' => $profile->timezone,
+            'planningUnitSystem' => in_array(data_get($settings, 'planning_unit_system'), ['metric', 'marine'], true)
+                ? data_get($settings, 'planning_unit_system')
+                : 'metric',
             'defaultMapView' => $this->defaultMapView($profile),
-            'kayaksOwned' => data_get($profile->settings, 'kayaks_owned', []),
-            'paddlesOwned' => data_get($profile->settings, 'paddles_owned', []),
+            'kayaksOwned' => data_get($settings, 'kayaks_owned', []),
+            'paddlesOwned' => data_get($settings, 'paddles_owned', []),
             'sessionCategories' => $profile->sessionCategories()
                 ->orderBy('name')
                 ->pluck('name')

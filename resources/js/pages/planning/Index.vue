@@ -527,6 +527,23 @@ const forecastRequestEstimate = computed(() => {
 const forecastProviderLabel = computed(() =>
     providerLabel(areaForecast.value.provider),
 );
+const forecastProviderDetail = computed(() => {
+    const parts = [forecastProviderLabel.value];
+
+    if (areaForecast.value.fallbackFrom?.provider) {
+        parts.push(
+            `fallback after ${providerLabel(areaForecast.value.fallbackFrom.provider)}`,
+        );
+    }
+
+    if (areaForecast.value.marineFallback?.provider) {
+        parts.push(
+            `marine gaps from ${providerLabel(areaForecast.value.marineFallback.provider)}`,
+        );
+    }
+
+    return parts.join(' · ');
+});
 const canExportRoute = computed(
     () => Boolean(props.plannedSession?.gpxUrl) && routePoints.value.length > 1,
 );
@@ -1563,6 +1580,11 @@ watch(
                                 {{ forecastProgressLabel }}
                             </span>
                         </div>
+                        <p
+                            class="text-xs font-semibold leading-5 text-[color:var(--journal-muted)] sm:text-right"
+                        >
+                            {{ forecastProviderDetail }}
+                        </p>
                     </div>
 
                     <div v-if="forecastTimeline.length" class="overflow-x-auto">
@@ -1692,7 +1714,7 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    gust {{ windBoardUnitLabel }}
+                                    model gust {{ windBoardUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
