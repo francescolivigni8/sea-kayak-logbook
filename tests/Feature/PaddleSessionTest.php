@@ -107,13 +107,28 @@ class PaddleSessionTest extends TestCase
     {
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
+        $profile->settings = [
+            ...($profile->settings ?? []),
+            'unit_preferences' => [
+                'distance' => 'nm',
+                'speed' => 'kt',
+                'wind' => 'kt',
+                'current' => 'kmh',
+                'temperature' => 'f',
+            ],
+        ];
+        $profile->save();
         $session = $profile->sessions()->create([
             'recorded_by_user_id' => $user->id,
             'session_date' => '2026-04-06',
             'title' => 'Shared Reykjanes paddle',
             'launch_name' => 'Hafnarfjordur',
             'route_category' => 'journey',
-            'distance_km' => 11.2,
+            'distance_km' => 11.112,
+            'duration_minutes' => 60,
+            'wind_avg_ms' => 10.0,
+            'current_knots' => 2.0,
+            'air_temp_c' => 10.0,
             'notes_public' => 'Useful dry-run before the bigger crossing.',
         ]);
 
@@ -123,7 +138,12 @@ class PaddleSessionTest extends TestCase
             ->assertViewIs('sessions.share')
             ->assertSee('Shared Reykjanes paddle')
             ->assertSee('Print / Save PDF')
-            ->assertSee('Useful dry-run before the bigger crossing.');
+            ->assertSee('Useful dry-run before the bigger crossing.')
+            ->assertSee('6.0 nm')
+            ->assertSee('6.0 kt')
+            ->assertSee('19.4 kt')
+            ->assertSee('3.7 km/h')
+            ->assertSee('50.0 F');
     }
 
     public function test_users_cannot_open_share_pages_for_other_profiles(): void

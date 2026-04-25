@@ -10,6 +10,7 @@ use App\Support\FitTrackService;
 use App\Support\GpxTrackService;
 use App\Support\SessionMediaService;
 use App\Support\StormglassWeatherService;
+use App\Support\UnitPreferences;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\JsonResponse;
@@ -99,6 +100,7 @@ class PaddleSessionController extends Controller
         return view('sessions.share', [
             'profile' => $this->mapProfile($profile),
             'session' => $this->mapSessionDetail($session),
+            'unitPreferences' => UnitPreferences::fromSettings($profile->settings ?? []),
         ]);
     }
 

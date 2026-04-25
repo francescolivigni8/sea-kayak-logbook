@@ -6,6 +6,8 @@
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $session['title'] }} | Share session</title>
     @php
+        $units = \App\Support\UnitFormat::fromPreferences($unitPreferences ?? []);
+
         $formatDuration = function (?int $minutes): string {
             if ($minutes === null || $minutes <= 0) {
                 return '-';
@@ -36,10 +38,10 @@
         ], fn ($value) => filled($value)));
 
         $keyStats = [
-            ['label' => 'Distance', 'value' => number_format((float) ($session['distanceKm'] ?? 0), 1).' km'],
+            ['label' => 'Distance', 'value' => $units->formatDistanceKm(isset($session['distanceKm']) ? (float) $session['distanceKm'] : null)],
             ['label' => 'Duration', 'value' => $formatDuration($session['durationMinutes'] ?? null)],
-            ['label' => 'Avg speed', 'value' => isset($session['averageSpeedKmh']) && $session['averageSpeedKmh'] !== null ? number_format((float) $session['averageSpeedKmh'], 1).' km/h' : '-'],
-            ['label' => 'Wind', 'value' => isset($session['beaufort']) && $session['beaufort'] !== null ? 'F'.$session['beaufort'] : (isset($session['windAvgMs']) && $session['windAvgMs'] !== null ? number_format((float) $session['windAvgMs'], 1).' m/s' : '-')],
+            ['label' => 'Avg speed', 'value' => $units->formatSpeedKmh(isset($session['averageSpeedKmh']) ? (float) $session['averageSpeedKmh'] : null)],
+            ['label' => 'Wind', 'value' => isset($session['beaufort']) && $session['beaufort'] !== null ? 'F'.$session['beaufort'] : $units->formatWindMs(isset($session['windAvgMs']) ? (float) $session['windAvgMs'] : null)],
         ];
 
         $journeyFacts = array_values(array_filter([
@@ -54,15 +56,15 @@
         ], fn (array $item) => filled($item['value'])));
 
         $conditionFacts = array_values(array_filter([
-            ['label' => 'Wind', 'value' => isset($session['windAvgMs']) && $session['windAvgMs'] !== null ? number_format((float) $session['windAvgMs'], 1).' m/s' : null],
-            ['label' => 'Gust', 'value' => isset($session['windGustMs']) && $session['windGustMs'] !== null ? number_format((float) $session['windGustMs'], 1).' m/s' : null],
+            ['label' => 'Wind', 'value' => isset($session['windAvgMs']) && $session['windAvgMs'] !== null ? $units->formatWindMs((float) $session['windAvgMs']) : null],
+            ['label' => 'Gust', 'value' => isset($session['windGustMs']) && $session['windGustMs'] !== null ? $units->formatWindMs((float) $session['windGustMs']) : null],
             ['label' => 'Beaufort', 'value' => isset($session['beaufort']) && $session['beaufort'] !== null ? 'F'.$session['beaufort'] : null],
             ['label' => 'Tide', 'value' => $session['tideState'] ?? null],
-            ['label' => 'Current', 'value' => isset($session['currentKnots']) && $session['currentKnots'] !== null ? number_format((float) $session['currentKnots'], 1).' kt' : null],
+            ['label' => 'Current', 'value' => isset($session['currentKnots']) && $session['currentKnots'] !== null ? $units->formatCurrentKnots((float) $session['currentKnots']) : null],
             ['label' => 'Wave', 'value' => isset($session['waveHeightM']) && $session['waveHeightM'] !== null ? number_format((float) $session['waveHeightM'], 1).' m' : null],
             ['label' => 'Swell', 'value' => isset($session['swellHeightM']) && $session['swellHeightM'] !== null ? number_format((float) $session['swellHeightM'], 1).' m'.(isset($session['swellPeriodS']) && $session['swellPeriodS'] !== null ? ' @ '.number_format((float) $session['swellPeriodS'], 0).' s' : '') : null],
-            ['label' => 'Air', 'value' => isset($session['airTempC']) && $session['airTempC'] !== null ? number_format((float) $session['airTempC'], 1).' C' : null],
-            ['label' => 'Sea', 'value' => isset($session['seaTempC']) && $session['seaTempC'] !== null ? number_format((float) $session['seaTempC'], 1).' C' : null],
+            ['label' => 'Air', 'value' => isset($session['airTempC']) && $session['airTempC'] !== null ? $units->formatTemperatureC((float) $session['airTempC']) : null],
+            ['label' => 'Sea', 'value' => isset($session['seaTempC']) && $session['seaTempC'] !== null ? $units->formatTemperatureC((float) $session['seaTempC']) : null],
             ['label' => 'Visibility', 'value' => $session['visibilityCode'] ?? null],
         ], fn (array $item) => filled($item['value'])));
 

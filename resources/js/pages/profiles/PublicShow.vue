@@ -4,6 +4,8 @@ import { computed } from 'vue';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 
 interface ProfileSummary {
     name: string;
@@ -129,11 +131,17 @@ const props = defineProps<{
     expeditionMapData: MapData;
     recentSessions: RecentSession[];
 }>();
+const { unitPreferences } = useUnitPreferences();
+const formatDistance = (distanceKm: number) =>
+    formatDistanceKm(distanceKm, unitPreferences.value);
 
 const expeditionCards = computed(() => [
     {
         label: 'Expedition distance',
-        value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
+        value: formatDistanceKm(
+            props.expeditionSummary.distanceKm,
+            unitPreferences.value,
+        ),
         detail: 'Public expedition distance',
     },
     {
@@ -381,9 +389,9 @@ const expeditionMapWarning = computed(() => {
                         <div
                             class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
                         >
-                            <span class="journal-chip"
-                                >{{ place.distanceKm.toFixed(1) }} km</span
-                            >
+                            <span class="journal-chip">{{
+                                formatDistance(place.distanceKm)
+                            }}</span>
                             <span
                                 v-if="place.latestDate"
                                 class="journal-chip"
@@ -454,9 +462,9 @@ const expeditionMapWarning = computed(() => {
                     <div
                         class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
                     >
-                        <span class="journal-chip"
-                            >{{ session.distanceKm.toFixed(1) }} km</span
-                        >
+                        <span class="journal-chip">{{
+                            formatDistance(session.distanceKm)
+                        }}</span>
                         <span class="journal-chip"
                             >{{ session.durationMinutes }} min</span
                         >

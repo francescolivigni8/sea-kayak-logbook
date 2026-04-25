@@ -20,6 +20,15 @@ class PublicProfileTest extends TestCase
         $profile->update([
             'is_public' => true,
             'slug' => 'francesco-public-logbook',
+            'settings' => [
+                'unit_preferences' => [
+                    'distance' => 'nm',
+                    'speed' => 'kt',
+                    'wind' => 'kt',
+                    'current' => 'kt',
+                    'temperature' => 'f',
+                ],
+            ],
         ]);
 
         $profile->sessions()->create([
@@ -81,6 +90,8 @@ class PublicProfileTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profiles/PublicShow')
                 ->where('profile.slug', 'francesco-public-logbook')
+                ->where('unitPreferences.distance', 'nm')
+                ->where('unitPreferences.temperature', 'f')
                 ->where('headline.averageSpeedKnots', 3)
                 ->where('headline.averageSpeedSamples', 4)
                 ->where('expeditionSummary.tripCount', 3)

@@ -3,7 +3,9 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { Button } from '@/components/ui/button';
+import { formatDistanceKm } from '@/lib/units';
 
 interface ProfileSummary {
     name: string;
@@ -56,11 +58,14 @@ const props = defineProps<{
     expeditionPlaces: ExpeditionPlace[];
     expeditionMapData: MapData;
 }>();
+const { unitPreferences } = useUnitPreferences();
+const formatDistance = (distanceKm: number) =>
+    formatDistanceKm(distanceKm, unitPreferences.value);
 
 const cards = computed(() => [
     {
-        label: 'Public expedition km',
-        value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
+        label: 'Public expedition distance',
+        value: formatDistance(props.expeditionSummary.distanceKm),
         detail: 'Shared expedition distance',
     },
     {
@@ -231,7 +236,7 @@ const expeditionMapWarning = computed(() => {
                             <span
                                 class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
                             >
-                                {{ place.distanceKm.toFixed(1) }} km
+                                {{ formatDistance(place.distanceKm) }}
                             </span>
                             <span
                                 v-if="place.latestDate"

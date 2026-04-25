@@ -6,6 +6,11 @@
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $report['profile']['paddlerName'] }} | Course application report</title>
     @php
+        $units = \App\Support\UnitFormat::fromPreferences($unitPreferences ?? []);
+        $formatDistance = fn ($value, int $digits = 1) => $units->formatDistanceKm($value !== null ? (float) $value : null, $digits);
+        $formatSpeed = fn ($value, int $digits = 1) => $units->formatSpeedKnots($value !== null ? (float) $value : null, $digits);
+        $formatTemperature = fn ($value, int $digits = 1) => $units->formatTemperatureC($value !== null ? (float) $value : null, $digits);
+
         $formatDuration = function (?int $minutes): string {
             if ($minutes === null || $minutes <= 0) {
                 return '-';
@@ -40,13 +45,13 @@
             ],
             [
                 'label' => 'Distance paddled',
-                'value' => number_format((float) ($report['headline']['distanceKm'] ?? 0), 1).' km',
+                'value' => $formatDistance($report['headline']['distanceKm'] ?? null),
                 'detail' => number_format((float) ($report['headline']['durationHours'] ?? 0), 1).' h total duration',
             ],
             [
                 'label' => 'Longest paddle',
-                'value' => number_format((float) ($report['headline']['longestDistanceKm'] ?? 0), 1).' km',
-                'detail' => ($report['headline']['averageSpeedKnots'] !== null ? number_format((float) $report['headline']['averageSpeedKnots'], 1).' kt avg pace' : 'Average pace still building'),
+                'value' => $formatDistance($report['headline']['longestDistanceKm'] ?? null),
+                'detail' => ($report['headline']['averageSpeedKnots'] !== null ? $formatSpeed($report['headline']['averageSpeedKnots']).' avg pace' : 'Average pace still building'),
             ],
             [
                 'label' => 'Expedition time',
@@ -68,7 +73,7 @@
             ['label' => 'Paddled months', 'value' => (int) ($report['headline']['paddledMonths'] ?? 0)],
             ['label' => 'Tracked sessions', 'value' => (int) ($report['headline']['trackSessions'] ?? 0)],
             ['label' => 'Observation entries', 'value' => (int) ($report['observationCount'] ?? 0)],
-            ['label' => 'Average distance', 'value' => number_format((float) ($report['headline']['averageDistanceKm'] ?? 0), 1).' km'],
+            ['label' => 'Average distance', 'value' => $formatDistance($report['headline']['averageDistanceKm'] ?? null)],
         ];
 
         $averageBeaufort = $report['seaState']['averageBeaufort'] ?? null;
@@ -750,7 +755,7 @@
                     <div class="hero-card-grid">
                         <div class="hero-card-item">
                             <span class="hero-card-item-label">Distance</span>
-                            <div class="hero-card-item-value">{{ number_format((float) ($report['headline']['distanceKm'] ?? 0), 1) }} km</div>
+                            <div class="hero-card-item-value">{{ $formatDistance($report['headline']['distanceKm'] ?? null) }}</div>
                         </div>
                         <div class="hero-card-item">
                             <span class="hero-card-item-label">Hours</span>
@@ -811,11 +816,11 @@
                         </div>
                         <div class="mini-card">
                             <span class="fact-label">Average air</span>
-                            <div class="mini-card-value">{{ $temperatureAverages['air'] !== null ? number_format((float) $temperatureAverages['air'], 1).' C' : '-' }}</div>
+                            <div class="mini-card-value">{{ $formatTemperature($temperatureAverages['air'] ?? null) }}</div>
                         </div>
                         <div class="mini-card">
                             <span class="fact-label">Average sea</span>
-                            <div class="mini-card-value">{{ $temperatureAverages['sea'] !== null ? number_format((float) $temperatureAverages['sea'], 1).' C' : '-' }}</div>
+                            <div class="mini-card-value">{{ $formatTemperature($temperatureAverages['sea'] ?? null) }}</div>
                         </div>
                     </div>
                 </article>
@@ -832,7 +837,7 @@
                                 <div class="bar-track">
                                     <div class="bar-fill" style="width: {{ round((((float) $item['distanceKm']) / $routeMixMax) * 100, 1) }}%;"></div>
                                 </div>
-                                <div class="bar-value">{{ number_format((float) $item['distanceKm'], 1) }} km</div>
+                                <div class="bar-value">{{ $formatDistance($item['distanceKm']) }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -845,7 +850,7 @@
                         @foreach ($yearSnapshots as $snapshot)
                             <div class="mini-card">
                                 <span class="fact-label">{{ $snapshot['label'] }}</span>
-                                <div class="mini-card-value">{{ number_format((float) ($snapshot['value'] ?? 0), 1) }} {{ $snapshot['unit'] ?? 'km' }}</div>
+                                <div class="mini-card-value">{{ $formatDistance($snapshot['value'] ?? null) }}</div>
                                 <p class="summary-detail">{{ $snapshot['detail'] }}</p>
                             </div>
                         @endforeach
@@ -864,7 +869,7 @@
                                 <div class="bar-track">
                                     <div class="bar-fill" style="width: {{ round((((float) $month['distanceKm']) / $monthlyDistanceMax) * 100, 1) }}%;"></div>
                                 </div>
-                                <div class="bar-value">{{ number_format((float) $month['distanceKm'], 1) }} km</div>
+                                <div class="bar-value">{{ $formatDistance($month['distanceKm']) }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -878,7 +883,7 @@
                             <article class="note-card">
                                 <p class="kicker">{{ $session['date'] ?? 'Session' }}</p>
                                 <p style="margin: 10px 0 0; font-size: 20px; font-weight: 800; line-height: 1.1;">{{ $session['title'] }}</p>
-                                <p class="copy">{{ $session['routeCategoryLabel'] }} · {{ number_format((float) $session['distanceKm'], 1) }} km · {{ $formatDuration($session['durationMinutes']) }}</p>
+                                <p class="copy">{{ $session['routeCategoryLabel'] }} · {{ $formatDistance($session['distanceKm']) }} · {{ $formatDuration($session['durationMinutes']) }}</p>
                                 <div class="hero-facts" style="margin-top: 12px;">
                                     @if ($session['launchName'])
                                         <span class="chip">{{ $session['launchName'] }}</span>
@@ -995,7 +1000,7 @@
                                     </div>
                                     <div class="hero-facts" style="margin-top: 0;">
                                         <span class="chip">{{ $session['routeCategoryLabel'] }}</span>
-                                        <span class="chip">{{ number_format((float) $session['distanceKm'], 1) }} km</span>
+                                        <span class="chip">{{ $formatDistance($session['distanceKm']) }}</span>
                                         <span class="chip">{{ $formatDuration($session['durationMinutes']) }}</span>
                                         @if ($session['beaufort'] !== null)
                                             <span class="chip">F{{ $session['beaufort'] }}</span>
@@ -1050,7 +1055,7 @@
 
                     <div class="log-meta">
                         <span class="chip">{{ count($sessionLog) }} sessions listed</span>
-                        <span class="chip">{{ number_format((float) ($report['headline']['distanceKm'] ?? 0), 1) }} km total</span>
+                        <span class="chip">{{ $formatDistance($report['headline']['distanceKm'] ?? null) }} total</span>
                         <span class="chip">{{ number_format((float) ($report['headline']['durationHours'] ?? 0), 1) }} h total</span>
                     </div>
 
@@ -1087,7 +1092,7 @@
                                                 <div class="table-muted">{{ implode(', ', $session['folders']) }}</div>
                                             @endif
                                         </td>
-                                        <td>{{ number_format((float) $session['distanceKm'], 1) }} km</td>
+                                        <td>{{ $formatDistance($session['distanceKm']) }}</td>
                                         <td>{{ $formatDuration($session['durationMinutes']) }}</td>
                                         <td>{{ $session['beaufort'] !== null ? 'F'.$session['beaufort'] : '-' }}</td>
                                         <td>

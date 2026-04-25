@@ -49,6 +49,15 @@ class ExpeditionPlaceTest extends TestCase
         $profile->update([
             'is_public' => true,
             'slug' => 'francesco-public-logbook',
+            'settings' => [
+                'unit_preferences' => [
+                    'distance' => 'nm',
+                    'speed' => 'kt',
+                    'wind' => 'kt',
+                    'current' => 'kt',
+                    'temperature' => 'f',
+                ],
+            ],
         ]);
 
         $profile->sessions()->create([
@@ -72,7 +81,50 @@ class ExpeditionPlaceTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profiles/ExpeditionShow')
+                ->where('unitPreferences.distance', 'nm')
                 ->where('place.label', 'Isafjordur'));
+    }
+
+    public function test_guests_can_open_a_public_expedition_index_with_profile_unit_preferences(): void
+    {
+        config(['kayak.public_profiles_enabled' => true]);
+
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->update([
+            'is_public' => true,
+            'slug' => 'francesco-public-logbook',
+            'settings' => [
+                'unit_preferences' => [
+                    'distance' => 'nm',
+                    'speed' => 'kt',
+                    'wind' => 'kt',
+                    'current' => 'kt',
+                    'temperature' => 'f',
+                ],
+            ],
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-06',
+            'title' => 'Isafjordur public loop',
+            'launch_name' => 'Isafjordur',
+            'launch_lat' => 66.0748,
+            'launch_lng' => -23.1267,
+            'route_category' => 'expedition',
+            'distance_km' => 28.3,
+            'expedition_days' => 2,
+            'is_expedition' => true,
+            'is_public' => true,
+        ]);
+
+        $this->get(route('profiles.public.expeditions.index', $profile))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('profiles/ExpeditionIndex')
+                ->where('unitPreferences.distance', 'nm')
+                ->where('profile.slug', 'francesco-public-logbook'));
     }
 
     public function test_public_expedition_routes_are_disabled_by_default_for_private_launch(): void

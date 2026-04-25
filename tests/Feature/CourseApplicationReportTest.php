@@ -52,6 +52,17 @@ class CourseApplicationReportTest extends TestCase
     {
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
+        $profile->settings = [
+            ...($profile->settings ?? []),
+            'unit_preferences' => [
+                'distance' => 'nm',
+                'speed' => 'kt',
+                'wind' => 'kt',
+                'current' => 'kt',
+                'temperature' => 'f',
+            ],
+        ];
+        $profile->save();
 
         $profile->sessions()->create([
             'recorded_by_user_id' => $user->id,
@@ -59,9 +70,11 @@ class CourseApplicationReportTest extends TestCase
             'title' => 'Advanced assessment day',
             'launch_name' => 'Reykjavik',
             'route_category' => 'training',
-            'distance_km' => 14.2,
-            'duration_minutes' => 155,
+            'distance_km' => 11.112,
+            'duration_minutes' => 60,
             'wind_beaufort' => 5,
+            'air_temp_c' => 10.0,
+            'sea_temp_c' => 8.0,
             'notes_public' => 'Handled tide planning and group decisions well.',
         ]);
 
@@ -71,6 +84,8 @@ class CourseApplicationReportTest extends TestCase
             ->assertViewIs('courses.report')
             ->assertSee('Advanced sea kayak course application')
             ->assertSee('Advanced assessment day')
-            ->assertSee('Full session log');
+            ->assertSee('Full session log')
+            ->assertSee('6.0 nm')
+            ->assertSee('50.0 F');
     }
 }

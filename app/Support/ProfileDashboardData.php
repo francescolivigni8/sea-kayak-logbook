@@ -17,6 +17,7 @@ class ProfileDashboardData
     public function build(Profile $profile, Collection $sessions, bool $publicView = false): array
     {
         $sessions = $sessions->values();
+        $unitPreferences = UnitPreferences::fromSettings($profile->settings ?? []);
         $now = now($profile->timezone);
         $totalDistance = round((float) $sessions->sum('distance_km'), 1);
         $totalMinutes = (int) $sessions->sum('duration_minutes');
@@ -50,6 +51,7 @@ class ProfileDashboardData
                     'publicPath' => '/p/'.$profile->slug,
                 ] : []),
             ],
+            'unitPreferences' => $unitPreferences,
             'headline' => [
                 'sessionCount' => $sessionCount,
                 'distanceKm' => $totalDistance,
@@ -83,6 +85,7 @@ class ProfileDashboardData
 
     public function buildExpeditionAtlas(Profile $profile, Collection $sessions, bool $publicView = false): array
     {
+        $unitPreferences = UnitPreferences::fromSettings($profile->settings ?? []);
         $expeditionSessions = $sessions
             ->filter(fn (PaddleSession $session) => $session->is_expedition)
             ->values();
@@ -100,6 +103,7 @@ class ProfileDashboardData
                     'publicPath' => '/p/'.$profile->slug,
                 ] : []),
             ],
+            'unitPreferences' => $unitPreferences,
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
             'expeditionMapData' => $this->buildExpeditionMapData($profile, $sessions, $publicView),
@@ -111,6 +115,7 @@ class ProfileDashboardData
 
     public function buildExpeditionPlacePage(Profile $profile, Collection $sessions, string $placeSlug, bool $publicView = false): ?array
     {
+        $unitPreferences = UnitPreferences::fromSettings($profile->settings ?? []);
         $expeditionSessions = $sessions
             ->filter(fn (PaddleSession $session) => $session->is_expedition)
             ->values();
@@ -224,6 +229,7 @@ class ProfileDashboardData
                     'publicPath' => '/p/'.$profile->slug,
                 ] : []),
             ],
+            'unitPreferences' => $unitPreferences,
             'place' => [
                 'slug' => $place['slug'],
                 'label' => $place['label'],

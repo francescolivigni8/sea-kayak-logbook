@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\CourseApplicationReportData;
+use App\Support\UnitPreferences;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,7 @@ class CourseApplicationController extends Controller
 
         return view('courses.report', [
             'report' => $this->reportData->build($profile, $sessions),
+            'unitPreferences' => UnitPreferences::fromSettings($profile->settings ?? []),
         ]);
     }
 }
