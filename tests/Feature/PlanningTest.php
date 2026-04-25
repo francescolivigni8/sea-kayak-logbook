@@ -79,6 +79,7 @@ class PlanningTest extends TestCase
     {
         Cache::flush();
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+        config()->set('kayak.weather.providers.open_meteo.enabled', false);
 
         Http::fake([
             'api.stormglass.io/v2/weather/point*' => Http::response([
@@ -363,6 +364,7 @@ class PlanningTest extends TestCase
         Cache::flush();
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
         config()->set('kayak.weather.providers.stormglass.source', 'none');
+        config()->set('kayak.weather.providers.open_meteo.enabled', false);
 
         Http::fake([
             'api.stormglass.io/v2/weather/point*' => Http::response([
@@ -398,6 +400,7 @@ class PlanningTest extends TestCase
     {
         Cache::flush();
         config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+        config()->set('kayak.weather.providers.open_meteo.enabled', false);
 
         Http::fake([
             'api.stormglass.io/v2/weather/point*' => Http::response([
@@ -445,6 +448,83 @@ class PlanningTest extends TestCase
             ->assertJsonPath('status', 'filled');
 
         Http::assertSentCount(2);
+    }
+
+    public function test_planning_weather_preview_flags_uncertain_gust_spikes_and_softens_severity(): void
+    {
+        Cache::flush();
+        config()->set('kayak.weather.providers.stormglass.api_key', 'test-key');
+        config()->set('kayak.weather.providers.open_meteo.enabled', true);
+
+        Http::fake([
+            'api.stormglass.io/v2/weather/point*' => Http::response([
+                'hours' => [[
+                    'time' => '2026-04-18T09:00:00+00:00',
+                    'windSpeed' => ['sg' => 5.8],
+                    'gust' => ['sg' => 21.2],
+                    'windDirection' => ['sg' => 205],
+                    'airTemperature' => ['sg' => 9.5],
+                    'waterTemperature' => ['sg' => 6.4],
+                    'visibility' => ['sg' => 9000],
+                ]],
+            ]),
+            'api.stormglass.io/v2/tide/extremes/point*' => Http::response([
+                'data' => [],
+            ]),
+            'api.open-meteo.com/v1/forecast*' => Http::response([
+                'hourly' => [
+                    'time' => [
+                        '2026-04-18T06:00',
+                        '2026-04-18T09:00',
+                        '2026-04-18T12:00',
+                    ],
+                    'wind_speed_10m' => [4.9, 6.1, 5.5],
+                    'wind_gusts_10m' => [6.5, 8.3, 7.1],
+                    'wind_direction_10m' => [190, 205, 210],
+                    'temperature_2m' => [8.8, 9.5, 10.1],
+                    'precipitation' => [0, 0.2, 0.1],
+                    'cloud_cover' => [35, 46, 52],
+                    'visibility' => [11000, 9000, 8000],
+                ],
+            ]),
+            'marine-api.open-meteo.com/v1/marine*' => Http::response([
+                'hourly_units' => [
+                    'ocean_current_velocity' => 'km/h',
+                ],
+                'hourly' => [
+                    'time' => [
+                        '2026-04-18T06:00',
+                        '2026-04-18T09:00',
+                        '2026-04-18T12:00',
+                    ],
+                    'wave_height' => [0.4, 0.5, 0.6],
+                    'swell_wave_height' => [0.5, 0.7, 0.8],
+                    'swell_wave_period' => [4.2, 4.8, 5.1],
+                    'swell_wave_direction' => [220, 230, 235],
+                    'sea_surface_temperature' => [6.2, 6.4, 6.5],
+                    'ocean_current_velocity' => [1.0, 1.3, 1.2],
+                    'ocean_current_direction' => [140, 145, 150],
+                    'sea_level_height_msl' => [1.0, 1.2, 1.4],
+                ],
+            ]),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('planning.weather-preview', [
+                'plan_date' => '2026-04-18',
+                'start_time_local' => '09:00',
+                'lat' => '64.146600',
+                'lng' => '-21.942600',
+                'label' => 'Route area',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('status', 'filled')
+            ->assertJsonPath('provider', 'stormglass')
+            ->assertJsonPath('windValidation.status', 'uncertain')
+            ->assertJsonPath('windValidation.suppressesGustEscalation', true)
+            ->assertJsonPath('fields.wind_severity', 'moderate');
     }
 
     public function test_planning_page_can_save_a_planned_session(): void

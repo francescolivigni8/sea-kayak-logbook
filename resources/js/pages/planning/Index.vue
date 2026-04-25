@@ -101,6 +101,7 @@ interface ForecastResult {
     provider?: string | null;
     fallbackFrom?: ForecastFallback | null;
     marineFallback?: ForecastFallback | null;
+    windValidation?: ForecastWindValidation | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
@@ -113,6 +114,7 @@ interface ForecastPayload {
     provider?: string | null;
     fallbackFrom?: ForecastFallback | null;
     marineFallback?: ForecastFallback | null;
+    windValidation?: ForecastWindValidation | null;
     timeline?: ForecastTimelinePoint[];
     fields?: ForecastFields;
 }
@@ -123,6 +125,19 @@ interface ForecastFallback {
     reason?: string | null;
     httpStatus?: number | null;
     providerMessage?: string | null;
+}
+
+interface ForecastWindValidation {
+    status: 'single-source' | 'aligned' | 'watch' | 'uncertain';
+    primaryProvider?: string | null;
+    secondaryProvider?: string | null;
+    primaryWindAvgMs?: number | null;
+    primaryWindGustMs?: number | null;
+    secondaryWindAvgMs?: number | null;
+    secondaryWindGustMs?: number | null;
+    avgDeltaMs?: number | null;
+    gustDeltaMs?: number | null;
+    suppressesGustEscalation?: boolean;
 }
 
 interface RoutePoint {
@@ -147,6 +162,11 @@ interface PlanningNotesFields {
     shuttleAccess: string;
     safetyFallback: string;
     general: string;
+}
+
+interface RouteSamplingChip {
+    label: string;
+    value: string;
 }
 
 const AREA_FORECAST_KEY = 'area';
@@ -544,12 +564,62 @@ const forecastProviderDetail = computed(() => {
 
     return parts.join(' · ');
 });
+const windValidation = computed<ForecastWindValidation | null>(
+    () => areaForecast.value.windValidation ?? null,
+);
+const windValidationNotice = computed(() => {
+    const validation = windValidation.value;
+
+    if (!validation) {
+        return 'Single-source planning guidance. Cross-check a local marine forecast before launching.';
+    }
+
+    const primary = providerLabel(validation.primaryProvider);
+    const secondary = providerLabel(validation.secondaryProvider);
+    const primaryAvg = formatWindSpeed(validation.primaryWindAvgMs);
+    const primaryGust = formatWindSpeed(validation.primaryWindGustMs);
+    const secondaryAvg = formatWindSpeed(validation.secondaryWindAvgMs);
+    const secondaryGust = formatWindSpeed(validation.secondaryWindGustMs);
+
+    if (validation.status === 'uncertain' && validation.secondaryProvider) {
+        return `${primary} shows avg ${primaryAvg} ${windBoardUnitLabel.value} and gust ${primaryGust} ${windBoardUnitLabel.value}, while ${secondary} shows avg ${secondaryAvg} and gust ${secondaryGust}. Gust impact is being held back until a local forecast agrees.`;
+    }
+
+    if (validation.status === 'watch' && validation.secondaryProvider) {
+        return `${primary} and ${secondary} are in the same ballpark, but not tightly aligned on wind detail. Treat gusts as guidance and cross-check a local marine forecast before launching.`;
+    }
+
+    if (validation.status === 'aligned' && validation.secondaryProvider) {
+        return `${primary} wind is broadly aligned with ${secondary}, so the gust signal looks more trustworthy than a single-model spike.`;
+    }
+
+    return 'Single-source planning guidance. Cross-check a local marine forecast before launching.';
+});
+const windValidationClass = computed(() => {
+    const status = windValidation.value?.status ?? 'single-source';
+
+    if (status === 'uncertain') {
+        return 'border-amber-200 bg-amber-50 text-amber-900';
+    }
+
+    if (status === 'watch' || status === 'single-source') {
+        return 'border-slate-200 bg-slate-50 text-slate-800';
+    }
+
+    return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+});
 const canExportRoute = computed(
     () => Boolean(props.plannedSession?.gpxUrl) && routePoints.value.length > 1,
 );
 const forecastTrustNote = computed(() => {
     if (!hasForecastFields(areaForecast.value)) {
         return 'Forecast values are guidance only until the route area is checked.';
+    }
+
+    const validation = windValidation.value;
+
+    if (validation?.status === 'uncertain') {
+        return `Source: ${forecastProviderLabel.value}. Gust spikes are being treated as low-confidence until another model agrees, so use a local marine forecast and tide table as the final check.`;
     }
 
     return `Source: ${forecastProviderLabel.value}. Gusts are model peaks and can read hotter than harbour or inshore forecasts, so cross-check with a local marine forecast and tide table before launching.`;
@@ -585,6 +655,33 @@ const forecastProgressLabel = computed(() => {
     }
 
     return 'Ready';
+});
+const routeSamplingChips = computed<RouteSamplingChip[]>(() => {
+    const chips: RouteSamplingChip[] = [];
+
+    if (!routePoints.value.length) {
+        return chips;
+    }
+
+    chips.push({
+        label: 'Launch',
+        value: startTimeLocal.value || 'Start',
+    });
+    chips.push({
+        label: 'Midpoint sample',
+        value: areaSampleTimeLabel.value,
+    });
+
+    if (estimatedMinutes.value !== null) {
+        chips.push({
+            label: 'Landing',
+            value:
+                addMinutesToLocalTime(startTimeLocal.value, estimatedMinutes.value) ??
+                `+ ${formatMinutes(estimatedMinutes.value)}`,
+        });
+    }
+
+    return chips;
 });
 
 function parseForecastMap(value: string): Record<string, ForecastResult> {
@@ -671,6 +768,26 @@ function formatMinutes(minutes: number | null): string {
     }
 
     return `${hours} h ${remainder} min`;
+}
+
+function addMinutesToLocalTime(value: string, minutes: number): string | null {
+    if (!value) {
+        return null;
+    }
+
+    const [hours, mins] = value.split(':').map((part) => parseInt(part, 10));
+
+    if (!Number.isFinite(hours) || !Number.isFinite(mins)) {
+        return null;
+    }
+
+    const totalMinutes = ((hours * 60 + mins + minutes) % (24 * 60) + 24 * 60) % (24 * 60);
+    const nextHours = Math.floor(totalMinutes / 60)
+        .toString()
+        .padStart(2, '0');
+    const nextMinutes = (totalMinutes % 60).toString().padStart(2, '0');
+
+    return `${nextHours}:${nextMinutes}`;
 }
 
 function formatEditableNumber(value: number): string {
@@ -1093,6 +1210,7 @@ async function refreshForecasts() {
             provider: payload.provider,
             fallbackFrom: payload.fallbackFrom,
             marineFallback: payload.marineFallback,
+            windValidation: payload.windValidation,
             timeline: payload.timeline ?? [],
             fields: payload.fields ?? {},
         };
@@ -1460,8 +1578,9 @@ watch(
                     <p class="journal-copy mt-2 max-w-3xl text-sm md:text-base">
                         Pull one forecast for the midpoint of the planned route,
                         sampled around the midpoint of the paddle. This keeps
-                        the planner readable and avoids spending requests on
-                        every waypoint.
+                        the planner readable, avoids spending requests on every
+                        waypoint, and cross-checks gusts with a second model
+                        when available.
                     </p>
                 </div>
                 <div class="flex flex-col items-start gap-2 lg:items-end">
@@ -1498,6 +1617,22 @@ watch(
             >
                 {{ forecastMessage }}
             </section>
+
+            <div
+                v-if="routeSamplingChips.length"
+                class="mt-4 flex flex-wrap gap-2"
+            >
+                <span
+                    v-for="chip in routeSamplingChips"
+                    :key="`${chip.label}-${chip.value}`"
+                    class="journal-surface-shell inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--journal-muted)]"
+                >
+                    <span class="text-[color:var(--journal-text)]">
+                        {{ chip.label }}
+                    </span>
+                    <span class="font-mono">{{ chip.value }}</span>
+                </span>
+            </div>
 
             <div v-if="forecastAreaPoint" class="mt-5">
                 <section class="journal-card overflow-hidden rounded-[28px]">
@@ -1538,9 +1673,9 @@ watch(
                                 <p
                                     class="max-w-xl text-sm leading-6 text-[color:var(--journal-muted)]"
                                 >
-                                    Area sample from the route midpoint, shown
-                                    as a planning strip instead of per-waypoint
-                                    weather.
+                                    Route midpoint sample. Launch and landing
+                                    can differ, so use this as the route-area
+                                    snapshot rather than a whole-route truth.
                                 </p>
                                 <p
                                     class="text-xs font-semibold leading-5 text-[color:var(--journal-muted)]"
@@ -1585,6 +1720,15 @@ watch(
                         >
                             {{ forecastProviderDetail }}
                         </p>
+                    </div>
+
+                    <div class="border-b border-[color:var(--journal-line)] px-5 py-3">
+                        <div
+                            class="rounded-[18px] border px-4 py-3 text-sm leading-6"
+                            :class="windValidationClass"
+                        >
+                            {{ windValidationNotice }}
+                        </div>
                     </div>
 
                     <div v-if="forecastTimeline.length" class="overflow-x-auto">

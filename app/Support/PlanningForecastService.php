@@ -17,6 +17,13 @@ class PlanningForecastService
         'tide_state',
     ];
 
+    private const SEVERITY_ORDER = [
+        'low' => 1,
+        'moderate' => 2,
+        'high' => 3,
+        'extreme' => 4,
+    ];
+
     public function __construct(
         private readonly StormglassWeatherService $stormglass,
         private readonly OpenMeteoMarineWeatherService $openMeteo,
@@ -30,27 +37,13 @@ class PlanningForecastService
     public function previewForecastBoard(PaddleSession $session): array
     {
         $stormglassResult = null;
+        $openMeteoResult = null;
 
         if ($this->stormglass->isConfigured()) {
             $stormglassResult = $this->withProvider(
                 $this->stormglass->previewForecastBoard($session),
                 'stormglass',
             );
-
-            if (($stormglassResult['status'] ?? null) === 'filled') {
-                if ($this->openMeteo->isConfigured() && $this->needsMarineFallback($stormglassResult)) {
-                    $openMeteoResult = $this->withProvider(
-                        $this->openMeteo->previewForecastBoard($session),
-                        'open_meteo',
-                    );
-
-                    if (($openMeteoResult['status'] ?? null) === 'filled') {
-                        return $this->mergeMissingMarineFields($stormglassResult, $openMeteoResult);
-                    }
-                }
-
-                return $stormglassResult;
-            }
         }
 
         if ($this->openMeteo->isConfigured()) {
@@ -68,18 +61,30 @@ class PlanningForecastService
                     'providerMessage' => $stormglassResult['providerMessage'] ?? null,
                 ];
             }
-
-            return $openMeteoResult;
         }
 
-        return $stormglassResult ?? [
+        if (($stormglassResult['status'] ?? null) === 'filled') {
+            $result = $stormglassResult;
+
+            if (($openMeteoResult['status'] ?? null) === 'filled' && $this->needsMarineFallback($stormglassResult)) {
+                $result = $this->mergeMissingMarineFields($stormglassResult, $openMeteoResult);
+            }
+
+            return $this->applyPlanningTrustAdjustments($result, $openMeteoResult);
+        }
+
+        if (($openMeteoResult['status'] ?? null) === 'filled') {
+            return $this->applyPlanningTrustAdjustments($openMeteoResult, null);
+        }
+
+        return $this->applyPlanningTrustAdjustments($stormglassResult ?? $openMeteoResult ?? [
             'status' => 'skipped',
             'provider' => null,
             'reason' => 'No planning forecast provider is configured yet.',
             'filledFields' => 0,
             'fields' => [],
             'timeline' => [],
-        ];
+        ], null);
     }
 
     private function withProvider(array $result, string $provider): array
@@ -174,6 +179,254 @@ class PlanningForecastService
         }
 
         return $primaryFields;
+    }
+
+    private function applyPlanningTrustAdjustments(array $result, ?array $secondaryComparison): array
+    {
+        $fields = is_array($result['fields'] ?? null) ? $result['fields'] : [];
+        $secondaryFields = is_array($secondaryComparison['fields'] ?? null) ? $secondaryComparison['fields'] : [];
+        $windValidation = $this->buildWindValidation(
+            $fields,
+            $secondaryFields,
+            $result['provider'] ?? null,
+            $secondaryComparison['provider'] ?? null,
+        );
+
+        if ($fields !== []) {
+            $result['fields'] = $this->normalizePlanningFields($fields, $windValidation['status'] ?? 'single-source');
+            $result['filledFields'] = $this->countFilledFields($result['fields']);
+        }
+
+        $result['windValidation'] = $windValidation;
+
+        return $result;
+    }
+
+    private function buildWindValidation(
+        array $primaryFields,
+        array $secondaryFields,
+        ?string $primaryProvider,
+        ?string $secondaryProvider,
+    ): array {
+        $primaryWind = $this->numericOrNull($primaryFields['wind_avg_ms'] ?? null);
+        $primaryGust = $this->numericOrNull($primaryFields['wind_gust_ms'] ?? null);
+        $secondaryWind = $this->numericOrNull($secondaryFields['wind_avg_ms'] ?? null);
+        $secondaryGust = $this->numericOrNull($secondaryFields['wind_gust_ms'] ?? null);
+        $avgDelta = $primaryWind !== null && $secondaryWind !== null
+            ? round(abs($primaryWind - $secondaryWind), 1)
+            : null;
+        $gustDelta = $primaryGust !== null && $secondaryGust !== null
+            ? round(abs($primaryGust - $secondaryGust), 1)
+            : null;
+        $primarySpread = $primaryWind !== null && $primaryGust !== null
+            ? round(max($primaryGust - $primaryWind, 0), 1)
+            : null;
+        $secondarySpread = $secondaryWind !== null && $secondaryGust !== null
+            ? round(max($secondaryGust - $secondaryWind, 0), 1)
+            : null;
+        $status = 'single-source';
+        $suppressesGustEscalation = false;
+
+        if (
+            $primaryWind !== null &&
+            $secondaryWind !== null &&
+            $primaryGust !== null &&
+            $secondaryGust !== null &&
+            $secondaryProvider !== null
+        ) {
+            $suspiciousGustSpike = ($gustDelta ?? 0) >= 6.0
+                && ($avgDelta ?? 0) <= 3.0
+                && (
+                    ($primarySpread !== null && $primarySpread >= 8.0) ||
+                    ($secondarySpread !== null && $secondarySpread >= 8.0) ||
+                    (
+                        $primarySpread !== null &&
+                        $secondarySpread !== null &&
+                        abs($primarySpread - $secondarySpread) >= 6.0
+                    )
+                );
+
+            if ($suspiciousGustSpike) {
+                $status = 'uncertain';
+                $suppressesGustEscalation = true;
+            } elseif (($avgDelta ?? 0) <= 2.5 && ($gustDelta ?? 0) <= 4.0) {
+                $status = 'aligned';
+            } else {
+                $status = 'watch';
+            }
+        }
+
+        return [
+            'status' => $status,
+            'primaryProvider' => $primaryProvider,
+            'secondaryProvider' => $secondaryProvider,
+            'primaryWindAvgMs' => $primaryWind,
+            'primaryWindGustMs' => $primaryGust,
+            'secondaryWindAvgMs' => $secondaryWind,
+            'secondaryWindGustMs' => $secondaryGust,
+            'avgDeltaMs' => $avgDelta,
+            'gustDeltaMs' => $gustDelta,
+            'suppressesGustEscalation' => $suppressesGustEscalation,
+        ];
+    }
+
+    private function normalizePlanningFields(array $fields, string $windValidationStatus): array
+    {
+        $windSeverity = $this->resolvePlanningWindSeverity(
+            $this->numericOrNull($fields['wind_avg_ms'] ?? null),
+            $this->numericOrNull($fields['wind_gust_ms'] ?? null),
+            $this->intOrNull($fields['wind_beaufort'] ?? null),
+            $windValidationStatus,
+        );
+
+        if ($windSeverity !== null) {
+            $fields['wind_severity'] = $windSeverity;
+        }
+
+        $forecastSeverity = $this->resolvePlanningForecastSeverity($fields, $windSeverity);
+
+        if ($forecastSeverity !== null) {
+            $fields['forecast_severity'] = $forecastSeverity;
+        }
+
+        return $fields;
+    }
+
+    private function resolvePlanningWindSeverity(
+        ?float $windSpeed,
+        ?float $windGust,
+        ?int $beaufort,
+        string $windValidationStatus,
+    ): ?string {
+        $baseSeverity = $this->baseWindSeverity($windSpeed, $beaufort);
+        $gustSeverity = $this->gustSeverity($windGust);
+
+        if ($baseSeverity === null) {
+            return $gustSeverity;
+        }
+
+        if ($gustSeverity === null) {
+            return $baseSeverity;
+        }
+
+        if ($windValidationStatus === 'uncertain') {
+            return $baseSeverity;
+        }
+
+        return $this->maxSeverity(
+            $baseSeverity,
+            $this->minSeverity($gustSeverity, $this->raiseSeverity($baseSeverity, 1)),
+        );
+    }
+
+    private function resolvePlanningForecastSeverity(array $fields, ?string $windSeverity): ?string
+    {
+        $severity = $this->maxSeverity(
+            $windSeverity,
+            $this->stringOrNull($fields['rain_severity'] ?? null),
+            $this->stringOrNull($fields['temperature_severity'] ?? null),
+        );
+
+        return $this->maxSeverity(
+            $severity,
+            match (true) {
+                $this->numericOrNull($fields['wave_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['wave_height_m'] ?? null) >= 2.0 => 'extreme',
+                $this->numericOrNull($fields['swell_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['swell_height_m'] ?? null) >= 2.5 => 'extreme',
+                $this->numericOrNull($fields['current_knots'] ?? null) !== null
+                    && $this->numericOrNull($fields['current_knots'] ?? null) >= 3.0 => 'extreme',
+                $this->stringOrNull($fields['visibility_code'] ?? null) === 'fog' => 'extreme',
+                $this->numericOrNull($fields['wave_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['wave_height_m'] ?? null) >= 1.2 => 'high',
+                $this->numericOrNull($fields['swell_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['swell_height_m'] ?? null) >= 1.5 => 'high',
+                $this->numericOrNull($fields['current_knots'] ?? null) !== null
+                    && $this->numericOrNull($fields['current_knots'] ?? null) >= 2.0 => 'high',
+                $this->stringOrNull($fields['visibility_code'] ?? null) === 'poor' => 'high',
+                $this->numericOrNull($fields['wave_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['wave_height_m'] ?? null) >= 0.6 => 'moderate',
+                $this->numericOrNull($fields['swell_height_m'] ?? null) !== null
+                    && $this->numericOrNull($fields['swell_height_m'] ?? null) >= 0.8 => 'moderate',
+                $this->numericOrNull($fields['current_knots'] ?? null) !== null
+                    && $this->numericOrNull($fields['current_knots'] ?? null) >= 1.0 => 'moderate',
+                in_array($this->stringOrNull($fields['visibility_code'] ?? null), ['moderate', 'good', 'clear'], true) => 'low',
+                default => null,
+            },
+        );
+    }
+
+    private function baseWindSeverity(?float $windSpeed, ?int $beaufort): ?string
+    {
+        if ($windSpeed === null && $beaufort === null) {
+            return null;
+        }
+
+        return match (true) {
+            ($windSpeed !== null && $windSpeed >= 17.2) || ($beaufort !== null && $beaufort >= 8) => 'extreme',
+            ($windSpeed !== null && $windSpeed >= 10.8) || ($beaufort !== null && $beaufort >= 6) => 'high',
+            ($windSpeed !== null && $windSpeed >= 5.5) || ($beaufort !== null && $beaufort >= 4) => 'moderate',
+            default => 'low',
+        };
+    }
+
+    private function gustSeverity(?float $windGust): ?string
+    {
+        if ($windGust === null) {
+            return null;
+        }
+
+        return match (true) {
+            $windGust >= 20.8 => 'extreme',
+            $windGust >= 13.9 => 'high',
+            $windGust >= 8.0 => 'moderate',
+            default => 'low',
+        };
+    }
+
+    private function raiseSeverity(string $severity, int $steps): string
+    {
+        $rank = min((self::SEVERITY_ORDER[$severity] ?? 1) + $steps, max(self::SEVERITY_ORDER));
+
+        return array_search($rank, self::SEVERITY_ORDER, true) ?: $severity;
+    }
+
+    private function maxSeverity(?string ...$values): ?string
+    {
+        return collect($values)
+            ->filter(fn (?string $value) => $value !== null && isset(self::SEVERITY_ORDER[$value]))
+            ->sortBy(fn (string $value) => self::SEVERITY_ORDER[$value])
+            ->last();
+    }
+
+    private function minSeverity(?string $left, ?string $right): ?string
+    {
+        if ($left === null) {
+            return $right;
+        }
+
+        if ($right === null) {
+            return $left;
+        }
+
+        return (self::SEVERITY_ORDER[$left] ?? 0) <= (self::SEVERITY_ORDER[$right] ?? 0)
+            ? $left
+            : $right;
+    }
+
+    private function numericOrNull(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function intOrNull(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) round((float) $value) : null;
+    }
+
+    private function stringOrNull(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     private function countFilledFields(array $fields): int
