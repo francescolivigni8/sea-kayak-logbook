@@ -85,6 +85,10 @@ class PlanningController extends Controller
         return Inertia::render('planning/Index', [
             'profile' => $this->mapProfile($profile),
             'weatherAutofillAvailable' => $this->planningForecast->isConfigured(),
+            'forecastMeta' => [
+                'stormglassEnabled' => filled(config('kayak.weather.providers.stormglass.api_key')),
+                'openMeteoEnabled' => (bool) config('kayak.weather.providers.open_meteo.enabled', true),
+            ],
             'formDefaults' => $this->formDefaults($profile, $plannedSession),
             'plannedSession' => $plannedSession ? $this->mapPlannedSession($plannedSession) : null,
         ]);

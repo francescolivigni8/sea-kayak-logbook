@@ -164,12 +164,28 @@ interface PlanningNotesFields {
     general: string;
 }
 
-interface RouteSamplingChip {
-    label: string;
-    value: string;
+interface ForecastMeta {
+    stormglassEnabled: boolean;
+    openMeteoEnabled: boolean;
 }
 
+interface RouteForecastCheckpoint {
+    key: string;
+    roleLabel: string;
+    title: string;
+    timeLabel: string;
+    lat: number;
+    lng: number;
+    offsetMinutes: number;
+}
+
+interface RouteForecastCard extends RouteForecastCheckpoint {
+    forecast: ForecastResult;
+}
+
+const LAUNCH_FORECAST_KEY = 'launch';
 const AREA_FORECAST_KEY = 'area';
+const LANDING_FORECAST_KEY = 'landing';
 const MAX_FORECAST_OFFSET_MINUTES = 1440;
 const KM_PER_NAUTICAL_MILE = 1.852;
 const PlanningWeatherMap = defineAsyncComponent(
@@ -179,6 +195,7 @@ const PlanningWeatherMap = defineAsyncComponent(
 const props = defineProps<{
     profile: ProfileSummary;
     weatherAutofillAvailable: boolean;
+    forecastMeta: ForecastMeta;
     formDefaults: FormDefaults;
     plannedSession: PlannedSessionSummary | null;
 }>();
@@ -532,16 +549,94 @@ const forecastBoardGridStyle = computed(() => ({
     gridTemplateColumns: `76px repeat(${Math.max(forecastTimeline.value.length, 1)}, minmax(38px, 1fr))`,
 }));
 
+const routeForecastCheckpoints = computed<RouteForecastCheckpoint[]>(() => {
+    if (!routePoints.value.length) {
+        return [];
+    }
+
+    const checkpoints: RouteForecastCheckpoint[] = [];
+    const [launchPoint] = routePoints.value;
+
+    checkpoints.push({
+        key: LAUNCH_FORECAST_KEY,
+        roleLabel: 'Launch',
+        title: launchPoint.label,
+        timeLabel: startTimeLocal.value || 'Start',
+        lat: launchPoint.lat,
+        lng: launchPoint.lng,
+        offsetMinutes: 0,
+    });
+
+    if (forecastAreaPoint.value) {
+        checkpoints.push({
+            key: AREA_FORECAST_KEY,
+            roleLabel: 'Midpoint',
+            title: 'Midpoint sample',
+            timeLabel: areaSampleTimeLabel.value,
+            lat: forecastAreaPoint.value.lat,
+            lng: forecastAreaPoint.value.lng,
+            offsetMinutes: forecastAreaOffsetMinutes.value,
+        });
+    }
+
+    const landingPoint = routePoints.value[routePoints.value.length - 1];
+
+    if (
+        routePoints.value.length > 1 ||
+        estimatedMinutes.value !== null
+    ) {
+        const landingTimeLabel =
+            estimatedMinutes.value !== null
+                ? addMinutesToLocalTime(
+                      startTimeLocal.value,
+                      estimatedMinutes.value,
+                  ) ?? `+ ${formatMinutes(estimatedMinutes.value)}`
+                : 'Landing';
+
+        checkpoints.push({
+            key: LANDING_FORECAST_KEY,
+            roleLabel: 'Landing',
+            title: landingPoint.label,
+            timeLabel: landingTimeLabel,
+            lat: landingPoint.lat,
+            lng: landingPoint.lng,
+            offsetMinutes: estimatedMinutes.value ?? 0,
+        });
+    }
+
+    return checkpoints;
+});
+const routeForecastCards = computed<RouteForecastCard[]>(() =>
+    routeForecastCheckpoints.value.map((checkpoint) => ({
+        ...checkpoint,
+        forecast: forecastByPoint.value[checkpoint.key] ?? {
+            status: forecastStatus.value === 'loading' ? 'loading' : 'idle',
+        },
+    })),
+);
+const perPointUpstreamRequests = computed(() => {
+    let count = 0;
+
+    if (props.forecastMeta.stormglassEnabled) {
+        count += 2;
+    }
+
+    if (props.forecastMeta.openMeteoEnabled) {
+        count += 2;
+    }
+
+    return count;
+});
 const estimatedForecastRequests = computed(() =>
-    forecastAreaPoint.value ? 2 : 0,
+    routeForecastCheckpoints.value.length * perPointUpstreamRequests.value,
 );
 
 const forecastRequestEstimate = computed(() => {
-    if (!forecastAreaPoint.value) {
+    if (!routeForecastCheckpoints.value.length) {
         return 'Add route points to estimate forecast usage.';
     }
 
-    return `About ${estimatedForecastRequests.value} forecast requests per provider: 1 weather + 1 marine/tide.`;
+    return `About ${estimatedForecastRequests.value} upstream weather requests for launch, midpoint, and landing checks. Cached repeats may use fewer calls.`;
 });
 
 const forecastProviderLabel = computed(() =>
@@ -656,34 +751,6 @@ const forecastProgressLabel = computed(() => {
 
     return 'Ready';
 });
-const routeSamplingChips = computed<RouteSamplingChip[]>(() => {
-    const chips: RouteSamplingChip[] = [];
-
-    if (!routePoints.value.length) {
-        return chips;
-    }
-
-    chips.push({
-        label: 'Launch',
-        value: startTimeLocal.value || 'Start',
-    });
-    chips.push({
-        label: 'Midpoint sample',
-        value: areaSampleTimeLabel.value,
-    });
-
-    if (estimatedMinutes.value !== null) {
-        chips.push({
-            label: 'Landing',
-            value:
-                addMinutesToLocalTime(startTimeLocal.value, estimatedMinutes.value) ??
-                `+ ${formatMinutes(estimatedMinutes.value)}`,
-        });
-    }
-
-    return chips;
-});
-
 function parseForecastMap(value: string): Record<string, ForecastResult> {
     if (!value) {
         return {};
@@ -881,6 +948,113 @@ function providerLabel(provider?: string | null): string {
     }
 
     return 'Forecast';
+}
+
+function routeForecastCardClass(forecast: ForecastResult): string {
+    const validationStatus = forecast.windValidation?.status ?? null;
+
+    if (forecast.status === 'failed') {
+        return 'border-rose-200 bg-rose-50/80';
+    }
+
+    if (validationStatus === 'uncertain') {
+        return 'border-amber-200 bg-amber-50/80';
+    }
+
+    if (validationStatus === 'aligned') {
+        return 'border-emerald-200 bg-emerald-50/75';
+    }
+
+    return 'border-[color:var(--journal-line)] bg-white/78';
+}
+
+function routeForecastStatusLabel(forecast: ForecastResult): string {
+    if (forecast.status === 'loading') {
+        return 'Checking';
+    }
+
+    if (!hasForecastFields(forecast)) {
+        return forecast.message || 'No data yet';
+    }
+
+    const status = forecast.windValidation?.status ?? 'single-source';
+
+    if (status === 'uncertain') {
+        return 'Gust low confidence';
+    }
+
+    if (status === 'watch') {
+        return 'Cross-check gusts';
+    }
+
+    if (status === 'aligned') {
+        return 'Models aligned';
+    }
+
+    return 'Single-source';
+}
+
+function routeForecastStatusClass(forecast: ForecastResult): string {
+    const status = forecast.windValidation?.status ?? 'single-source';
+
+    if (forecast.status === 'failed') {
+        return 'text-rose-700';
+    }
+
+    if (status === 'uncertain') {
+        return 'text-amber-800';
+    }
+
+    if (status === 'aligned') {
+        return 'text-emerald-800';
+    }
+
+    return 'text-[color:var(--journal-muted)]';
+}
+
+async function fetchForecastForCheckpoint(
+    checkpoint: RouteForecastCheckpoint,
+    signal: AbortSignal,
+): Promise<ForecastResult> {
+    const params = new URLSearchParams({
+        plan_date: planDate.value,
+        start_time_local: startTimeLocal.value,
+        lat: checkpoint.lat.toFixed(6),
+        lng: checkpoint.lng.toFixed(6),
+        label: checkpoint.title,
+        offset_minutes: String(checkpoint.offsetMinutes),
+    });
+
+    const response = await fetch(`/planning/weather-preview?${params}`, {
+        headers: {
+            Accept: 'application/json',
+        },
+        signal,
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as ForecastPayload;
+
+    if (!response.ok) {
+        return {
+            status: 'failed',
+            message: payload.message || payload.reason,
+            httpStatus: response.status,
+            provider: payload.provider,
+            fallbackFrom: payload.fallbackFrom,
+        };
+    }
+
+    return {
+        status: payload.status ?? 'failed',
+        message: payload.message || payload.reason,
+        httpStatus: payload.httpStatus,
+        provider: payload.provider,
+        fallbackFrom: payload.fallbackFrom,
+        marineFallback: payload.marineFallback,
+        windValidation: payload.windValidation,
+        timeline: payload.timeline ?? [],
+        fields: payload.fields ?? {},
+    };
 }
 
 function slotTideLabel(slot: ForecastTimelinePoint): string {
@@ -1131,7 +1305,7 @@ function markForecastStale() {
 
     forecastByPoint.value = {};
     forecastStatus.value = 'stale';
-    forecastMessage.value = `Route, timing, or speed changed. Refresh the area forecast once the line is stable. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
+    forecastMessage.value = `Route, timing, or speed changed. Refresh the route checks once the line is stable. ${forecastRequestEstimate.value}`;
 }
 
 async function refreshForecasts() {
@@ -1142,10 +1316,10 @@ async function refreshForecasts() {
         return;
     }
 
-    if (!forecastAreaPoint.value) {
+    if (!routeForecastCheckpoints.value.length || !forecastAreaPoint.value) {
         forecastStatus.value = 'warning';
         forecastMessage.value =
-            'Place at least one point before checking the route area.';
+            'Place route points before checking launch, midpoint, and landing.';
 
         return;
     }
@@ -1153,67 +1327,26 @@ async function refreshForecasts() {
     forecastAbortController?.abort();
     forecastAbortController = new AbortController();
     forecastStatus.value = 'loading';
-    forecastMessage.value = `Checking wind, tide, current, swell, and temperatures for the route area. ${forecastRequestEstimate.value} Cached repeats may use fewer calls.`;
+    forecastMessage.value = `Checking wind, tide, current, swell, and temperatures for launch, midpoint, and landing. ${forecastRequestEstimate.value}`;
     hasFetchedForecast.value = true;
 
-    const point = forecastAreaPoint.value;
-    const nextForecasts: Record<string, ForecastResult> = {
-        [AREA_FORECAST_KEY]: { status: 'loading' },
-    };
+    const nextForecasts: Record<string, ForecastResult> = Object.fromEntries(
+        routeForecastCheckpoints.value.map((checkpoint) => [
+            checkpoint.key,
+            { status: 'loading' },
+        ]),
+    );
 
     forecastByPoint.value = { ...nextForecasts };
 
-    const params = new URLSearchParams({
-        plan_date: planDate.value,
-        start_time_local: startTimeLocal.value,
-        lat: point.lat.toFixed(6),
-        lng: point.lng.toFixed(6),
-        label: point.label,
-        offset_minutes: String(forecastAreaOffsetMinutes.value),
-    });
-
     try {
-        const response = await fetch(`/planning/weather-preview?${params}`, {
-            headers: {
-                Accept: 'application/json',
-            },
-            signal: forecastAbortController.signal,
-        });
-
-        const payload = (await response
-            .json()
-            .catch(() => ({}))) as ForecastPayload;
-
-        if (!response.ok) {
-            nextForecasts[AREA_FORECAST_KEY] = {
-                status: 'failed',
-                message: payload.message || payload.reason,
-                httpStatus: response.status,
-                provider: payload.provider,
-                fallbackFrom: payload.fallbackFrom,
-            };
-
-            forecastByPoint.value = nextForecasts;
-            forecastStatus.value = 'warning';
-            forecastMessage.value =
-                payload.message ||
-                payload.reason ||
-                `Area forecast request failed (${response.status}).`;
-
-            return;
+        for (const checkpoint of routeForecastCheckpoints.value) {
+            nextForecasts[checkpoint.key] = await fetchForecastForCheckpoint(
+                checkpoint,
+                forecastAbortController.signal,
+            );
+            forecastByPoint.value = { ...nextForecasts };
         }
-
-        nextForecasts[AREA_FORECAST_KEY] = {
-            status: payload.status ?? 'failed',
-            message: payload.message || payload.reason,
-            httpStatus: payload.httpStatus,
-            provider: payload.provider,
-            fallbackFrom: payload.fallbackFrom,
-            marineFallback: payload.marineFallback,
-            windValidation: payload.windValidation,
-            timeline: payload.timeline ?? [],
-            fields: payload.fields ?? {},
-        };
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
             return;
@@ -1221,21 +1354,27 @@ async function refreshForecasts() {
 
         nextForecasts[AREA_FORECAST_KEY] = {
             status: 'failed',
-            message: 'Area forecast request failed.',
+            message: 'Route forecast request failed.',
         };
     }
 
-    forecastByPoint.value = nextForecasts;
+    forecastByPoint.value = { ...nextForecasts };
     const forecast = nextForecasts[AREA_FORECAST_KEY];
     const hasFields = hasForecastFields(forecast);
+    const filledRouteChecks = routeForecastCheckpoints.value.filter((checkpoint) =>
+        hasForecastFields(nextForecasts[checkpoint.key] ?? { status: 'idle' }),
+    );
+    const routeCheckLabels = filledRouteChecks.map((checkpoint) =>
+        checkpoint.title.toLowerCase(),
+    );
     const marineFallbackMessage = forecast.marineFallback?.provider
         ? ` Marine gaps filled with ${providerLabel(forecast.marineFallback.provider)}.`
         : '';
 
     forecastStatus.value = hasFields ? 'filled' : 'warning';
     forecastMessage.value = hasFields
-        ? `Area conditions refreshed with ${providerLabel(forecast.provider)} for the route midpoint at ${areaSampleTimeLabel.value}.${forecast.fallbackFrom ? ` Fallback used after ${providerLabel(forecast.fallbackFrom.provider)} returned no usable board.` : ''}${marineFallbackMessage} ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
-        : `No usable area forecast data returned yet. ${forecastRequestEstimate.value}${forecast.message ? ` ${forecast.message}` : ''}`;
+        ? `Route checks refreshed for ${routeCheckLabels.join(', ') || 'the route'}. Midpoint board uses ${providerLabel(forecast.provider)} at ${areaSampleTimeLabel.value}.${forecast.fallbackFrom ? ` Fallback used after ${providerLabel(forecast.fallbackFrom.provider)} returned no usable board.` : ''}${marineFallbackMessage} ${forecastRequestEstimate.value} Treat this as planning guidance, not a go/no-go forecast.`
+        : `No usable midpoint forecast data returned yet. ${forecastRequestEstimate.value}${forecast.message ? ` ${forecast.message}` : ''}`;
 }
 
 watch(
@@ -1619,19 +1758,73 @@ watch(
             </section>
 
             <div
-                v-if="routeSamplingChips.length"
-                class="mt-4 flex flex-wrap gap-2"
+                v-if="routeForecastCards.length"
+                class="mt-4 grid gap-3 md:grid-cols-3"
             >
-                <span
-                    v-for="chip in routeSamplingChips"
-                    :key="`${chip.label}-${chip.value}`"
-                    class="journal-surface-shell inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--journal-muted)]"
+                <article
+                    v-for="card in routeForecastCards"
+                    :key="card.key"
+                    class="rounded-[22px] border px-4 py-4 shadow-[0_18px_44px_rgba(32,47,86,0.08)]"
+                    :class="routeForecastCardClass(card.forecast)"
                 >
-                    <span class="text-[color:var(--journal-text)]">
-                        {{ chip.label }}
-                    </span>
-                    <span class="font-mono">{{ chip.value }}</span>
-                </span>
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">{{ card.roleLabel }}</p>
+                            <h4 class="mt-2 text-lg leading-tight">
+                                {{ card.title }}
+                            </h4>
+                        </div>
+                        <span
+                            class="rounded-full bg-white/85 px-2.5 py-1 text-[0.68rem] font-semibold text-[color:var(--journal-muted)]"
+                        >
+                            {{ card.timeLabel }}
+                        </span>
+                    </div>
+
+                    <template v-if="hasForecastFields(card.forecast)">
+                        <div class="mt-4 flex items-end justify-between gap-4">
+                            <div>
+                                <p class="text-[2rem] leading-none tracking-[-0.06em]">
+                                    F{{ fieldLabel(card.forecast.fields?.wind_beaufort) }}
+                                </p>
+                                <p class="mt-1 text-xs font-semibold text-[color:var(--journal-muted)]">
+                                    Avg {{ formatWindSpeed(card.forecast.fields?.wind_avg_ms) }}
+                                    {{ windBoardUnitLabel }} · gust
+                                    {{ formatWindSpeed(card.forecast.fields?.wind_gust_ms) }}
+                                    {{ windBoardUnitLabel }}
+                                </p>
+                            </div>
+                            <p
+                                class="text-right text-xs font-semibold"
+                                :class="routeForecastStatusClass(card.forecast)"
+                            >
+                                {{ routeForecastStatusLabel(card.forecast) }}
+                            </p>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                            <div class="rounded-[14px] bg-white/72 px-3 py-2">
+                                <p class="text-[color:var(--journal-muted)]">Tide</p>
+                                <p class="mt-1 font-semibold text-[color:var(--journal-text)]">
+                                    {{ uppercaseLabel(card.forecast.fields?.tide_state) }}
+                                </p>
+                            </div>
+                            <div class="rounded-[14px] bg-white/72 px-3 py-2">
+                                <p class="text-[color:var(--journal-muted)]">Current</p>
+                                <p class="mt-1 font-semibold text-[color:var(--journal-text)]">
+                                    {{ formatCurrentSpeed(card.forecast.fields?.current_knots) }}
+                                    {{ currentUnitLabel }}
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                    <p
+                        v-else
+                        class="mt-4 rounded-[16px] border border-dashed border-[color:var(--journal-line)] bg-white/70 px-3 py-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
+                        {{ forecastCellMessage(card.forecast) }}
+                    </p>
+                </article>
             </div>
 
             <div v-if="forecastAreaPoint" class="mt-5">
