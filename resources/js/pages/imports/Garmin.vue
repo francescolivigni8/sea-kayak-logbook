@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 import InputError from '@/components/InputError.vue';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -18,6 +20,7 @@ const props = defineProps<{
         fitSessions: number;
     };
 }>();
+const { unitPreferences } = useUnitPreferences();
 
 const form = useForm({
     csv_file: null as File | null,
@@ -268,8 +271,12 @@ function submit() {
                                     <p
                                         class="text-2xl font-semibold text-[color:var(--journal-text)]"
                                     >
-                                        {{ props.stats.distanceKm.toFixed(1) }}
-                                        km
+                                        {{
+                                            formatDistanceKm(
+                                                props.stats.distanceKm,
+                                                unitPreferences,
+                                            )
+                                        }}
                                     </p>
                                     <p
                                         class="text-sm text-[color:var(--journal-muted)]"

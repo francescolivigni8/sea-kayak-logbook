@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 
 interface ProfileSummary {
@@ -52,11 +54,15 @@ const props = defineProps<{
     expeditionPlaces: ExpeditionPlace[];
     expeditionMapData: MapData;
 }>();
+const { unitPreferences } = useUnitPreferences();
 
 const cards = computed(() => [
     {
-        label: 'Total expedition km',
-        value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
+        label: 'Total expedition distance',
+        value: formatDistanceKm(
+            props.expeditionSummary.distanceKm,
+            unitPreferences.value,
+        ),
         detail: 'Tagged in the checklist',
     },
     {
@@ -130,7 +136,7 @@ const expeditionMapWarning = computed(() => {
                 class="journal-metric-card"
                 :style="{
                     background:
-                        card.label === 'Total expedition km'
+                        card.label === 'Total expedition distance'
                             ? 'linear-gradient(135deg, rgba(103,114,255,0.14), rgba(255,255,255,0.9))'
                             : card.label === 'Total expedition days'
                               ? 'linear-gradient(135deg, rgba(122,215,208,0.18), rgba(255,255,255,0.9))'
@@ -239,7 +245,12 @@ const expeditionMapWarning = computed(() => {
 
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span class="journal-chip">
-                            {{ place.distanceKm.toFixed(1) }} km
+                            {{
+                                formatDistanceKm(
+                                    place.distanceKm,
+                                    unitPreferences,
+                                )
+                            }}
                         </span>
                         <span v-if="place.latestDate" class="journal-chip">
                             {{ place.latestDate }}

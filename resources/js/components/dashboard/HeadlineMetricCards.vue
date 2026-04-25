@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    convertTemperatureC,
+    formatDistanceKm,
+    formatSpeedKnots,
+    formatTemperatureC,
+    speedUnitLabel,
+    temperatureUnitLabel,
+} from '@/lib/units';
 
 interface HeadlineStats {
     sessionCount: number;
@@ -85,6 +94,7 @@ const props = withDefaults(
         context: 'private',
     },
 );
+const { unitPreferences } = useUnitPreferences();
 
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max);
@@ -144,8 +154,8 @@ function describeTemperature(
     if (value === null) {
         return {
             percent: 0,
-            minLabel: `${min}C`,
-            maxLabel: `${max}C`,
+            minLabel: `${convertTemperatureC(min, unitPreferences.value).toFixed(0)} ${temperatureUnitLabel(unitPreferences.value.temperature)}`,
+            maxLabel: `${convertTemperatureC(max, unitPreferences.value).toFixed(0)} ${temperatureUnitLabel(unitPreferences.value.temperature)}`,
             status: 'No data yet',
             hasValue: false,
             fill: 'linear-gradient(90deg, rgba(122,215,208,0.3), rgba(255,156,107,0.3))',
@@ -157,8 +167,8 @@ function describeTemperature(
 
     return {
         percent,
-        minLabel: `${min}C`,
-        maxLabel: `${max}C`,
+        minLabel: `${convertTemperatureC(min, unitPreferences.value).toFixed(0)} ${temperatureUnitLabel(unitPreferences.value.temperature)}`,
+        maxLabel: `${convertTemperatureC(max, unitPreferences.value).toFixed(0)} ${temperatureUnitLabel(unitPreferences.value.temperature)}`,
         status: value >= pivot ? warmLabel : coldLabel,
         hasValue: true,
         fill: 'linear-gradient(90deg, rgba(122,215,208,0.88), rgba(122,162,255,0.88) 52%, rgba(255,156,107,0.92))',
@@ -166,14 +176,17 @@ function describeTemperature(
 }
 
 function describeSpeed(value: number | null) {
+    const speedLabel = speedUnitLabel(unitPreferences.value.speed);
+    const maxDisplay = unitPreferences.value.speed === 'kt' ? 7 : 7 * 1.852;
+
     if (value === null) {
         return {
             percent: 0,
             hasValue: false,
             fill: 'linear-gradient(90deg, rgba(122,162,255,0.3), rgba(122,215,208,0.3), rgba(255,156,107,0.3))',
             status: 'No timed sessions',
-            minLabel: '0 kn',
-            maxLabel: '7 kn',
+            minLabel: `0 ${speedLabel}`,
+            maxLabel: `${maxDisplay.toFixed(0)} ${speedLabel}`,
         };
     }
 
@@ -189,8 +202,8 @@ function describeSpeed(value: number | null) {
                 : value >= 4
                   ? 'Cruising'
                   : 'Easy pace',
-        minLabel: '0 kn',
-        maxLabel: '7 kn',
+        minLabel: `0 ${speedLabel}`,
+        maxLabel: `${maxDisplay.toFixed(0)} ${speedLabel}`,
     };
 }
 
@@ -251,10 +264,10 @@ const durationBands = computed<BandVisual[]>(() => [
 const cards = computed<MetricCard[]>(() => [
     {
         label: 'Total distance',
-        value: `${props.headline.distanceKm.toFixed(1)} km`,
+        value: formatDistanceKm(props.headline.distanceKm, unitPreferences.value),
         detail:
             peakMonth.value.distanceKm > 0
-                ? `Peak ${peakMonth.value.label} · ${peakMonth.value.distanceKm.toFixed(1)} km`
+                ? `Peak ${peakMonth.value.label} · ${formatDistanceKm(peakMonth.value.distanceKm, unitPreferences.value)}`
                 : 'No monthly distance logged yet',
         style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sea) 18%, transparent), var(--journal-metric-bg))',
         type: 'sparkline',
@@ -280,7 +293,10 @@ const cards = computed<MetricCard[]>(() => [
         label: 'Average air temperature',
         value:
             props.seaState.temperatureAverages.air !== null
-                ? `${props.seaState.temperatureAverages.air.toFixed(1)} C`
+                ? formatTemperatureC(
+                      props.seaState.temperatureAverages.air,
+                      unitPreferences.value,
+                  )
                 : '—',
         detail:
             props.context === 'public'
@@ -300,7 +316,10 @@ const cards = computed<MetricCard[]>(() => [
         label: 'Average sea temperature',
         value:
             props.seaState.temperatureAverages.sea !== null
-                ? `${props.seaState.temperatureAverages.sea.toFixed(1)} C`
+                ? formatTemperatureC(
+                      props.seaState.temperatureAverages.sea,
+                      unitPreferences.value,
+                  )
                 : '—',
         detail:
             props.context === 'public'
@@ -320,7 +339,10 @@ const cards = computed<MetricCard[]>(() => [
         label: 'Average speed',
         value:
             props.headline.averageSpeedKnots !== null
-                ? `${props.headline.averageSpeedKnots.toFixed(1)} kn`
+                ? formatSpeedKnots(
+                      props.headline.averageSpeedKnots,
+                      unitPreferences.value,
+                  )
                 : '—',
         detail:
             props.headline.averageSpeedSamples > 0

@@ -8,6 +8,17 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    convertCurrentKnots,
+    convertCurrentToKnots,
+    convertDistanceKm,
+    convertDistanceToKm,
+    convertTemperatureC,
+    convertTemperatureToC,
+    convertWindMs,
+    convertWindToMs,
+} from '@/lib/units';
 import InputError from '@/components/InputError.vue';
 import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
 import type {
@@ -33,12 +44,114 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+const {
+    unitPreferences,
+    currentUnitLabel,
+    distanceUnitLabel,
+    temperatureUnitLabel,
+    windUnitLabel,
+} = useUnitPreferences();
 const form = useForm({
     ...props.formDefaults,
     gpx_file: null as File | null,
     fit_file: null as File | null,
     session_photo: null as File | null,
 });
+
+function formatEditableNumber(value: number, digits = 1): string {
+    return Number(value.toFixed(digits)).toString();
+}
+
+function createConvertedNumberField(
+    getRaw: () => string,
+    setRaw: (value: string) => void,
+    toDisplay: (value: number) => number,
+    toRaw: (value: number) => number,
+    digits = 1,
+) {
+    return computed({
+        get() {
+            const parsed = parseFloat(getRaw());
+
+            if (!Number.isFinite(parsed)) {
+                return '';
+            }
+
+            return formatEditableNumber(toDisplay(parsed), digits);
+        },
+        set(value: string) {
+            if (value.trim() === '') {
+                setRaw('');
+
+                return;
+            }
+
+            const parsed = parseFloat(value);
+
+            if (!Number.isFinite(parsed)) {
+                setRaw('');
+
+                return;
+            }
+
+            setRaw(formatEditableNumber(toRaw(parsed), digits));
+        },
+    });
+}
+
+const distanceDisplay = createConvertedNumberField(
+    () => form.distance_km,
+    (value) => {
+        form.distance_km = value;
+    },
+    (value) => convertDistanceKm(value, unitPreferences.value),
+    (value) => Math.max(convertDistanceToKm(value, unitPreferences.value), 0),
+);
+
+const windAvgDisplay = createConvertedNumberField(
+    () => form.wind_avg_ms,
+    (value) => {
+        form.wind_avg_ms = value;
+    },
+    (value) => convertWindMs(value, unitPreferences.value),
+    (value) => Math.max(convertWindToMs(value, unitPreferences.value), 0),
+);
+
+const windGustDisplay = createConvertedNumberField(
+    () => form.wind_gust_ms,
+    (value) => {
+        form.wind_gust_ms = value;
+    },
+    (value) => convertWindMs(value, unitPreferences.value),
+    (value) => Math.max(convertWindToMs(value, unitPreferences.value), 0),
+);
+
+const currentDisplay = createConvertedNumberField(
+    () => form.current_knots,
+    (value) => {
+        form.current_knots = value;
+    },
+    (value) => convertCurrentKnots(value, unitPreferences.value),
+    (value) => Math.max(convertCurrentToKnots(value, unitPreferences.value), 0),
+);
+
+const airTemperatureDisplay = createConvertedNumberField(
+    () => form.air_temp_c,
+    (value) => {
+        form.air_temp_c = value;
+    },
+    (value) => convertTemperatureC(value, unitPreferences.value),
+    (value) => convertTemperatureToC(value, unitPreferences.value),
+);
+
+const seaTemperatureDisplay = createConvertedNumberField(
+    () => form.sea_temp_c,
+    (value) => {
+        form.sea_temp_c = value;
+    },
+    (value) => convertTemperatureC(value, unitPreferences.value),
+    (value) => convertTemperatureToC(value, unitPreferences.value),
+);
 
 const steps = [
     {
@@ -897,11 +1010,11 @@ onMounted(async () => {
 
                     <div>
                         <label class="journal-field-label" for="distance_km"
-                            >Distance (km)</label
+                            >Distance ({{ distanceUnitLabel }})</label
                         >
                         <input
                             id="distance_km"
-                            v-model="form.distance_km"
+                            v-model="distanceDisplay"
                             type="number"
                             step="0.1"
                             min="0"
@@ -1175,11 +1288,11 @@ onMounted(async () => {
 
                         <div>
                             <label class="journal-field-label" for="wind_avg_ms"
-                                >Wind avg (m/s)</label
+                                >Wind avg ({{ windUnitLabel }})</label
                             >
                             <input
                                 id="wind_avg_ms"
-                                v-model="form.wind_avg_ms"
+                                v-model="windAvgDisplay"
                                 type="number"
                                 step="0.1"
                                 min="0"
@@ -1191,11 +1304,11 @@ onMounted(async () => {
                             <label
                                 class="journal-field-label"
                                 for="wind_gust_ms"
-                                >Wind gust (m/s)</label
+                                >Wind gust ({{ windUnitLabel }})</label
                             >
                             <input
                                 id="wind_gust_ms"
-                                v-model="form.wind_gust_ms"
+                                v-model="windGustDisplay"
                                 type="number"
                                 step="0.1"
                                 min="0"
@@ -1262,11 +1375,11 @@ onMounted(async () => {
                             <label
                                 class="journal-field-label"
                                 for="current_knots"
-                                >Current (kt)</label
+                                >Current ({{ currentUnitLabel }})</label
                             >
                             <input
                                 id="current_knots"
-                                v-model="form.current_knots"
+                                v-model="currentDisplay"
                                 type="number"
                                 step="0.1"
                                 min="0"
@@ -1325,11 +1438,11 @@ onMounted(async () => {
                         </div>
                         <div>
                             <label class="journal-field-label" for="air_temp_c"
-                                >Air temp (C)</label
+                                >Air temp ({{ temperatureUnitLabel }})</label
                             >
                             <input
                                 id="air_temp_c"
-                                v-model="form.air_temp_c"
+                                v-model="airTemperatureDisplay"
                                 type="number"
                                 step="0.1"
                                 class="journal-input"
@@ -1338,11 +1451,11 @@ onMounted(async () => {
                         </div>
                         <div>
                             <label class="journal-field-label" for="sea_temp_c"
-                                >Sea temp (C)</label
+                                >Sea temp ({{ temperatureUnitLabel }})</label
                             >
                             <input
                                 id="sea_temp_c"
-                                v-model="form.sea_temp_c"
+                                v-model="seaTemperatureDisplay"
                                 type="number"
                                 step="0.1"
                                 class="journal-input"

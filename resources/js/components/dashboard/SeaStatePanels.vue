@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { distanceUnitLabel, formatDistanceKm } from '@/lib/units';
 
 interface ForceBand {
     label: string;
@@ -62,6 +64,7 @@ const props = withDefaults(
         compareChip: 'Distance',
     },
 );
+const { unitPreferences } = useUnitPreferences();
 
 const forcePalette: Record<string, string> = {
     F0: '#d7dbff',
@@ -224,6 +227,14 @@ const hasConditionData = computed(() =>
 const comparisonSnapshots = computed(() =>
     props.yearSnapshots.map((snapshot, index) => ({
         ...snapshot,
+        displayValue:
+            snapshot.unit === 'km'
+                ? formatDistanceKm(snapshot.value, unitPreferences.value)
+                : `${snapshot.value.toFixed(1)} ${snapshot.unit}`,
+        displayUnit:
+            snapshot.unit === 'km'
+                ? distanceUnitLabel(unitPreferences.value.distance)
+                : snapshot.unit,
         percent: Math.max(
             (snapshot.value / comparisonMax.value) * 100,
             snapshot.value > 0 ? 10 : 0,
@@ -606,7 +617,10 @@ function tidePercent(count: number) {
                         >
                             {{
                                 item.distanceKm
-                                    ? `${item.distanceKm.toFixed(1)} km`
+                                    ? formatDistanceKm(
+                                          item.distanceKm,
+                                          unitPreferences,
+                                      )
                                     : '–'
                             }}
                         </span>
@@ -645,10 +659,12 @@ function tidePercent(count: number) {
                                 <p
                                     class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]"
                                 >
-                                    {{ snapshot.value.toFixed(1) }}
+                                    {{
+                                        snapshot.displayValue.split(' ')[0]
+                                    }}
                                     <span
                                         class="text-base text-[color:var(--journal-muted)]"
-                                        >{{ snapshot.unit }}</span
+                                        >{{ snapshot.displayUnit }}</span
                                     >
                                 </p>
                             </div>
@@ -663,7 +679,7 @@ function tidePercent(count: number) {
                             <div
                                 class="flex items-center justify-between text-[11px] font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
                             >
-                                <span>0 {{ snapshot.unit }}</span>
+                                <span>0 {{ snapshot.displayUnit }}</span>
                                 <span>{{ snapshot.label }}</span>
                             </div>
                             <div

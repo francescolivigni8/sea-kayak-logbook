@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm, formatSpeedKnots } from '@/lib/units';
 
 interface ProfileSummary {
     name: string;
     homeWater: string;
-    planningUnitSystem: 'metric' | 'marine';
 }
 
 interface SessionStats {
@@ -85,6 +86,7 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+const { unitPreferences } = useUnitPreferences();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
@@ -120,12 +122,6 @@ const visibleSessions = computed(() => {
 const activeCategorySessions = computed(() =>
     activeCategory.value ? visibleSessions.value : [],
 );
-const planningDistanceUnitLabel = computed(() =>
-    props.profile.planningUnitSystem === 'marine' ? 'nm' : 'km',
-);
-const planningSpeedUnitLabel = computed(() =>
-    props.profile.planningUnitSystem === 'marine' ? 'kt' : 'km/h',
-);
 const selectedSessionCount = computed(() => selectedSessionIds.value.length);
 const allVisibleSessionsSelected = computed(
     () =>
@@ -153,7 +149,7 @@ const statCards = computed(() => [
     },
     {
         label: 'Distance',
-        value: `${props.stats.distanceKm.toFixed(1)} km`,
+        value: formatDistanceKm(props.stats.distanceKm, unitPreferences.value),
         detail: 'All-time total',
     },
     {
@@ -184,22 +180,11 @@ function formatMinutes(minutes: number | null): string {
 }
 
 function formatPlanningDistance(distanceKm: number): string {
-    const converted =
-        props.profile.planningUnitSystem === 'marine'
-            ? distanceKm / 1.852
-            : distanceKm;
-
-    return `${converted.toFixed(1)} ${planningDistanceUnitLabel.value}`;
+    return formatDistanceKm(distanceKm, unitPreferences.value);
 }
 
 function formatPlanningSpeed(speedKnots: number): string {
-    const converted =
-        props.profile.planningUnitSystem === 'marine'
-            ? speedKnots
-            : speedKnots * 1.852;
-    const digits = props.profile.planningUnitSystem === 'marine' ? 1 : 0;
-
-    return `${converted.toFixed(digits)} ${planningSpeedUnitLabel.value}`;
+    return formatSpeedKnots(speedKnots, unitPreferences.value);
 }
 
 function submitCategory() {
@@ -589,8 +574,12 @@ watch(visibleSessions, () => {
                                     }}
                                 </span>
                                 <span class="journal-chip">
-                                    {{ activeCategory.distanceKm.toFixed(1) }}
-                                    km
+                                    {{
+                                        formatDistanceKm(
+                                            activeCategory.distanceKm,
+                                            unitPreferences,
+                                        )
+                                    }}
                                 </span>
                                 <button
                                     type="button"
@@ -639,7 +628,12 @@ watch(visibleSessions, () => {
                                     <p
                                         class="mt-1 text-sm font-semibold text-[color:var(--journal-text)]"
                                     >
-                                        {{ session.distanceKm.toFixed(1) }} km
+                                        {{
+                                            formatDistanceKm(
+                                                session.distanceKm,
+                                                unitPreferences,
+                                            )
+                                        }}
                                     </p>
                                 </div>
                                 <div class="journal-soft-card">
@@ -739,7 +733,12 @@ watch(visibleSessions, () => {
                                 <p
                                     class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
                                 >
-                                    {{ category.distanceKm.toFixed(1) }} km
+                                    {{
+                                        formatDistanceKm(
+                                            category.distanceKm,
+                                            unitPreferences,
+                                        )
+                                    }}
                                 </p>
                             </div>
                             <div class="journal-soft-card">
@@ -1204,7 +1203,12 @@ watch(visibleSessions, () => {
                                     <p
                                         class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
                                     >
-                                        {{ session.distanceKm.toFixed(1) }} km
+                                        {{
+                                            formatDistanceKm(
+                                                session.distanceKm,
+                                                unitPreferences,
+                                            )
+                                        }}
                                     </p>
                                 </div>
                                 <div class="journal-soft-card">

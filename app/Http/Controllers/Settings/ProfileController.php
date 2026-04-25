@@ -10,6 +10,7 @@ use App\Models\PlannedSession;
 use App\Models\Profile;
 use App\Models\User;
 use App\Support\SessionMediaService;
+use App\Support\UnitPreferences;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -55,7 +56,7 @@ class ProfileController extends Controller
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
                     'kayaksOwnedText' => implode(', ', data_get($settings, 'kayaks_owned', [])),
                     'paddlesOwnedText' => implode(', ', data_get($settings, 'paddles_owned', [])),
-                    'planningUnitSystem' => (string) data_get($settings, 'planning_unit_system', 'metric'),
+                    'unitPreferences' => UnitPreferences::fromSettings($settings),
                     'defaultMapLat' => (string) data_get($settings, 'default_map_view.lat', '64.1670'),
                     'defaultMapLng' => (string) data_get($settings, 'default_map_view.lng', '-21.8210'),
                     'defaultMapZoom' => (string) data_get($settings, 'default_map_view.zoom', '10'),
@@ -88,10 +89,14 @@ class ProfileController extends Controller
         $settings['kayak_club'] = $this->blankToNull($validated['kayak_club'] ?? null);
         $settings['kayaks_owned'] = $this->explodeManualTags($validated['kayaks_owned_text'] ?? null);
         $settings['paddles_owned'] = $this->explodeManualTags($validated['paddles_owned_text'] ?? null);
-        $planningUnitSystem = $validated['planning_unit_system'] ?? 'metric';
-        $settings['planning_unit_system'] = in_array($planningUnitSystem, ['metric', 'marine'], true)
-            ? $planningUnitSystem
-            : 'metric';
+        $settings['unit_preferences'] = UnitPreferences::sanitize([
+            'distance' => $validated['distance_unit'] ?? null,
+            'speed' => $validated['speed_unit'] ?? null,
+            'wind' => $validated['wind_unit'] ?? null,
+            'current' => $validated['current_unit'] ?? null,
+            'temperature' => $validated['temperature_unit'] ?? null,
+        ], UnitPreferences::fromSettings($settings));
+        $settings['planning_unit_system'] = UnitPreferences::legacyPreset($settings['unit_preferences']);
         $settings['default_map_view'] = [
             'lat' => round((float) ($validated['default_map_lat'] ?? 64.1670), 6),
             'lng' => round((float) ($validated['default_map_lng'] ?? -21.8210), 6),

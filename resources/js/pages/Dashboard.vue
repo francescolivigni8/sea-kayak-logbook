@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
@@ -118,14 +120,18 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+const { unitPreferences } = useUnitPreferences();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
 
 const expeditionCards = computed(() => [
     {
-        label: 'Total expedition km',
-        value: `${props.expeditionSummary.distanceKm.toFixed(1)} km`,
+        label: 'Total expedition distance',
+        value: formatDistanceKm(
+            props.expeditionSummary.distanceKm,
+            unitPreferences.value,
+        ),
         detail: 'Tagged sessions, still counted in full totals',
     },
     {

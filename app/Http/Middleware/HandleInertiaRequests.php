@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\UnitPreferences;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,9 +37,11 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $journalNav = null;
+        $unitPreferences = UnitPreferences::defaults();
 
         if ($request->user()) {
             $profile = $request->user()->resolveActiveProfile();
+            $unitPreferences = UnitPreferences::fromSettings($profile->settings ?? []);
             $currentYear = now($profile->timezone)->year;
             $baseSessions = $profile->sessions();
             $sessionCount = (clone $baseSessions)->count();
@@ -65,6 +68,7 @@ class HandleInertiaRequests extends Middleware
             'ownerTools' => [
                 'canViewUsers' => $request->user()?->canViewOwnerTools() ?? false,
             ],
+            'unitPreferences' => $unitPreferences,
             'integrations' => [
                 'maps' => [
                     'provider' => config('services.maps.provider'),

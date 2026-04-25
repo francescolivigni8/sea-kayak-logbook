@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    KM_PER_NAUTICAL_MILE,
+    convertDistanceKm,
+    formatCurrentValue,
+    formatDistanceKm,
+    formatTemperatureValue,
+    formatWindValue,
+} from '@/lib/units';
 import { dashboard } from '@/routes';
 
 interface ProfileSummary {
@@ -8,7 +17,6 @@ interface ProfileSummary {
     slug: string;
     homeWater: string;
     timezone: string;
-    planningUnitSystem: 'metric' | 'marine';
     hasCustomDefaultMapView: boolean;
     defaultMapView: {
         lat: number;
@@ -187,7 +195,6 @@ const LAUNCH_FORECAST_KEY = 'launch';
 const AREA_FORECAST_KEY = 'area';
 const LANDING_FORECAST_KEY = 'landing';
 const MAX_FORECAST_OFFSET_MINUTES = 1440;
-const KM_PER_NAUTICAL_MILE = 1.852;
 const PlanningWeatherMap = defineAsyncComponent(
     () => import('@/components/maps/PlanningWeatherMap.vue'),
 );
@@ -204,6 +211,14 @@ const page = usePage();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
+const {
+    unitPreferences,
+    distanceUnitLabel,
+    speedUnitLabel,
+    windUnitLabel,
+    currentUnitLabel,
+    temperatureUnitLabel,
+} = useUnitPreferences();
 
 defineOptions({
     layout: {
@@ -272,27 +287,14 @@ const saveForm = useForm({
     notes: '',
 });
 
-const unitSystem = computed<'metric' | 'marine'>(() =>
-    props.profile.planningUnitSystem === 'marine' ? 'marine' : 'metric',
-);
-const distanceUnitLabel = computed(() =>
-    unitSystem.value === 'marine' ? 'nm' : 'km',
-);
-const speedUnitLabel = computed(() =>
-    unitSystem.value === 'marine' ? 'kt' : 'km/h',
-);
-const windBoardUnitLabel = computed(() =>
-    unitSystem.value === 'marine' ? 'kt' : 'km/h',
-);
-const currentUnitLabel = computed(() =>
-    unitSystem.value === 'marine' ? 'kt' : 'km/h',
-);
 const speedDisplayValue = computed({
     get() {
         const knots = Math.max(parseFloat(speedKnots.value) || 0, 0);
 
         return formatEditableNumber(
-            unitSystem.value === 'marine' ? knots : knots * KM_PER_NAUTICAL_MILE,
+            unitPreferences.value.speed === 'kt'
+                ? knots
+                : knots * KM_PER_NAUTICAL_MILE,
         );
     },
     set(value: string) {
@@ -311,7 +313,7 @@ const speedDisplayValue = computed({
         }
 
         const knots =
-            unitSystem.value === 'marine'
+            unitPreferences.value.speed === 'kt'
                 ? parsed
                 : parsed / KM_PER_NAUTICAL_MILE;
 
@@ -677,7 +679,7 @@ const windValidationNotice = computed(() => {
     const secondaryGust = formatWindSpeed(validation.secondaryWindGustMs);
 
     if (validation.status === 'uncertain' && validation.secondaryProvider) {
-        return `${primary} shows avg ${primaryAvg} ${windBoardUnitLabel.value} and gust ${primaryGust} ${windBoardUnitLabel.value}, while ${secondary} shows avg ${secondaryAvg} and gust ${secondaryGust}. Gust impact is being held back until a local forecast agrees.`;
+        return `${primary} shows avg ${primaryAvg} ${windUnitLabel.value} and gust ${primaryGust} ${windUnitLabel.value}, while ${secondary} shows avg ${secondaryAvg} and gust ${secondaryGust}. Gust impact is being held back until a local forecast agrees.`;
     }
 
     if (validation.status === 'watch' && validation.secondaryProvider) {
@@ -862,38 +864,19 @@ function formatEditableNumber(value: number): string {
 }
 
 function toDisplayDistance(km: number): number {
-    return unitSystem.value === 'marine' ? km / KM_PER_NAUTICAL_MILE : km;
+    return convertDistanceKm(km, unitPreferences.value);
 }
 
 function formatDistance(km: number, digits = 1): string {
-    return `${toDisplayDistance(km).toFixed(digits)} ${distanceUnitLabel.value}`;
+    return formatDistanceKm(km, unitPreferences.value, digits);
 }
 
 function formatWindSpeed(value?: number | null): string {
-    if (value === null || value === undefined) {
-        return '—';
-    }
-
-    const converted =
-        unitSystem.value === 'marine'
-            ? value * 1.943844
-            : value * 3.6;
-    const digits = unitSystem.value === 'marine' ? 1 : 0;
-
-    return converted.toFixed(digits);
+    return formatWindValue(value, unitPreferences.value);
 }
 
 function formatCurrentSpeed(value?: number | null): string {
-    if (value === null || value === undefined) {
-        return '—';
-    }
-
-    const converted =
-        unitSystem.value === 'marine'
-            ? value
-            : value * KM_PER_NAUTICAL_MILE;
-
-    return converted.toFixed(1);
+    return formatCurrentValue(value, unitPreferences.value);
 }
 
 function fieldLabel(value?: number | string | null, suffix = ''): string {
@@ -1492,7 +1475,6 @@ watch(
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
                     :sample-time-label="areaSampleTimeLabel"
-                    :unit-system="unitSystem"
                     height-class="h-[760px] lg:h-[920px]"
                 />
             </div>
@@ -1560,7 +1542,7 @@ watch(
                                 class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
                             >
                                 {{
-                                    unitSystem === 'marine'
+                                    unitPreferences.speed === 'kt'
                                         ? 'Saved internally in knots for route timing and GPX export.'
                                         : 'Metric mode keeps speed and distance aligned while you plan.'
                                 }}
@@ -1789,9 +1771,9 @@ watch(
                                 </p>
                                 <p class="mt-1 text-xs font-semibold text-[color:var(--journal-muted)]">
                                     Avg {{ formatWindSpeed(card.forecast.fields?.wind_avg_ms) }}
-                                    {{ windBoardUnitLabel }} · gust
+                                    {{ windUnitLabel }} · gust
                                     {{ formatWindSpeed(card.forecast.fields?.wind_gust_ms) }}
-                                    {{ windBoardUnitLabel }}
+                                    {{ windUnitLabel }}
                                 </p>
                             </div>
                             <p
@@ -1879,13 +1861,13 @@ watch(
                                             areaForecast.fields?.wind_avg_ms,
                                         )
                                     }}
-                                    {{ windBoardUnitLabel }} · gust
+                                    {{ windUnitLabel }} · gust
                                     {{
                                         formatWindSpeed(
                                             areaForecast.fields?.wind_gust_ms,
                                         )
                                     }}
-                                    {{ windBoardUnitLabel }}
+                                    {{ windUnitLabel }}
                                 </p>
                             </div>
                         </div>
@@ -2002,7 +1984,7 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    avg {{ windBoardUnitLabel }}
+                                    avg {{ windUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
@@ -2051,7 +2033,7 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    model gust {{ windBoardUnitLabel }}
+                                    model gust {{ windUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
@@ -2074,14 +2056,19 @@ watch(
                                 <div
                                     class="bg-white px-2 py-2 text-right text-[color:var(--journal-muted)]"
                                 >
-                                    temp C
+                                    temp {{ temperatureUnitLabel }}
                                 </div>
                                 <div
                                     v-for="slot in forecastTimeline"
                                     :key="`temp-${slot.time}`"
                                     class="bg-sky-50 px-1 py-2 text-center font-semibold text-slate-700"
                                 >
-                                    {{ compactNumber(slot.fields?.air_temp_c) }}
+                                    {{
+                                        formatTemperatureValue(
+                                            slot.fields?.air_temp_c,
+                                            unitPreferences,
+                                        )
+                                    }}
                                 </div>
                             </div>
 

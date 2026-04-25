@@ -39,7 +39,8 @@ class PlanningTest extends TestCase
                 ->where('profile.defaultMapView.lat', 65.6885)
                 ->where('profile.defaultMapView.lng', -18.1262)
                 ->where('profile.defaultMapView.zoom', 12)
-                ->where('profile.planningUnitSystem', 'metric')
+                ->where('unitPreferences.distance', 'km')
+                ->where('unitPreferences.speed', 'kmh')
                 ->where('weatherAutofillAvailable', true));
     }
 

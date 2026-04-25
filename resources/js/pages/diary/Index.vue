@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 
 interface ProfileSummary {
     name: string;
@@ -40,6 +42,7 @@ const props = defineProps<{
     stats: DiaryStats;
     entries: DiaryEntry[];
 }>();
+const { unitPreferences } = useUnitPreferences();
 
 const entryMap = computed(() => {
     const grouped = new Map<string, DiaryEntry[]>();
@@ -243,7 +246,12 @@ function stepMonth(direction: -1 | 1) {
 
                     <div class="mt-4 grid gap-2">
                         <span class="journal-chip"
-                            >{{ monthSummary.distanceKm.toFixed(1) }} km</span
+                            >{{
+                                formatDistanceKm(
+                                    monthSummary.distanceKm,
+                                    unitPreferences,
+                                )
+                            }}</span
                         >
                         <span class="journal-chip"
                             >{{ props.stats.paddledDays }} paddled days</span
@@ -414,11 +422,11 @@ function stepMonth(direction: -1 | 1) {
                                     class="mt-3 text-2xl font-semibold text-[color:var(--journal-text)]"
                                 >
                                     {{
-                                        selectedPrimaryEntry.distanceKm.toFixed(
-                                            1,
+                                        formatDistanceKm(
+                                            selectedPrimaryEntry.distanceKm,
+                                            unitPreferences,
                                         )
                                     }}
-                                    km
                                 </p>
                             </article>
                             <article
@@ -479,11 +487,11 @@ function stepMonth(direction: -1 | 1) {
                                             class="mt-1 text-base font-semibold text-[color:var(--journal-text)]"
                                         >
                                             {{
-                                                selectedPrimaryEntry.distanceKm.toFixed(
-                                                    1,
+                                                formatDistanceKm(
+                                                    selectedPrimaryEntry.distanceKm,
+                                                    unitPreferences,
                                                 )
                                             }}
-                                            km
                                         </p>
                                     </div>
                                     <div>
@@ -627,7 +635,12 @@ function stepMonth(direction: -1 | 1) {
                                                 profile.homeWater
                                             }}
                                             ·
-                                            {{ entry.distanceKm.toFixed(1) }} km
+                                            {{
+                                                formatDistanceKm(
+                                                    entry.distanceKm,
+                                                    unitPreferences,
+                                                )
+                                            }}
                                         </p>
                                     </div>
                                     <Link

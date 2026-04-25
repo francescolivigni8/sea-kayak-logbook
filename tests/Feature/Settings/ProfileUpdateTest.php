@@ -57,7 +57,11 @@ class ProfileUpdateTest extends TestCase
                 'kayak_club' => 'Brokey Kayak Club',
                 'kayaks_owned_text' => 'Valley Etain 17-7, P&H Scorpio MV',
                 'paddles_owned_text' => 'Werner Cyprus, Gearlab Kalleq',
-                'planning_unit_system' => 'marine',
+                'distance_unit' => 'nm',
+                'speed_unit' => 'kt',
+                'wind_unit' => 'ms',
+                'current_unit' => 'kt',
+                'temperature_unit' => 'f',
                 'default_map_lat' => '65.688500',
                 'default_map_lng' => '-18.126200',
                 'default_map_zoom' => '12',
@@ -77,6 +81,13 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Brokey Kayak Club', data_get($profile->settings, 'kayak_club'));
         $this->assertSame(['Valley Etain 17-7', 'P&H Scorpio MV'], data_get($profile->settings, 'kayaks_owned'));
         $this->assertSame(['Werner Cyprus', 'Gearlab Kalleq'], data_get($profile->settings, 'paddles_owned'));
+        $this->assertSame([
+            'distance' => 'nm',
+            'speed' => 'kt',
+            'wind' => 'ms',
+            'current' => 'kt',
+            'temperature' => 'f',
+        ], data_get($profile->settings, 'unit_preferences'));
         $this->assertSame('marine', data_get($profile->settings, 'planning_unit_system'));
         $this->assertSame(65.6885, data_get($profile->settings, 'default_map_view.lat'));
         $this->assertSame(-18.1262, data_get($profile->settings, 'default_map_view.lng'));

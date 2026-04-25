@@ -11,6 +11,13 @@ import TwoFactorRecoveryCodes from '@/components/TwoFactorRecoveryCodes.vue';
 import TwoFactorSetupModal from '@/components/TwoFactorSetupModal.vue';
 import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
+import type {
+    CurrentUnit,
+    DistanceUnit,
+    SpeedUnit,
+    TemperatureUnit,
+    WindUnit,
+} from '@/lib/units';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { update as updateProfile } from '@/routes/profile';
 import { disable, enable } from '@/routes/two-factor';
@@ -37,7 +44,13 @@ type Props = {
             kayakClub: string;
             kayaksOwnedText: string;
             paddlesOwnedText: string;
-            planningUnitSystem: 'metric' | 'marine';
+            unitPreferences: {
+                distance: DistanceUnit;
+                speed: SpeedUnit;
+                wind: WindUnit;
+                current: CurrentUnit;
+                temperature: TemperatureUnit;
+            };
             defaultMapLat: string;
             defaultMapLng: string;
             defaultMapZoom: string;
@@ -62,10 +75,40 @@ defineOptions({
 
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
 const showSetupModal = ref(false);
-const planningUnitSystem = ref(profile.value.settings.planningUnitSystem);
+const distanceUnit = ref(profile.value.settings.unitPreferences.distance);
+const speedUnit = ref(profile.value.settings.unitPreferences.speed);
+const windUnit = ref(profile.value.settings.unitPreferences.wind);
+const currentUnit = ref(profile.value.settings.unitPreferences.current);
+const temperatureUnit = ref(profile.value.settings.unitPreferences.temperature);
 const defaultMapLat = ref(profile.value.settings.defaultMapLat);
 const defaultMapLng = ref(profile.value.settings.defaultMapLng);
 const defaultMapZoom = ref(profile.value.settings.defaultMapZoom);
+
+const distanceUnitOptions: Array<{ value: DistanceUnit; label: string }> = [
+    { value: 'km', label: 'Kilometres (km)' },
+    { value: 'nm', label: 'Nautical miles (nm)' },
+];
+const speedUnitOptions: Array<{ value: SpeedUnit; label: string }> = [
+    { value: 'kmh', label: 'Kilometres per hour (km/h)' },
+    { value: 'kt', label: 'Knots (kt)' },
+];
+const windUnitOptions: Array<{ value: WindUnit; label: string }> = [
+    { value: 'ms', label: 'Metres per second (m/s)' },
+    { value: 'kmh', label: 'Kilometres per hour (km/h)' },
+    { value: 'kt', label: 'Knots (kt)' },
+];
+const currentUnitOptions: Array<{ value: CurrentUnit; label: string }> = [
+    { value: 'kt', label: 'Knots (kt)' },
+    { value: 'kmh', label: 'Kilometres per hour (km/h)' },
+    { value: 'ms', label: 'Metres per second (m/s)' },
+];
+const temperatureUnitOptions: Array<{
+    value: TemperatureUnit;
+    label: string;
+}> = [
+    { value: 'c', label: 'Celsius (C)' },
+    { value: 'f', label: 'Fahrenheit (F)' },
+];
 
 onUnmounted(() => clearTwoFactorAuthData());
 
@@ -280,80 +323,134 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
 
                             <article class="journal-soft-card md:col-span-2">
                                 <Label class="journal-field-label"
-                                    >Planning units</Label
+                                    >Units used around the journal</Label
                                 >
                                 <p
                                     class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
                                 >
-                                    Keep planning consistent: metric uses
-                                    kilometres and km/h, marine uses nautical
-                                    miles and knots.
+                                    Set each measurement separately instead of
+                                    locking the app into one preset. These
+                                    preferences are used anywhere the journal
+                                    shows distance, speed, wind, current, and
+                                    temperature.
                                 </p>
 
-                                <div
-                                    class="mt-4 grid gap-3 md:grid-cols-2"
-                                    role="radiogroup"
-                                    aria-label="Planning units"
-                                >
-                                    <label
-                                        class="journal-soft-card cursor-pointer border-2 transition"
-                                        :class="
-                                            planningUnitSystem === 'metric'
-                                                ? 'border-[color:var(--journal-accent)] bg-white'
-                                                : 'border-transparent'
-                                        "
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="planning_unit_system"
-                                            value="metric"
-                                            class="sr-only"
-                                            :checked="planningUnitSystem === 'metric'"
-                                            @change="planningUnitSystem = 'metric'"
+                                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                    <label class="journal-soft-card">
+                                        <span class="journal-field-label"
+                                            >Distance</span
+                                        >
+                                        <select
+                                            v-model="distanceUnit"
+                                            name="distance_unit"
+                                            class="journal-input mt-3"
+                                        >
+                                            <option
+                                                v-for="option in distanceUnitOptions"
+                                                :key="option.value"
+                                                :value="option.value"
+                                            >
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.distance_unit"
                                         />
-                                        <span
-                                            class="text-sm font-semibold text-[color:var(--journal-text)]"
-                                            >Metric</span
-                                        >
-                                        <span
-                                            class="mt-2 block text-sm leading-6 text-[color:var(--journal-muted)]"
-                                            >Distance in km, speed in km/h,
-                                            wind board in km/h.</span
-                                        >
                                     </label>
 
-                                    <label
-                                        class="journal-soft-card cursor-pointer border-2 transition"
-                                        :class="
-                                            planningUnitSystem === 'marine'
-                                                ? 'border-[color:var(--journal-accent)] bg-white'
-                                                : 'border-transparent'
-                                        "
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="planning_unit_system"
-                                            value="marine"
-                                            class="sr-only"
-                                            :checked="planningUnitSystem === 'marine'"
-                                            @change="planningUnitSystem = 'marine'"
+                                    <label class="journal-soft-card">
+                                        <span class="journal-field-label"
+                                            >Paddling speed</span
+                                        >
+                                        <select
+                                            v-model="speedUnit"
+                                            name="speed_unit"
+                                            class="journal-input mt-3"
+                                        >
+                                            <option
+                                                v-for="option in speedUnitOptions"
+                                                :key="option.value"
+                                                :value="option.value"
+                                            >
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.speed_unit"
                                         />
-                                        <span
-                                            class="text-sm font-semibold text-[color:var(--journal-text)]"
-                                            >Marine</span
+                                    </label>
+
+                                    <label class="journal-soft-card">
+                                        <span class="journal-field-label"
+                                            >Wind</span
                                         >
-                                        <span
-                                            class="mt-2 block text-sm leading-6 text-[color:var(--journal-muted)]"
-                                            >Distance in nautical miles, speed
-                                            in knots, wind board in knots.</span
+                                        <select
+                                            v-model="windUnit"
+                                            name="wind_unit"
+                                            class="journal-input mt-3"
                                         >
+                                            <option
+                                                v-for="option in windUnitOptions"
+                                                :key="option.value"
+                                                :value="option.value"
+                                            >
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.wind_unit"
+                                        />
+                                    </label>
+
+                                    <label class="journal-soft-card">
+                                        <span class="journal-field-label"
+                                            >Current</span
+                                        >
+                                        <select
+                                            v-model="currentUnit"
+                                            name="current_unit"
+                                            class="journal-input mt-3"
+                                        >
+                                            <option
+                                                v-for="option in currentUnitOptions"
+                                                :key="option.value"
+                                                :value="option.value"
+                                            >
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.current_unit"
+                                        />
+                                    </label>
+
+                                    <label class="journal-soft-card md:col-span-2">
+                                        <span class="journal-field-label"
+                                            >Temperature</span
+                                        >
+                                        <select
+                                            v-model="temperatureUnit"
+                                            name="temperature_unit"
+                                            class="journal-input mt-3"
+                                        >
+                                            <option
+                                                v-for="option in temperatureUnitOptions"
+                                                :key="option.value"
+                                                :value="option.value"
+                                            >
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.temperature_unit"
+                                        />
                                     </label>
                                 </div>
-
-                                <InputError
-                                    class="mt-2"
-                                    :message="errors.planning_unit_system"
-                                />
                             </article>
 
                             <article class="journal-soft-card md:col-span-2">

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 
 interface ProfileSummary {
@@ -83,11 +85,12 @@ const props = defineProps<{
     photos: PlacePhoto[];
     sessions: PlaceSession[];
 }>();
+const { unitPreferences } = useUnitPreferences();
 
 const cards = computed(() => [
     {
         label: 'Distance here',
-        value: `${props.place.distanceKm.toFixed(1)} km`,
+        value: formatDistanceKm(props.place.distanceKm, unitPreferences.value),
         detail: 'Expedition distance logged at this place',
     },
     {
@@ -299,7 +302,12 @@ const cards = computed(() => [
                                     <p
                                         class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
                                     >
-                                        {{ session.distanceKm.toFixed(1) }} km
+                                        {{
+                                            formatDistanceKm(
+                                                session.distanceKm,
+                                                unitPreferences,
+                                            )
+                                        }}
                                     </p>
                                 </div>
                                 <div

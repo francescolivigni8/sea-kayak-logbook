@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, watch } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import { formatDistanceKm } from '@/lib/units';
 import { capturePageview, initProductAnalytics } from '@/lib/productAnalytics';
 
 type JournalNavShape = {
@@ -25,6 +27,7 @@ type IntegrationsShape = {
 };
 
 const page = usePage();
+const { unitPreferences } = useUnitPreferences();
 
 const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
 const journalNav = computed(
@@ -202,12 +205,17 @@ watch(
                                     {{
                                         journalNav?.thisYearDistanceKm !==
                                         undefined
-                                            ? journalNav.thisYearDistanceKm.toFixed(
+                                            ? formatDistanceKm(
+                                                  journalNav.thisYearDistanceKm,
+                                                  unitPreferences,
                                                   0,
                                               )
-                                            : '0'
+                                            : formatDistanceKm(
+                                                  0,
+                                                  unitPreferences,
+                                                  0,
+                                              )
                                     }}
-                                    km
                                 </span>
                             </div>
                         </div>

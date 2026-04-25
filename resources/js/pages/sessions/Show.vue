@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    formatCurrentKnots,
+    formatDistanceKm,
+    formatSpeedKmh,
+    formatTemperatureC,
+    formatWindMs,
+} from '@/lib/units';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
 import { dashboard } from '@/routes';
 
@@ -117,6 +125,7 @@ const props = defineProps<{
     session: SessionDetail;
 }>();
 
+const { unitPreferences } = useUnitPreferences();
 const activeTab = ref<DetailTab>('stats');
 
 const sessionSubtitle = computed(() =>
@@ -151,7 +160,7 @@ const heroChips = computed(
 const statCards = computed(() => [
     {
         label: 'Distance',
-        value: `${props.session.distanceKm.toFixed(1)} km`,
+        value: formatDistanceKm(props.session.distanceKm, unitPreferences.value),
         detail: 'Journey',
         style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sea) 18%, transparent), var(--journal-metric-bg))',
     },
@@ -165,7 +174,10 @@ const statCards = computed(() => [
         label: 'Avg speed',
         value:
             props.session.averageSpeedKmh !== null
-                ? `${props.session.averageSpeedKmh.toFixed(1)} km/h`
+                ? formatSpeedKmh(
+                      props.session.averageSpeedKmh,
+                      unitPreferences.value,
+                  )
                 : '—',
         detail: 'Moving pace on the water',
         style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-sand) 18%, transparent), var(--journal-metric-bg))',
@@ -174,9 +186,9 @@ const statCards = computed(() => [
         label: 'Wind',
         value:
             props.session.beaufort !== null
-                ? `F${props.session.beaufort}${props.session.windAvgMs !== null ? ` / ${props.session.windAvgMs.toFixed(1)} m/s` : ''}`
+                ? `F${props.session.beaufort}${props.session.windAvgMs !== null ? ` / ${formatWindMs(props.session.windAvgMs, unitPreferences.value)}` : ''}`
                 : props.session.windAvgMs !== null
-                  ? `${props.session.windAvgMs.toFixed(1)} m/s`
+                  ? formatWindMs(props.session.windAvgMs, unitPreferences.value)
                   : '—',
         detail: 'Sea state snapshot',
         style: 'linear-gradient(135deg, color-mix(in srgb, var(--journal-private) 18%, transparent), var(--journal-metric-bg))',
@@ -206,17 +218,17 @@ const conditionFacts = computed(
     () =>
         [
             props.session.windAvgMs !== null
-                ? `Wind ${props.session.windAvgMs.toFixed(1)} m/s`
+                ? `Wind ${formatWindMs(props.session.windAvgMs, unitPreferences.value)}`
                 : null,
             props.session.windGustMs !== null
-                ? `Gusts ${props.session.windGustMs.toFixed(1)} m/s`
+                ? `Gusts ${formatWindMs(props.session.windGustMs, unitPreferences.value)}`
                 : null,
             props.session.beaufort !== null
                 ? `F${props.session.beaufort}`
                 : null,
             props.session.tideState ? `Tide ${props.session.tideState}` : null,
             props.session.currentKnots !== null
-                ? `Current ${props.session.currentKnots.toFixed(1)} kt`
+                ? `Current ${formatCurrentKnots(props.session.currentKnots, unitPreferences.value)}`
                 : null,
             props.session.waveHeightM !== null
                 ? `Wave ${props.session.waveHeightM.toFixed(1)} m`
@@ -228,10 +240,10 @@ const conditionFacts = computed(
                 ? `Period ${props.session.swellPeriodS.toFixed(0)} s`
                 : null,
             props.session.airTempC !== null
-                ? `Air ${props.session.airTempC.toFixed(1)} C`
+                ? `Air ${formatTemperatureC(props.session.airTempC, unitPreferences.value)}`
                 : null,
             props.session.seaTempC !== null
-                ? `Sea ${props.session.seaTempC.toFixed(1)} C`
+                ? `Sea ${formatTemperatureC(props.session.seaTempC, unitPreferences.value)}`
                 : null,
             props.session.visibilityCode
                 ? `Visibility ${props.session.visibilityCode}`
@@ -285,7 +297,7 @@ const seaFacts = computed(() => [
         label: 'Wind',
         value:
             props.session.windAvgMs !== null
-                ? `${props.session.windAvgMs.toFixed(1)} m/s${props.session.beaufort !== null ? ` / F${props.session.beaufort}` : ''}`
+                ? `${formatWindMs(props.session.windAvgMs, unitPreferences.value)}${props.session.beaufort !== null ? ` / F${props.session.beaufort}` : ''}`
                 : '—',
     },
     { label: 'Tide', value: props.session.tideState ?? '—' },
@@ -293,7 +305,10 @@ const seaFacts = computed(() => [
         label: 'Current',
         value:
             props.session.currentKnots !== null
-                ? `${props.session.currentKnots.toFixed(1)} kt`
+                ? formatCurrentKnots(
+                      props.session.currentKnots,
+                      unitPreferences.value,
+                  )
                 : '—',
     },
     {
@@ -305,7 +320,7 @@ const seaFacts = computed(() => [
     },
     {
         label: 'Temps',
-        value: `${props.session.airTempC !== null ? `${props.session.airTempC.toFixed(1)} C air` : '—'} / ${props.session.seaTempC !== null ? `${props.session.seaTempC.toFixed(1)} C sea` : '—'}`,
+        value: `${props.session.airTempC !== null ? `${formatTemperatureC(props.session.airTempC, unitPreferences.value)} air` : '—'} / ${props.session.seaTempC !== null ? `${formatTemperatureC(props.session.seaTempC, unitPreferences.value)} sea` : '—'}`,
     },
     {
         label: 'Summary',

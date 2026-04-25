@@ -15,11 +15,16 @@ import {
     ref,
     watch,
 } from 'vue';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    formatDistanceKm,
+    formatTemperatureC,
+    formatWindMs,
+} from '@/lib/units';
 
 type CoordinateValue = string | number | null;
 type WeatherLayerKey = 'wind' | 'precipitation' | 'temperature';
 type WeatherAnimationPresetKey = 'calm' | 'normal' | 'scan';
-type PlanningUnitSystem = 'metric' | 'marine';
 type MappableLayer = Parameters<maptilersdk.Map['addLayer']>[0] & {
     id: string;
     animateByFactor?: (factor: number) => void;
@@ -91,7 +96,6 @@ const props = withDefaults(
         defaultView?: DefaultView;
         heightClass?: string;
         sampleTimeLabel?: string;
-        unitSystem?: PlanningUnitSystem;
     }>(),
     {
         launchLat: null,
@@ -106,7 +110,6 @@ const props = withDefaults(
         }),
         heightClass: 'h-[720px] lg:h-[900px]',
         sampleTimeLabel: 'Start',
-        unitSystem: 'metric',
     },
 );
 
@@ -128,6 +131,7 @@ const routePointLayerId = 'ykj-planning-weather-points';
 const routePointLabelLayerId = 'ykj-planning-weather-point-labels';
 
 const page = usePage();
+const { unitPreferences } = useUnitPreferences();
 const activeLayer = ref<WeatherLayerKey>('wind');
 const activeAnimationPreset = ref<WeatherAnimationPresetKey>('normal');
 const weatherVisibilityPercent = ref(92);
@@ -448,9 +452,6 @@ const routeGeoJson = computed(() => {
 });
 
 const activeLegend = computed(() => legends[activeLayer.value]);
-const distanceUnitLabel = computed(() =>
-    props.unitSystem === 'marine' ? 'nm' : 'km',
-);
 
 const routeSummary = computed(() => {
     if (routePoints.value.length < 2) {
@@ -651,22 +652,15 @@ function bearingDeg(left: RouteWaypoint, right: RouteWaypoint): number {
 }
 
 function formatSegmentDistance(distanceKm: number): string {
-    if (props.unitSystem === 'marine') {
-        return `${(distanceKm / 1.852).toFixed(1)} nm`;
-    }
-
-    if (distanceKm < 1) {
+    if (unitPreferences.value.distance === 'km' && distanceKm < 1) {
         return `${Math.round(distanceKm * 1000)} m`;
     }
 
-    return `${distanceKm.toFixed(1)} km`;
+    return formatDistanceKm(distanceKm, unitPreferences.value, 1);
 }
 
 function formatRouteDistance(distanceKm: number): string {
-    const converted =
-        props.unitSystem === 'marine' ? distanceKm / 1.852 : distanceKm;
-
-    return `${converted.toFixed(1)} ${distanceUnitLabel.value}`;
+    return formatDistanceKm(distanceKm, unitPreferences.value, 1);
 }
 
 function weatherLayerLabel(layer: WeatherLayerKey): string {
@@ -943,14 +937,11 @@ function formatWeatherProbe(picked: unknown): string | null {
             return null;
         }
 
-        const displayWind =
-            props.unitSystem === 'marine'
-                ? `Wind ${(speedMetersPerSecond * 1.943844).toFixed(1)} kt`
-                : `Wind ${(speedMetersPerSecond * 3.6).toFixed(0)} km/h`;
+        const displayWind = `Wind ${formatWindMs(speedMetersPerSecond, unitPreferences.value)}`;
 
         return [
             displayWind,
-            props.unitSystem === 'marine' || speedKnots === null
+            unitPreferences.value.wind === 'kt' || speedKnots === null
                 ? null
                 : `${speedKnots.toFixed(1)} kt marine`,
             compassDirection,
@@ -966,7 +957,7 @@ function formatWeatherProbe(picked: unknown): string | null {
     }
 
     if (activeLayer.value === 'temperature') {
-        return `Air ${value.toFixed(1)} C`;
+        return `Air ${formatTemperatureC(value, unitPreferences.value)}`;
     }
 
     if (activeLayer.value === 'precipitation') {
