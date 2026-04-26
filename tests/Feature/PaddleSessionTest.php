@@ -113,9 +113,9 @@ class PaddleSessionTest extends TestCase
             ->get(route('sessions.create'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('formDefaults.title', 'Evening harbor loop')
-                ->where('formDefaults.area_name', 'Faxafloi')
-                ->where('formDefaults.launch_name', 'Grotta')
+                ->where('formDefaults.title', '')
+                ->where('formDefaults.area_name', '')
+                ->where('formDefaults.launch_name', '')
                 ->where('quickEntryMemory.prefill.title', 'Evening harbor loop')
                 ->where('quickEntryMemory.prefill.areaName', 'Faxafloi')
                 ->where('quickEntryMemory.prefill.placeName', 'Grotta')

@@ -72,7 +72,7 @@ class PaddleSessionController extends Controller
         return Inertia::render('sessions/Create', [
             'profile' => $this->mapProfile($profile),
             'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
-            'formDefaults' => $this->formDefaults($profile, null, $quickEntryMemory),
+            'formDefaults' => $this->formDefaults($profile),
             'quickEntryMemory' => $quickEntryMemory,
             'existingAssets' => [
                 'gpxName' => null,
@@ -172,6 +172,7 @@ class PaddleSessionController extends Controller
             'initialStep' => $this->resolveInitialStep($request),
             'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
             'formDefaults' => $this->formDefaults($profile, $session),
+            'quickEntryMemory' => $this->quickEntryMemory($profile, $session),
             'existingAssets' => [
                 'gpxName' => $session->garmin_gpx_name,
                 'fitName' => $session->garmin_fit_name,
@@ -385,24 +386,19 @@ class PaddleSessionController extends Controller
         ];
     }
 
-    private function formDefaults(Profile $profile, ?PaddleSession $session = null, ?array $quickEntryMemory = null): array
+    private function formDefaults(Profile $profile, ?PaddleSession $session = null): array
     {
-        $quickEntryMemory ??= $this->quickEntryMemory($profile, $session);
-        $quickPrefill = $session === null
-            ? data_get($quickEntryMemory, 'prefill', [])
-            : [];
-
         return [
-            'title' => $session?->title ?? data_get($quickPrefill, 'title', ''),
+            'title' => $session?->title ?? '',
             'session_date' => optional($session?->session_date)->toDateString() ?? now()->setTimezone($profile->timezone)->toDateString(),
             'start_time_local' => $session?->start_at ? $session->start_at->setTimezone($profile->timezone)->format('H:i') : '',
-            'launch_name' => $session?->launch_name ?? data_get($quickPrefill, 'placeName', ''),
+            'launch_name' => $session?->launch_name ?? '',
             'launch_lat' => $session?->launch_lat !== null ? (string) $session->launch_lat : '',
             'launch_lng' => $session?->launch_lng !== null ? (string) $session->launch_lng : '',
             'landing_name' => $session?->landing_name ?? '',
             'landing_lat' => $session?->landing_lat !== null ? (string) $session->landing_lat : '',
             'landing_lng' => $session?->landing_lng !== null ? (string) $session->landing_lng : '',
-            'area_name' => $session?->area_name ?? data_get($quickPrefill, 'areaName', ''),
+            'area_name' => $session?->area_name ?? '',
             'route_category' => $session?->route_category ?? 'journey',
             'body_of_water' => $session?->body_of_water ?? 'sea',
             'kayak_used' => $session?->kayak_used ?? '',

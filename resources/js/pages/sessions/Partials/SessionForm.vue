@@ -364,6 +364,22 @@ watch(
 );
 
 watch(
+    isQuickMode,
+    (enabled, wasEnabled) => {
+        if (enabled) {
+            applyQuickPrefill();
+
+            return;
+        }
+
+        if (wasEnabled) {
+            clearAutoQuickPrefillForExtended();
+        }
+    },
+    { immediate: true },
+);
+
+watch(
     () => form.autofill_weather,
     (enabled) => {
         if (!enabled) {
@@ -447,6 +463,7 @@ const quickAreaSuggestions = computed(
 const quickPlaceSuggestions = computed(
     () => props.quickEntryMemory?.suggestions.places ?? [],
 );
+const quickPrefill = computed(() => props.quickEntryMemory?.prefill ?? null);
 const hasQuickPrefill = computed(
     () =>
         props.mode === 'create' &&
@@ -456,6 +473,9 @@ const hasQuickPrefill = computed(
                 props.quickEntryMemory?.prefill.placeName,
         ),
 );
+const quickPrefillAppliedFields = ref<
+    Partial<Record<'title' | 'area_name' | 'launch_name', boolean>>
+>({});
 const pageDescription = computed(() =>
     props.mode === 'create'
         ? isQuickMode.value
@@ -859,6 +879,56 @@ function previousStep() {
 function setSessionEntryMode(mode: SessionEntryMode) {
     sessionEntryMode.value = mode;
     currentStep.value = 0;
+}
+
+function applyQuickPrefill() {
+    if (props.mode !== 'create' || !quickPrefill.value) {
+        return;
+    }
+
+    if (!form.title && quickPrefill.value.title) {
+        form.title = quickPrefill.value.title;
+        quickPrefillAppliedFields.value.title = true;
+    }
+
+    if (!form.area_name && quickPrefill.value.areaName) {
+        form.area_name = quickPrefill.value.areaName;
+        quickPrefillAppliedFields.value.area_name = true;
+    }
+
+    if (!form.launch_name && quickPrefill.value.placeName) {
+        form.launch_name = quickPrefill.value.placeName;
+        quickPrefillAppliedFields.value.launch_name = true;
+    }
+}
+
+function clearAutoQuickPrefillForExtended() {
+    if (props.mode !== 'create' || !quickPrefill.value) {
+        return;
+    }
+
+    if (
+        quickPrefillAppliedFields.value.title &&
+        form.title === quickPrefill.value.title
+    ) {
+        form.title = '';
+    }
+
+    if (
+        quickPrefillAppliedFields.value.area_name &&
+        form.area_name === quickPrefill.value.areaName
+    ) {
+        form.area_name = '';
+    }
+
+    if (
+        quickPrefillAppliedFields.value.launch_name &&
+        form.launch_name === quickPrefill.value.placeName
+    ) {
+        form.launch_name = '';
+    }
+
+    quickPrefillAppliedFields.value = {};
 }
 
 function submit() {
@@ -1481,9 +1551,20 @@ onMounted(async () => {
                         <input
                             id="title"
                             v-model="form.title"
+                            list="extended-title-options"
                             class="journal-input"
                             placeholder="Morning benchmark paddle"
                         />
+                        <datalist
+                            v-if="quickTitleSuggestions.length"
+                            id="extended-title-options"
+                        >
+                            <option
+                                v-for="title in quickTitleSuggestions"
+                                :key="`extended-title-${title}`"
+                                :value="title"
+                            />
+                        </datalist>
                         <InputError :message="form.errors.title" />
                     </div>
 
@@ -1563,6 +1644,7 @@ onMounted(async () => {
                         <input
                             id="launch_name"
                             v-model="form.launch_name"
+                            list="extended-place-options"
                             class="journal-input"
                             placeholder="Optional"
                         />
@@ -1576,9 +1658,20 @@ onMounted(async () => {
                         <input
                             id="landing_name"
                             v-model="form.landing_name"
+                            list="extended-place-options"
                             class="journal-input"
                             placeholder="Optional"
                         />
+                        <datalist
+                            v-if="quickPlaceSuggestions.length"
+                            id="extended-place-options"
+                        >
+                            <option
+                                v-for="place in quickPlaceSuggestions"
+                                :key="`extended-place-${place}`"
+                                :value="place"
+                            />
+                        </datalist>
                         <InputError :message="form.errors.landing_name" />
                     </div>
 
@@ -1589,9 +1682,20 @@ onMounted(async () => {
                         <input
                             id="area_name"
                             v-model="form.area_name"
+                            list="extended-area-options"
                             class="journal-input"
                             placeholder="Faxafloi"
                         />
+                        <datalist
+                            v-if="quickAreaSuggestions.length"
+                            id="extended-area-options"
+                        >
+                            <option
+                                v-for="area in quickAreaSuggestions"
+                                :key="`extended-area-${area}`"
+                                :value="area"
+                            />
+                        </datalist>
                         <InputError :message="form.errors.area_name" />
                     </div>
 
