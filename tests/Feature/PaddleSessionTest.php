@@ -84,6 +84,48 @@ class PaddleSessionTest extends TestCase
                 ->where('profile.defaultMapView.zoom', 12));
     }
 
+    public function test_quick_session_create_prefills_recent_title_area_and_place(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-10',
+            'title' => 'Morning benchmark',
+            'area_name' => 'Faxafloi',
+            'launch_name' => 'Nautholsvik',
+            'route_category' => 'benchmark',
+            'distance_km' => 7.2,
+        ]);
+
+        $profile->sessions()->create([
+            'recorded_by_user_id' => $user->id,
+            'session_date' => '2026-04-11',
+            'title' => 'Evening harbor loop',
+            'area_name' => '',
+            'launch_name' => 'Grotta',
+            'route_category' => 'journey',
+            'distance_km' => 8.1,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('formDefaults.title', 'Evening harbor loop')
+                ->where('formDefaults.area_name', 'Faxafloi')
+                ->where('formDefaults.launch_name', 'Grotta')
+                ->where('quickEntryMemory.prefill.title', 'Evening harbor loop')
+                ->where('quickEntryMemory.prefill.areaName', 'Faxafloi')
+                ->where('quickEntryMemory.prefill.placeName', 'Grotta')
+                ->where('quickEntryMemory.suggestions.titles.0', 'Evening harbor loop')
+                ->where('quickEntryMemory.suggestions.titles.1', 'Morning benchmark')
+                ->where('quickEntryMemory.suggestions.areas.0', 'Faxafloi')
+                ->where('quickEntryMemory.suggestions.places.0', 'Grotta')
+                ->where('quickEntryMemory.suggestions.places.1', 'Nautholsvik'));
+    }
+
     public function test_authenticated_users_can_view_a_session_detail_page(): void
     {
         $user = User::factory()->create();

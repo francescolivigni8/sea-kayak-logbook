@@ -12,6 +12,19 @@ export interface SessionProfileSummary {
     sessionCategories?: string[];
 }
 
+export interface QuickSessionMemory {
+    prefill: {
+        title: string;
+        areaName: string;
+        placeName: string;
+    };
+    suggestions: {
+        titles: string[];
+        areas: string[];
+        places: string[];
+    };
+}
+
 export interface SessionExistingAssets {
     gpxName: string | null;
     fitName: string | null;

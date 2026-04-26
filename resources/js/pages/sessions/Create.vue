@@ -4,6 +4,7 @@ import { dashboard } from '@/routes';
 import type {
     SessionExistingAssets,
     SessionFormDefaults,
+    QuickSessionMemory,
     SessionProfileSummary,
 } from '@/types/sessions';
 import SessionForm from './Partials/SessionForm.vue';
@@ -31,6 +32,7 @@ defineProps<{
     profile: SessionProfileSummary;
     weatherAutofillAvailable: boolean;
     formDefaults: SessionFormDefaults;
+    quickEntryMemory: QuickSessionMemory;
     existingAssets: SessionExistingAssets;
 }>();
 </script>
@@ -44,6 +46,7 @@ defineProps<{
             :profile="profile"
             :weather-autofill-available="weatherAutofillAvailable"
             :form-defaults="formDefaults"
+            :quick-entry-memory="quickEntryMemory"
             :existing-assets="existingAssets"
         />
     </div>

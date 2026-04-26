@@ -67,11 +67,13 @@ class PaddleSessionController extends Controller
     public function create(Request $request): Response
     {
         $profile = $request->user()->resolveActiveProfile();
+        $quickEntryMemory = $this->quickEntryMemory($profile);
 
         return Inertia::render('sessions/Create', [
             'profile' => $this->mapProfile($profile),
             'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
-            'formDefaults' => $this->formDefaults($profile),
+            'formDefaults' => $this->formDefaults($profile, null, $quickEntryMemory),
+            'quickEntryMemory' => $quickEntryMemory,
             'existingAssets' => [
                 'gpxName' => null,
                 'fitName' => null,
@@ -383,19 +385,24 @@ class PaddleSessionController extends Controller
         ];
     }
 
-    private function formDefaults(Profile $profile, ?PaddleSession $session = null): array
+    private function formDefaults(Profile $profile, ?PaddleSession $session = null, ?array $quickEntryMemory = null): array
     {
+        $quickEntryMemory ??= $this->quickEntryMemory($profile, $session);
+        $quickPrefill = $session === null
+            ? data_get($quickEntryMemory, 'prefill', [])
+            : [];
+
         return [
-            'title' => $session?->title ?? '',
+            'title' => $session?->title ?? data_get($quickPrefill, 'title', ''),
             'session_date' => optional($session?->session_date)->toDateString() ?? now()->setTimezone($profile->timezone)->toDateString(),
             'start_time_local' => $session?->start_at ? $session->start_at->setTimezone($profile->timezone)->format('H:i') : '',
-            'launch_name' => $session?->launch_name ?? '',
+            'launch_name' => $session?->launch_name ?? data_get($quickPrefill, 'placeName', ''),
             'launch_lat' => $session?->launch_lat !== null ? (string) $session->launch_lat : '',
             'launch_lng' => $session?->launch_lng !== null ? (string) $session->launch_lng : '',
             'landing_name' => $session?->landing_name ?? '',
             'landing_lat' => $session?->landing_lat !== null ? (string) $session->landing_lat : '',
             'landing_lng' => $session?->landing_lng !== null ? (string) $session->landing_lng : '',
-            'area_name' => $session?->area_name ?? '',
+            'area_name' => $session?->area_name ?? data_get($quickPrefill, 'areaName', ''),
             'route_category' => $session?->route_category ?? 'journey',
             'body_of_water' => $session?->body_of_water ?? 'sea',
             'kayak_used' => $session?->kayak_used ?? '',
@@ -446,6 +453,44 @@ class PaddleSessionController extends Controller
             'autofill_weather' => false,
             'is_public' => false,
         ];
+    }
+
+    private function quickEntryMemory(Profile $profile, ?PaddleSession $session = null): array
+    {
+        $recentSessions = $profile->sessions()
+            ->select(['title', 'area_name', 'launch_name'])
+            ->latest('session_date')
+            ->latest('id')
+            ->limit(12)
+            ->get();
+
+        $titles = $this->recentDistinctStrings($recentSessions->pluck('title')->all());
+        $areas = $this->recentDistinctStrings($recentSessions->pluck('area_name')->all());
+        $places = $this->recentDistinctStrings($recentSessions->pluck('launch_name')->all());
+
+        return [
+            'prefill' => [
+                'title' => $session?->title ?? ($titles[0] ?? ''),
+                'areaName' => $session?->area_name ?? ($areas[0] ?? ''),
+                'placeName' => $session?->launch_name ?? ($places[0] ?? ''),
+            ],
+            'suggestions' => [
+                'titles' => $titles,
+                'areas' => $areas,
+                'places' => $places,
+            ],
+        ];
+    }
+
+    private function recentDistinctStrings(array $values, int $limit = 8): array
+    {
+        return collect($values)
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique(fn (string $value) => Str::lower($value))
+            ->take($limit)
+            ->values()
+            ->all();
     }
 
     private function defaultMapView(Profile $profile): array

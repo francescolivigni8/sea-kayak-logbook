@@ -22,6 +22,7 @@ import {
 import InputError from '@/components/InputError.vue';
 import SessionLocationPicker from '@/components/maps/SessionLocationPicker.vue';
 import type {
+    QuickSessionMemory,
     SessionExistingAssets,
     SessionFormDefaults,
     SessionProfileSummary,
@@ -45,6 +46,7 @@ const props = defineProps<{
     profile: SessionProfileSummary;
     weatherAutofillAvailable: boolean;
     formDefaults: SessionFormDefaults;
+    quickEntryMemory?: QuickSessionMemory;
     existingAssets: SessionExistingAssets;
     sessionId?: number;
     initialStep?: number;
@@ -435,6 +437,24 @@ onBeforeUnmount(() => {
 
 const pageTitle = computed(() =>
     props.mode === 'create' ? 'Add paddle session' : 'Edit paddle session',
+);
+const quickTitleSuggestions = computed(
+    () => props.quickEntryMemory?.suggestions.titles ?? [],
+);
+const quickAreaSuggestions = computed(
+    () => props.quickEntryMemory?.suggestions.areas ?? [],
+);
+const quickPlaceSuggestions = computed(
+    () => props.quickEntryMemory?.suggestions.places ?? [],
+);
+const hasQuickPrefill = computed(
+    () =>
+        props.mode === 'create' &&
+        Boolean(
+            props.quickEntryMemory?.prefill.title ||
+                props.quickEntryMemory?.prefill.areaName ||
+                props.quickEntryMemory?.prefill.placeName,
+        ),
 );
 const pageDescription = computed(() =>
     props.mode === 'create'
@@ -1045,6 +1065,14 @@ onMounted(async () => {
                 </div>
 
                 <div v-if="isQuickMode" class="space-y-5">
+                    <div
+                        v-if="hasQuickPrefill"
+                        class="rounded-[1.1rem] border border-[color:var(--journal-line)] bg-[color:var(--journal-surface-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
+                        Quick starts with the last-used title, area, and place
+                        from your recent sessions. Change anything you want.
+                    </div>
+
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <div class="xl:col-span-2">
                             <label class="journal-field-label" for="quick_title"
@@ -1053,9 +1081,20 @@ onMounted(async () => {
                             <input
                                 id="quick_title"
                                 v-model="form.title"
+                                list="quick-title-options"
                                 class="journal-input"
                                 placeholder="Evening harbor circuit"
                             />
+                            <datalist
+                                v-if="quickTitleSuggestions.length"
+                                id="quick-title-options"
+                            >
+                                <option
+                                    v-for="title in quickTitleSuggestions"
+                                    :key="title"
+                                    :value="title"
+                                />
+                            </datalist>
                             <InputError :message="form.errors.title" />
                         </div>
 
@@ -1094,9 +1133,20 @@ onMounted(async () => {
                             <input
                                 id="quick_area_name"
                                 v-model="form.area_name"
+                                list="quick-area-options"
                                 class="journal-input"
                                 placeholder="Faxafloi"
                             />
+                            <datalist
+                                v-if="quickAreaSuggestions.length"
+                                id="quick-area-options"
+                            >
+                                <option
+                                    v-for="area in quickAreaSuggestions"
+                                    :key="area"
+                                    :value="area"
+                                />
+                            </datalist>
                             <InputError :message="form.errors.area_name" />
                         </div>
 
@@ -1107,9 +1157,20 @@ onMounted(async () => {
                             <input
                                 id="quick_place"
                                 v-model="form.launch_name"
+                                list="quick-place-options"
                                 class="journal-input"
                                 placeholder="Reykjavik harbor"
                             />
+                            <datalist
+                                v-if="quickPlaceSuggestions.length"
+                                id="quick-place-options"
+                            >
+                                <option
+                                    v-for="place in quickPlaceSuggestions"
+                                    :key="place"
+                                    :value="place"
+                                />
+                            </datalist>
                             <p
                                 class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
                             >
