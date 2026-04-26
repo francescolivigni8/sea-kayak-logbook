@@ -1537,7 +1537,7 @@ watch(
                     v-model:route-waypoints-json="routeWaypointsJson"
                     :default-view="profile.defaultMapView"
                     :sample-time-label="areaSampleTimeLabel"
-                    height-class="h-[760px] lg:h-[920px]"
+                    height-class="h-[560px] sm:h-[680px] lg:h-[920px]"
                 />
 
                 <section class="journal-panel px-5 py-5 md:px-6 md:py-6">

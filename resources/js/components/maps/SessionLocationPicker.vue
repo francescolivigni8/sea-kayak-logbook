@@ -10,8 +10,6 @@ import {
 } from 'vue';
 import { useMapTileStyles } from '@/lib/mapTiles';
 
-type MapTarget = 'launch' | 'landing' | 'route';
-
 interface DefaultView {
     lat: number;
     lng: number;
@@ -55,7 +53,6 @@ const emit = defineEmits<{
 }>();
 
 const mapElement = ref<HTMLElement | null>(null);
-const activeTarget = ref<MapTarget>('launch');
 const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
@@ -87,7 +84,22 @@ const landingPoint = computed(() => {
 
 const routeWaypoints = computed<RouteWaypoint[]>(() => {
     if (!props.routeWaypointsJson) {
-        return [];
+        const fallbackPoints: RouteWaypoint[] = [];
+
+        if (launchPoint.value) {
+            fallbackPoints.push(launchPoint.value);
+        }
+
+        if (
+            landingPoint.value &&
+            (!launchPoint.value ||
+                launchPoint.value.lat !== landingPoint.value.lat ||
+                launchPoint.value.lng !== landingPoint.value.lng)
+        ) {
+            fallbackPoints.push(landingPoint.value);
+        }
+
+        return fallbackPoints;
     }
 
     try {
@@ -113,15 +125,7 @@ const routeWaypoints = computed<RouteWaypoint[]>(() => {
 });
 
 const renderedRoutePoints = computed(() => {
-    if (routeWaypoints.value.length === 0) {
-        return [];
-    }
-
-    return [
-        launchPoint.value,
-        ...routeWaypoints.value,
-        landingPoint.value,
-    ].filter((point): point is { lat: number; lng: number } => point !== null);
+    return routeWaypoints.value;
 });
 
 function buildBaseLayer() {
@@ -192,29 +196,12 @@ function emitWaypoints(points: RouteWaypoint[]) {
     );
 }
 
-function updateTargetPoint(lat: number, lng: number) {
-    const formattedLat = lat.toFixed(6);
-    const formattedLng = lng.toFixed(6);
-
-    if (activeTarget.value === 'launch') {
-        emit('update:launchLat', formattedLat);
-        emit('update:launchLng', formattedLng);
-
-        return;
-    }
-
-    if (activeTarget.value === 'landing') {
-        emit('update:landingLat', formattedLat);
-        emit('update:landingLng', formattedLng);
-
-        return;
-    }
-
+function appendRoutePoint(lat: number, lng: number) {
     emitWaypoints([
         ...routeWaypoints.value,
         {
-            lat: Number(formattedLat),
-            lng: Number(formattedLng),
+            lat: Number(lat.toFixed(6)),
+            lng: Number(lng.toFixed(6)),
         },
     ]);
 }
@@ -262,48 +249,31 @@ function renderMarkers() {
         lineLayer = null;
     }
 
-    if (launchPoint.value) {
-        const launchMarker = L.marker(
-            [launchPoint.value.lat, launchPoint.value.lng],
-            {
-                draggable: true,
-                icon: sessionMarkerIcon('launch', 'L'),
-            },
-        )
-            .bindTooltip('Launch')
-            .addTo(markers);
-
-        launchMarker.on('dragend', () => {
-            const point = launchMarker.getLatLng();
-            emit('update:launchLat', point.lat.toFixed(6));
-            emit('update:launchLng', point.lng.toFixed(6));
-        });
-    }
-
-    if (landingPoint.value) {
-        const landingMarker = L.marker(
-            [landingPoint.value.lat, landingPoint.value.lng],
-            {
-                draggable: true,
-                icon: sessionMarkerIcon('landing', 'F'),
-            },
-        )
-            .bindTooltip('Landing')
-            .addTo(markers);
-
-        landingMarker.on('dragend', () => {
-            const point = landingMarker.getLatLng();
-            emit('update:landingLat', point.lat.toFixed(6));
-            emit('update:landingLng', point.lng.toFixed(6));
-        });
-    }
-
-    routeWaypoints.value.forEach((point, index) => {
+    renderedRoutePoints.value.forEach((point, index) => {
+        const isFirstPoint = index === 0;
+        const isLastPoint =
+            renderedRoutePoints.value.length > 1 &&
+            index === renderedRoutePoints.value.length - 1;
+        const markerTone = isFirstPoint
+            ? 'launch'
+            : isLastPoint
+              ? 'landing'
+              : 'route';
+        const markerLabel = isFirstPoint
+            ? 'L'
+            : isLastPoint
+              ? 'F'
+              : String(index + 1);
+        const tooltipLabel = isFirstPoint
+            ? 'Launch'
+            : isLastPoint
+              ? 'Landing'
+              : `Route point ${index + 1}`;
         const routeMarker = L.marker([point.lat, point.lng], {
             draggable: true,
-            icon: sessionMarkerIcon('route', String(index + 1)),
+            icon: sessionMarkerIcon(markerTone, markerLabel),
         })
-            .bindTooltip(`Route point ${index + 1}`)
+            .bindTooltip(tooltipLabel)
             .addTo(markers);
 
         routeMarker.on('dragend', () => {
@@ -352,7 +322,7 @@ async function initializeMap() {
     );
 
     map.on('click', (event: L.LeafletMouseEvent) => {
-        updateTargetPoint(event.latlng.lat, event.latlng.lng);
+        appendRoutePoint(event.latlng.lat, event.latlng.lng);
     });
 
     renderMarkers();
@@ -403,12 +373,9 @@ onBeforeUnmount(() => {
                     Place the session
                 </h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Pins alone save the place. If you want a visible route,
-                    switch to
-                    <strong class="text-[color:var(--journal-text)]"
-                        >trace route</strong
-                    >
-                    and click the map to add editable route points.
+                    Click the map to place the route. The first point becomes
+                    launch, the last point becomes landing, and the traced line
+                    drives the saved distance automatically.
                 </p>
             </div>
 
@@ -418,39 +385,7 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'launch' ? 'journal-chip--primary' : ''
-                    "
-                    @click="activeTarget = 'launch'"
-                >
-                    Place launch
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'landing'
-                            ? 'journal-chip--primary'
-                            : ''
-                    "
-                    @click="activeTarget = 'landing'"
-                >
-                    Place landing
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    :class="
-                        activeTarget === 'route' ? 'journal-chip--primary' : ''
-                    "
-                    @click="activeTarget = 'route'"
-                >
-                    Trace route
-                </button>
-                <button
-                    type="button"
-                    class="journal-utility-link shrink-0"
-                    :disabled="routeWaypoints.length === 0"
+                    :disabled="renderedRoutePoints.length === 0"
                     @click="clearRouteTrace"
                 >
                     Clear route
@@ -468,18 +403,17 @@ onBeforeUnmount(() => {
         <div
             class="mt-4 overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
         >
-            <div ref="mapElement" class="h-[260px] sm:h-[320px]" />
+            <div ref="mapElement" class="h-[280px] sm:h-[340px]" />
         </div>
 
         <div
             class="mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium text-[color:var(--journal-muted)] [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
         >
-            <span class="journal-chip shrink-0">Launch = green</span>
-            <span class="journal-chip shrink-0">Landing = orange</span>
-            <span class="journal-chip shrink-0">Trace route = blue points</span>
-            <span class="journal-chip shrink-0">Drag markers to refine</span>
+            <span class="journal-chip shrink-0">First point = launch</span>
+            <span class="journal-chip shrink-0">Last point = landing</span>
+            <span class="journal-chip shrink-0">Drag points to refine</span>
             <span class="journal-chip shrink-0"
-                >Double-click a route point to remove it</span
+                >Double-click a point to remove it</span
             >
         </div>
     </section>

@@ -1526,7 +1526,7 @@ onBeforeUnmount(() => {
             >
                 <div class="relative">
                     <div
-                        class="pointer-events-auto hidden w-[142px] flex-col gap-1.5 sm:flex"
+                        class="pointer-events-auto hidden w-[136px] flex-col gap-1.5 md:flex lg:w-[142px]"
                     >
                         <button
                             type="button"
@@ -1640,7 +1640,7 @@ onBeforeUnmount(() => {
                     </div>
 
                     <form
-                        class="pointer-events-auto absolute top-0 left-1/2 hidden w-[min(22rem,42vw)] -translate-x-1/2 sm:block"
+                        class="pointer-events-auto absolute top-0 left-1/2 hidden w-[min(18rem,38vw)] -translate-x-1/2 md:block lg:w-[min(22rem,42vw)]"
                         @submit.prevent="searchPlace"
                     >
                         <input
@@ -1659,7 +1659,7 @@ onBeforeUnmount(() => {
                     </form>
 
                     <div
-                        class="pointer-events-auto absolute top-[9.5rem] right-0 hidden flex-col gap-1.5 rounded-full border border-white/32 bg-white/46 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.12)] backdrop-blur sm:flex"
+                        class="pointer-events-auto absolute top-[8.2rem] right-0 hidden flex-col gap-1.5 rounded-full border border-white/32 bg-white/46 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.12)] backdrop-blur md:flex lg:top-[9.5rem]"
                     >
                         <button
                             type="button"
@@ -1706,7 +1706,7 @@ onBeforeUnmount(() => {
 
                 <div class="pointer-events-auto flex flex-col gap-3">
                     <div
-                        class="flex flex-col gap-2 rounded-[8px] bg-white/62 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur sm:hidden"
+                        class="flex flex-col gap-2 rounded-[8px] bg-white/62 p-2 text-[#29304f] shadow-[0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur md:hidden"
                     >
                         <button
                             type="button"

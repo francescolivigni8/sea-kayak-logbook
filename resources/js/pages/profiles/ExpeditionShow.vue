@@ -215,15 +215,15 @@ const cards = computed(() => [
                 </div>
 
                 <div class="mt-6">
-                    <RouteAtlasMap
-                        :routes="mapData.routes"
-                        :pins="mapData.pins"
-                        :default-view="mapData.defaultView"
-                        :storage-key="`${profile.slug}-${place.slug}-public-place-atlas`"
-                        :show-kind-filter="false"
-                        height-class="h-[520px]"
-                        empty-message="No public mapped geometry at this expedition place yet."
-                    />
+                <RouteAtlasMap
+                    :routes="mapData.routes"
+                    :pins="mapData.pins"
+                    :default-view="mapData.defaultView"
+                    :storage-key="`${profile.slug}-${place.slug}-public-place-atlas`"
+                    :show-kind-filter="false"
+                    height-class="h-[320px] sm:h-[420px] lg:h-[520px]"
+                    empty-message="No public mapped geometry at this expedition place yet."
+                />
                 </div>
             </section>
 

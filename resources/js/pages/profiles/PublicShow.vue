@@ -250,7 +250,7 @@ const expeditionMapWarning = computed(() => {
                     :storage-key="`${profile.slug}-public-route-atlas`"
                     :show-filters="false"
                     :allow-pin-view="false"
-                    height-class="h-[520px]"
+                    height-class="h-[320px] sm:h-[420px] lg:h-[520px]"
                 />
             </div>
         </section>
@@ -340,7 +340,7 @@ const expeditionMapWarning = computed(() => {
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
                     empty-message="No public paddled locations yet."
-                    height-class="h-[420px]"
+                    height-class="h-[280px] sm:h-[360px] lg:h-[420px]"
                 />
             </div>
 

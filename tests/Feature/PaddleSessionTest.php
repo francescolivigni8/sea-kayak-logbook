@@ -194,6 +194,29 @@ class PaddleSessionTest extends TestCase
         ]);
     }
 
+    public function test_manual_distance_accepts_decimal_commas(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('sessions.store'), [
+                'title' => 'Decimal comma paddle',
+                'session_date' => '2026-04-06',
+                'launch_name' => 'Reykjavik',
+                'route_category' => 'journey',
+                'distance_km' => '9,3',
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $profile = $user->resolveActiveProfile();
+
+        $this->assertDatabaseHas(PaddleSession::class, [
+            'profile_id' => $profile->id,
+            'title' => 'Decimal comma paddle',
+            'distance_km' => 9.3,
+        ]);
+    }
+
     public function test_sessions_can_be_grouped_into_collections(): void
     {
         $user = User::factory()->create();
@@ -380,16 +403,13 @@ class PaddleSessionTest extends TestCase
                 'title' => 'Manual traced paddle',
                 'session_date' => '2026-04-06',
                 'launch_name' => 'Reykjavik',
-                'launch_lat' => '64.146600',
-                'launch_lng' => '-21.942600',
                 'landing_name' => 'Grotta',
-                'landing_lat' => '64.167200',
-                'landing_lng' => '-22.022600',
                 'route_category' => 'journey',
-                'distance_km' => '6.2',
                 'manual_route_waypoints' => json_encode([
+                    ['lat' => 64.1466, 'lng' => -21.9426],
                     ['lat' => 64.1531, 'lng' => -21.9782],
                     ['lat' => 64.1595, 'lng' => -22.0043],
+                    ['lat' => 64.1672, 'lng' => -22.0226],
                 ]),
             ])
             ->assertRedirect();
@@ -405,6 +425,9 @@ class PaddleSessionTest extends TestCase
         $this->assertNotNull($session->route_points);
         $this->assertSame(64.1531, (float) $session->route_profile[1]['lat']);
         $this->assertSame(-22.0043, (float) $session->route_profile[2]['lng']);
+        $this->assertSame(64.1466, (float) $session->launch_lat);
+        $this->assertSame(-22.0226, (float) $session->landing_lng);
+        $this->assertGreaterThan(0, (float) $session->distance_km);
     }
 
     public function test_manual_gpx_uploads_are_parsed_into_route_data(): void

@@ -289,7 +289,7 @@ function stepMonth(direction: -1 | 1) {
                     </div>
 
                     <div
-                        class="mt-6 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold tracking-[0.24em] text-[color:var(--journal-faint)] uppercase"
+                        class="mt-6 grid grid-cols-7 gap-1.5 text-center text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase sm:gap-2 sm:text-[11px] sm:tracking-[0.24em]"
                     >
                         <span
                             v-for="label in [
@@ -307,12 +307,12 @@ function stepMonth(direction: -1 | 1) {
                         </span>
                     </div>
 
-                    <div class="mt-3 grid grid-cols-7 gap-2">
+                    <div class="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2">
                         <button
                             v-for="day in monthDays"
                             :key="day.iso"
                             type="button"
-                            class="min-h-[58px] rounded-[1rem] border px-1.5 py-2 text-center transition"
+                            class="min-h-[48px] rounded-[0.95rem] border px-1 py-1.5 text-center transition sm:min-h-[58px] sm:px-1.5 sm:py-2"
                             :class="[
                                 day.inMonth
                                     ? 'journal-surface-shell'
@@ -332,7 +332,7 @@ function stepMonth(direction: -1 | 1) {
                         >
                             <div class="grid justify-items-center gap-1">
                                 <span
-                                    class="text-sm font-semibold text-[color:var(--journal-text)]"
+                                    class="text-[0.82rem] font-semibold text-[color:var(--journal-text)] sm:text-sm"
                                 >
                                     {{ day.day }}
                                 </span>
@@ -363,7 +363,7 @@ function stepMonth(direction: -1 | 1) {
                                 </p>
                                 <div>
                                     <h3
-                                        class="text-[1.95rem] leading-none text-[color:var(--journal-text)]"
+                                        class="text-[1.65rem] leading-none text-[color:var(--journal-text)] sm:text-[1.95rem]"
                                     >
                                         {{ selectedPrimaryEntry.title }}
                                     </h3>
@@ -413,7 +413,7 @@ function stepMonth(direction: -1 | 1) {
                             >
                         </div>
 
-                        <div class="grid gap-3 md:grid-cols-4">
+                        <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
                             <article
                                 class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/84 px-4 py-4"
                             >

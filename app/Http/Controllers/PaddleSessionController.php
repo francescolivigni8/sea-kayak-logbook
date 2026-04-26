@@ -478,6 +478,13 @@ class PaddleSessionController extends Controller
             ? $this->buildManualRouteSummary($launchLat, $launchLng, $landingLat, $landingLng, $validated['manual_route_waypoints'] ?? null)
             : null;
 
+        if ($manualRoute !== null) {
+            $launchLat = $manualRoute['launch_lat'];
+            $launchLng = $manualRoute['launch_lng'];
+            $landingLat = $manualRoute['landing_lat'];
+            $landingLng = $manualRoute['landing_lng'];
+        }
+
         $payload = [
             'recorded_by_user_id' => $request->user()->id,
             'session_date' => $validated['session_date'],
@@ -495,7 +502,7 @@ class PaddleSessionController extends Controller
             'body_of_water' => $this->nullIfBlank($validated['body_of_water'] ?? null),
             'kayak_used' => $this->nullIfBlank($validated['kayak_used'] ?? null),
             'paddle_used' => $this->nullIfBlank($validated['paddle_used'] ?? null),
-            'distance_km' => (float) ($validated['distance_km'] ?? 0),
+            'distance_km' => (float) ($manualRoute['distance_km'] ?? ($validated['distance_km'] ?? 0)),
             'duration_minutes' => (int) ($validated['duration_minutes'] ?? 0),
             'moving_minutes' => $this->nullableInt($validated['moving_minutes'] ?? null),
             'wind_avg_ms' => $this->nullableFloat($validated['wind_avg_ms'] ?? null),
@@ -707,13 +714,12 @@ class PaddleSessionController extends Controller
             return '';
         }
 
-        if (count($session->route_profile) <= 2) {
+        if (count($session->route_profile) < 2) {
             return '';
         }
 
         return json_encode(
             collect($session->route_profile)
-                ->slice(1, count($session->route_profile) - 2)
                 ->filter(fn (array $point) => isset($point['lat'], $point['lng']))
                 ->map(fn (array $point) => [
                     'lat' => round((float) $point['lat'], 6),
@@ -726,7 +732,7 @@ class PaddleSessionController extends Controller
 
     private function buildManualRouteSummary(?float $launchLat, ?float $launchLng, ?float $landingLat, ?float $landingLng, ?string $waypointsJson): ?array
     {
-        $waypoints = collect(json_decode($waypointsJson ?: '[]', true))
+        $routePoints = collect(json_decode($waypointsJson ?: '[]', true))
             ->filter(fn (mixed $point) => is_array($point) && isset($point['lat'], $point['lng']))
             ->map(fn (array $point) => [
                 'lat' => round((float) $point['lat'], 6),
@@ -734,30 +740,32 @@ class PaddleSessionController extends Controller
             ])
             ->values();
 
-        $points = collect();
-
-        if ($launchLat !== null && $launchLng !== null) {
-            $points->push([
-                'lat' => round($launchLat, 6),
-                'lng' => round($launchLng, 6),
-            ]);
+        if ($routePoints->isEmpty()) {
+            return [
+                'launch_lat' => $launchLat,
+                'launch_lng' => $launchLng,
+                'landing_lat' => $landingLat,
+                'landing_lng' => $landingLng,
+                'distance_km' => null,
+                'route_points' => null,
+                'route_profile' => null,
+            ];
         }
 
-        $points = $points->concat($waypoints);
-
-        if ($landingLat !== null && $landingLng !== null) {
-            $points->push([
-                'lat' => round($landingLat, 6),
-                'lng' => round($landingLng, 6),
-            ]);
-        }
-
-        $points = $points
-            ->filter(fn (array $point, int $index) => $index === 0 || $point !== $points->get($index - 1))
+        $points = $routePoints
+            ->filter(fn (array $point, int $index) => $index === 0 || $point !== $routePoints->get($index - 1))
             ->values();
 
-        if ($waypoints->isEmpty() || $points->count() < 2) {
+        $derivedLaunch = $points->first();
+        $derivedLanding = $points->count() > 1 ? $points->last() : null;
+
+        if ($points->count() < 2) {
             return [
+                'launch_lat' => $derivedLaunch['lat'] ?? $launchLat,
+                'launch_lng' => $derivedLaunch['lng'] ?? $launchLng,
+                'landing_lat' => null,
+                'landing_lng' => null,
+                'distance_km' => null,
                 'route_points' => null,
                 'route_profile' => null,
             ];
@@ -797,6 +805,11 @@ class PaddleSessionController extends Controller
         })->all();
 
         return [
+            'launch_lat' => $derivedLaunch['lat'] ?? $launchLat,
+            'launch_lng' => $derivedLaunch['lng'] ?? $launchLng,
+            'landing_lat' => $derivedLanding['lat'] ?? null,
+            'landing_lng' => $derivedLanding['lng'] ?? null,
+            'distance_km' => round($distanceKm, 2),
             'route_points' => collect($routeProfile)->map(fn (array $point) => $point['x'].','.$point['y'])->implode(' '),
             'route_profile' => $routeProfile,
         ];

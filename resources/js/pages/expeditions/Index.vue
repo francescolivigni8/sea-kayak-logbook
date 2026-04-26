@@ -185,7 +185,7 @@ const expeditionMapWarning = computed(() => {
                     :show-filters="false"
                     :show-kind-filter="false"
                     :show-geometry-filter="false"
-                    height-class="h-[520px]"
+                    height-class="h-[320px] sm:h-[420px] lg:h-[520px]"
                     empty-message="No paddled locations yet."
                 />
             </div>

@@ -461,14 +461,14 @@ const routeMapData = computed(() => {
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <Link href="/sessions" class="journal-utility-link"
+                    <Link href="/sessions" class="journal-utility-link w-full justify-center sm:w-auto"
                         >Library</Link
                     >
                     <a
                         :href="`/sessions/${session.id}/share`"
                         target="_blank"
                         rel="noopener"
-                        class="journal-utility-link"
+                        class="journal-utility-link w-full justify-center sm:w-auto"
                     >
                         Share / PDF
                     </a>
@@ -478,7 +478,7 @@ const routeMapData = computed(() => {
                                 ? `/sessions/${session.id}/edit`
                                 : `/sessions/${session.id}/edit?step=notes`
                         "
-                        class="journal-primary-link"
+                        class="journal-primary-link w-full justify-center sm:w-auto"
                     >
                         {{
                             session.notesPublic
@@ -595,7 +595,7 @@ const routeMapData = computed(() => {
                             :show-legend="false"
                             :show-filters="false"
                             :allow-pin-view="false"
-                            height-class="h-[560px]"
+                            height-class="h-[320px] sm:h-[420px] lg:h-[560px]"
                         />
                     </div>
                 </article>

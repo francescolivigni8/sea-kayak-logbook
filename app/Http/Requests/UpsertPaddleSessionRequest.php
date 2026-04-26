@@ -9,10 +9,29 @@ class UpsertPaddleSessionRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        $decimalFields = [
+            'launch_lat',
+            'launch_lng',
+            'landing_lat',
+            'landing_lng',
+            'distance_km',
+            'wind_avg_ms',
+            'wind_gust_ms',
+            'current_knots',
+            'wave_height_m',
+            'swell_height_m',
+            'swell_period_s',
+            'air_temp_c',
+            'sea_temp_c',
+        ];
+
         $this->merge([
             'is_expedition' => $this->boolean('is_expedition'),
             'is_public' => $this->boolean('is_public'),
             'autofill_weather' => $this->boolean('autofill_weather'),
+            ...collect($decimalFields)->mapWithKeys(fn (string $field) => [
+                $field => $this->normalizeDecimalValue($this->input($field)),
+            ])->all(),
         ]);
     }
 
@@ -26,9 +45,10 @@ class UpsertPaddleSessionRequest extends FormRequest
         $session = $this->route('session');
         $hasExistingRouteFile = $session instanceof PaddleSession
             && (filled($session->gpx_path) || filled($session->fit_path));
+        $manualRoutePointCount = $this->manualRoutePointCount();
         $distanceRules = ['nullable', 'numeric', 'min:0'];
 
-        if (! $hasExistingRouteFile) {
+        if (! $hasExistingRouteFile && $manualRoutePointCount < 2) {
             $distanceRules[] = 'required_without_all:gpx_file,fit_file';
         }
 
@@ -94,5 +114,42 @@ class UpsertPaddleSessionRequest extends FormRequest
             'fit_file' => ['nullable', 'file', 'extensions:fit', 'max:20480'],
             'session_photo' => ['nullable', 'image', 'max:8192'],
         ];
+    }
+
+    private function normalizeDecimalValue(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return '';
+        }
+
+        return str_replace(',', '.', $trimmed);
+    }
+
+    private function manualRoutePointCount(): int
+    {
+        $raw = $this->input('manual_route_waypoints');
+
+        if (! is_string($raw) || trim($raw) === '') {
+            return 0;
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (! is_array($decoded)) {
+            return 0;
+        }
+
+        return collect($decoded)
+            ->filter(fn (mixed $point) => is_array($point)
+                && isset($point['lat'], $point['lng'])
+                && is_numeric($point['lat'])
+                && is_numeric($point['lng']))
+            ->count();
     }
 }

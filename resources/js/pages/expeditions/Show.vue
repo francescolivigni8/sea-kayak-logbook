@@ -215,7 +215,7 @@ const cards = computed(() => [
                     :show-filters="false"
                     :show-kind-filter="false"
                     :allow-pin-view="false"
-                    height-class="h-[520px]"
+                    height-class="h-[320px] sm:h-[420px] lg:h-[520px]"
                     empty-message="No mapped geometry at this expedition place yet."
                 />
             </div>

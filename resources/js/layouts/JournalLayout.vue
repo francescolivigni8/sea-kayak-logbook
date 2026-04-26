@@ -154,18 +154,18 @@ watch(
                 <div
                     class="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:items-start"
                 >
-                    <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
                         <img
                             src="/brand/ykj-logo-clean.png"
                             alt="Your Kayaking Journal logo"
-                            class="size-[5.15rem] shrink-0 rounded-[1.35rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-[6.15rem]"
+                            class="size-[4.4rem] shrink-0 rounded-[1.2rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-[6.15rem]"
                             width="98"
                             height="98"
                         />
                         <div class="space-y-2">
                             <p class="journal-kicker">Sea kayak logbook</p>
                             <h1
-                                class="text-[2.1rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]"
+                                class="text-[1.85rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]"
                             >
                                 {{ heroTitle }}
                             </h1>
@@ -174,7 +174,7 @@ watch(
 
                     <div class="space-y-4 xl:text-right">
                         <div
-                            class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-start sm:gap-3 xl:justify-end"
+                            class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-start sm:gap-3 xl:justify-end"
                         >
                             <div class="journal-stat-pill">
                                 <span class="journal-stat-pill__label"
@@ -197,7 +197,7 @@ watch(
                                     }}
                                 </span>
                             </div>
-                            <div class="journal-stat-pill">
+                            <div class="journal-stat-pill col-span-2 sm:col-span-1">
                                 <span class="journal-stat-pill__label"
                                     >This year</span
                                 >

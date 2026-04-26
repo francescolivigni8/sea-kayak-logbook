@@ -33,6 +33,11 @@ interface FlashPageProps {
     };
 }
 
+interface RouteWaypoint {
+    lat: number;
+    lng: number;
+}
+
 const props = defineProps<{
     mode: 'create' | 'edit';
     profile: SessionProfileSummary;
@@ -62,6 +67,30 @@ function formatEditableNumber(value: number, digits = 1): string {
     return Number(value.toFixed(digits)).toString();
 }
 
+function normalizeEditableDecimal(value: string): string {
+    return value.replace(',', '.').trim();
+}
+
+function haversineKm(
+    leftLat: number,
+    leftLng: number,
+    rightLat: number,
+    rightLng: number,
+): number {
+    const earthRadiusKm = 6371;
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const dLat = toRadians(rightLat - leftLat);
+    const dLng = toRadians(rightLng - leftLng);
+    const lat1 = toRadians(leftLat);
+    const lat2 = toRadians(rightLat);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusKm * c;
+}
+
 function createConvertedNumberField(
     getRaw: () => string,
     setRaw: (value: string) => void,
@@ -80,13 +109,15 @@ function createConvertedNumberField(
             return formatEditableNumber(toDisplay(parsed), digits);
         },
         set(value: string) {
-            if (value.trim() === '') {
+            const normalized = normalizeEditableDecimal(value);
+
+            if (normalized === '') {
                 setRaw('');
 
                 return;
             }
 
-            const parsed = parseFloat(value);
+            const parsed = parseFloat(normalized);
 
             if (!Number.isFinite(parsed)) {
                 setRaw('');
@@ -408,6 +439,46 @@ const landingLatNumber = computed(() =>
 const landingLngNumber = computed(() =>
     form.landing_lng === '' ? null : Number(form.landing_lng),
 );
+const manualTracePoints = computed<RouteWaypoint[]>(() => {
+    if (!form.manual_route_waypoints) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(form.manual_route_waypoints);
+
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        return parsed
+            .filter(
+                (point): point is { lat: number; lng: number } =>
+                    typeof point?.lat === 'number' &&
+                    typeof point?.lng === 'number',
+            )
+            .map((point) => ({
+                lat: Number(point.lat.toFixed(6)),
+                lng: Number(point.lng.toFixed(6)),
+            }));
+    } catch {
+        return [];
+    }
+});
+const manualTraceDistanceKm = computed(() => {
+    if (manualTracePoints.value.length < 2) {
+        return 0;
+    }
+
+    return manualTracePoints.value.slice(1).reduce((total, point, index) => {
+        const previous = manualTracePoints.value[index];
+
+        return total + haversineKm(previous.lat, previous.lng, point.lat, point.lng);
+    }, 0);
+});
+const hasManualTraceDistance = computed(
+    () => manualTracePoints.value.length >= 2,
+);
 const hasWeatherPreviewCoordinates = computed(() => {
     const hasLaunchPoint =
         launchLatNumber.value !== null && launchLngNumber.value !== null;
@@ -461,8 +532,43 @@ const expeditionMapWarning = computed(() => {
         return null;
     }
 
-    return 'This expedition will count in your totals, but it will not appear on the world map until you attach a GPX/FIT file or save launch or landing coordinates.';
+    return 'This expedition will count in your totals, but it will not appear on the world map until you attach a GPX/FIT file or place at least one point on the map.';
 });
+const traceHasEverBeenActive = ref(Boolean(props.formDefaults.manual_route_waypoints));
+
+watch(
+    () => form.manual_route_waypoints,
+    () => {
+        if (manualTracePoints.value.length === 0) {
+            if (traceHasEverBeenActive.value) {
+                form.launch_lat = '';
+                form.launch_lng = '';
+                form.landing_lat = '';
+                form.landing_lng = '';
+                traceHasEverBeenActive.value = false;
+            }
+
+            return;
+        }
+
+        traceHasEverBeenActive.value = true;
+
+        const firstPoint = manualTracePoints.value[0];
+        const lastPoint =
+            manualTracePoints.value[manualTracePoints.value.length - 1];
+
+        form.launch_lat = firstPoint.lat.toFixed(6);
+        form.launch_lng = firstPoint.lng.toFixed(6);
+        form.landing_lat =
+            manualTracePoints.value.length > 1 ? lastPoint.lat.toFixed(6) : '';
+        form.landing_lng =
+            manualTracePoints.value.length > 1 ? lastPoint.lng.toFixed(6) : '';
+
+        if (manualTracePoints.value.length > 1) {
+            form.distance_km = formatEditableNumber(manualTraceDistanceKm.value, 2);
+        }
+    },
+);
 
 function assignPreviewFields(fields: Record<string, string | number | null>) {
     const weatherFieldKeys = [
@@ -523,7 +629,7 @@ async function previewWeatherNow() {
     if (!hasWeatherPreviewCoordinates.value) {
         weatherPreviewState.value = 'warning';
         weatherPreviewMessage.value =
-            'Add a launch or landing point first, then Stormglass can fill the weather right away.';
+            'Place at least one point on the map first, then Stormglass can fill the weather right away.';
 
         return;
     }
@@ -625,20 +731,6 @@ function assignFile(
 
 function goToStep(stepIndex: number) {
     currentStep.value = stepIndex;
-}
-
-function copyLaunchToLanding() {
-    if (form.launch_lat === '' || form.launch_lng === '') {
-        return;
-    }
-
-    form.landing_lat = form.launch_lat;
-    form.landing_lng = form.launch_lng;
-}
-
-function clearLandingCoordinates() {
-    form.landing_lat = '';
-    form.landing_lng = '';
 }
 
 function addCategoryName(categoryName: string) {
@@ -781,7 +873,7 @@ onMounted(async () => {
                     </p>
                     <span
                         class="w-full text-xs font-medium text-[color:var(--journal-muted)] sm:w-auto sm:text-sm"
-                        >Required: title, date, and distance or route file</span
+                        >Required: title, date, and distance, a manual trace, or a route file</span
                     >
                 </div>
 
@@ -929,26 +1021,26 @@ onMounted(async () => {
 
                     <div>
                         <label class="journal-field-label" for="launch_name"
-                            >Launch</label
+                            >Launch name</label
                         >
                         <input
                             id="launch_name"
                             v-model="form.launch_name"
                             class="journal-input"
-                            placeholder="Reykjavik"
+                            placeholder="Optional"
                         />
                         <InputError :message="form.errors.launch_name" />
                     </div>
 
                     <div>
                         <label class="journal-field-label" for="landing_name"
-                            >Landing</label
+                            >Landing name</label
                         >
                         <input
                             id="landing_name"
                             v-model="form.landing_name"
                             class="journal-input"
-                            placeholder="Reykjavik"
+                            placeholder="Optional"
                         />
                         <InputError :message="form.errors.landing_name" />
                     </div>
@@ -1015,11 +1107,30 @@ onMounted(async () => {
                         <input
                             id="distance_km"
                             v-model="distanceDisplay"
-                            type="number"
-                            step="0.1"
-                            min="0"
+                            type="text"
+                            inputmode="decimal"
                             class="journal-input"
+                            :readonly="hasManualTraceDistance"
+                            :class="
+                                hasManualTraceDistance
+                                    ? 'bg-[color:var(--journal-surface-soft)] text-[color:var(--journal-muted)]'
+                                    : ''
+                            "
+                            :placeholder="
+                                hasManualTraceDistance
+                                    ? 'Calculated from trace'
+                                    : '9.3'
+                            "
                         />
+                        <p
+                            class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
+                        >
+                            {{
+                                hasManualTraceDistance
+                                    ? 'Distance is being calculated from the traced route below.'
+                                    : 'Type a distance only if you are not tracing the route on the map.'
+                            }}
+                        </p>
                         <InputError :message="form.errors.distance_km" />
                     </div>
 
@@ -1141,97 +1252,6 @@ onMounted(async () => {
                                 form.manual_route_waypoints = $event
                             "
                         />
-                    </div>
-
-                    <div>
-                        <label class="journal-field-label" for="launch_lat"
-                            >Launch latitude</label
-                        >
-                        <input
-                            id="launch_lat"
-                            v-model="form.launch_lat"
-                            type="number"
-                            step="0.000001"
-                            min="-90"
-                            max="90"
-                            class="journal-input"
-                            placeholder="64.146600"
-                        />
-                        <InputError :message="form.errors.launch_lat" />
-                    </div>
-
-                    <div>
-                        <label class="journal-field-label" for="launch_lng"
-                            >Launch longitude</label
-                        >
-                        <input
-                            id="launch_lng"
-                            v-model="form.launch_lng"
-                            type="number"
-                            step="0.000001"
-                            min="-180"
-                            max="180"
-                            class="journal-input"
-                            placeholder="-21.942600"
-                        />
-                        <InputError :message="form.errors.launch_lng" />
-                    </div>
-
-                    <div>
-                        <label class="journal-field-label" for="landing_lat"
-                            >Landing latitude</label
-                        >
-                        <input
-                            id="landing_lat"
-                            v-model="form.landing_lat"
-                            type="number"
-                            step="0.000001"
-                            min="-90"
-                            max="90"
-                            class="journal-input"
-                            placeholder="Optional"
-                        />
-                        <InputError :message="form.errors.landing_lat" />
-                    </div>
-
-                    <div>
-                        <label class="journal-field-label" for="landing_lng"
-                            >Landing longitude</label
-                        >
-                        <input
-                            id="landing_lng"
-                            v-model="form.landing_lng"
-                            type="number"
-                            step="0.000001"
-                            min="-180"
-                            max="180"
-                            class="journal-input"
-                            placeholder="Optional"
-                        />
-                        <InputError :message="form.errors.landing_lng" />
-                    </div>
-
-                    <div
-                        class="flex flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-2"
-                    >
-                        <button
-                            type="button"
-                            class="journal-utility-link"
-                            @click="copyLaunchToLanding"
-                        >
-                            Use launch for landing
-                        </button>
-                        <button
-                            type="button"
-                            class="journal-utility-link"
-                            @click="clearLandingCoordinates"
-                        >
-                            Clear landing point
-                        </button>
-                        <p class="text-sm text-[color:var(--journal-muted)]">
-                            Manual coordinates are enough to add a pin on your
-                            maps, even without a Garmin file.
-                        </p>
                     </div>
                 </div>
 
