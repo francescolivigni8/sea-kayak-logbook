@@ -893,6 +893,13 @@ html[data-theme='fjord-mist'] {
         box-shadow: 0 16px 30px rgba(103, 114, 255, 0.12);
     }
 
+    .journal-step--mobile {
+        min-height: 84px;
+        padding: 0.82rem 0.88rem;
+        border-radius: 20px;
+        align-content: start;
+    }
+
     .journal-metric-card {
         position: relative;
         overflow: hidden;
@@ -1109,6 +1116,13 @@ html[data-theme='fjord-mist'] {
 
         .journal-step {
             padding: 0.82rem 0.9rem;
+        }
+
+        .journal-step--mobile {
+            min-height: 76px;
+            padding: 0.78rem 0.82rem;
+            border-radius: 18px;
+            box-shadow: none;
         }
 
         .journal-banner {

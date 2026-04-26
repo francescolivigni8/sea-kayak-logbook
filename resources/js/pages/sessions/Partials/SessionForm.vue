@@ -468,6 +468,11 @@ const modeHelperText = computed(() =>
         ? 'Quick keeps this to one step. Switch to extended anytime for full conditions, development, notes, and files.'
         : 'Extended keeps the full journal flow with conditions, rescue, notes, and attachments.',
 );
+const extendedMobileSummary = computed(() =>
+    props.mode === 'create'
+        ? 'Full journal mode for conditions, development, observations, and files.'
+        : 'Refine the full journal entry with route, sea state, notes, and attachments.',
+);
 const errorLeadMessage = computed(() =>
     isQuickMode.value
         ? 'A required detail needs fixing before this session can be saved.'
@@ -917,6 +922,7 @@ onMounted(async () => {
 
         <section
             class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6"
+            :class="!isQuickMode ? 'hidden md:block' : ''"
         >
             <div class="space-y-3">
                 <div class="space-y-3">
@@ -940,6 +946,7 @@ onMounted(async () => {
         <section
             v-if="canToggleEntryMode"
             class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+            :class="!isQuickMode ? 'hidden md:block' : ''"
         >
             <div
                 class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
@@ -992,7 +999,105 @@ onMounted(async () => {
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <section
                 v-if="!isQuickMode"
-                class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+                class="journal-panel px-4 py-4 md:hidden"
+            >
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="space-y-2">
+                                <p class="journal-kicker">Extended session</p>
+                                <h2 class="text-[1.55rem] leading-[0.96]">
+                                    {{ pageTitle }}
+                                </h2>
+                            </div>
+
+                            <div
+                                class="rounded-full border border-[color:var(--journal-line)] bg-white/78 px-3 py-1.5 text-[0.74rem] font-semibold text-[color:var(--journal-muted)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                            >
+                                {{ stepProgressLabel }}
+                            </div>
+                        </div>
+
+                        <p class="journal-copy text-sm leading-6">
+                            {{ extendedMobileSummary }}
+                        </p>
+                    </div>
+
+                    <div
+                        v-if="canToggleEntryMode"
+                        class="inline-flex w-full rounded-full border border-[color:var(--journal-line)] bg-white/78 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                    >
+                        <button
+                            type="button"
+                            class="min-h-[44px] flex-1 rounded-full px-4 py-2 text-sm font-semibold transition"
+                            :class="
+                                isQuickMode
+                                    ? 'bg-[#5f72ff] text-white shadow-[0_8px_18px_rgba(95,114,255,0.24)]'
+                                    : 'text-[color:var(--journal-muted)]'
+                            "
+                            @click="setSessionEntryMode('quick')"
+                        >
+                            Quick
+                        </button>
+                        <button
+                            type="button"
+                            class="min-h-[44px] flex-1 rounded-full px-4 py-2 text-sm font-semibold transition"
+                            :class="
+                                !isQuickMode
+                                    ? 'bg-[#5f72ff] text-white shadow-[0_8px_18px_rgba(95,114,255,0.24)]'
+                                    : 'text-[color:var(--journal-muted)]'
+                            "
+                            @click="setSessionEntryMode('extended')"
+                        >
+                            Extended
+                        </button>
+                    </div>
+
+                    <div
+                        class="rounded-[1.35rem] border border-[color:var(--journal-line)] bg-[color:var(--journal-surface-soft)] p-3"
+                    >
+                        <div
+                            class="mb-3 flex items-center justify-between gap-3"
+                        >
+                            <p
+                                class="text-xs font-semibold tracking-[0.12em] text-[color:var(--journal-muted)] uppercase"
+                            >
+                                Step guide
+                            </p>
+                            <span
+                                class="text-[0.72rem] font-medium text-[color:var(--journal-muted)]"
+                            >
+                                Title, date, and distance, a trace, or a route
+                                file required
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button
+                                v-for="(step, index) in steps"
+                                :key="`${step.key}-mobile`"
+                                type="button"
+                                :class="[
+                                    'journal-step journal-step--mobile',
+                                    currentStep === index ? 'journal-step--active' : '',
+                                ]"
+                                @click="goToStep(index)"
+                            >
+                                <span class="journal-kicker">{{
+                                    `Step ${index + 1}`
+                                }}</span>
+                                <strong class="text-[0.95rem] text-[color:var(--journal-text)]">
+                                    {{ step.title }}
+                                </strong>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                v-if="!isQuickMode"
+                class="journal-panel hidden px-4 py-4 sm:px-5 sm:py-5 md:block md:px-6"
             >
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p
@@ -1037,7 +1142,38 @@ onMounted(async () => {
 
             <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                 <div
+                    v-if="!isQuickMode"
+                    class="mb-4 rounded-[1.2rem] border border-[color:var(--journal-line)] bg-[color:var(--journal-surface-soft)] px-4 py-3 md:hidden"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <p class="journal-kicker">
+                                {{ `Step ${currentStep + 1}` }}
+                            </p>
+                            <h3 class="text-[1.2rem] leading-none">
+                                {{ currentStepMeta.title }}
+                            </h3>
+                        </div>
+
+                        <span
+                            class="rounded-full border border-[color:var(--journal-line)] bg-white/82 px-3 py-1 text-[0.72rem] font-semibold text-[color:var(--journal-muted)]"
+                        >
+                            {{
+                                currentStep === steps.length - 1
+                                    ? 'Ready to save'
+                                    : 'Keep going'
+                            }}
+                        </span>
+                    </div>
+
+                    <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                        {{ currentStepMeta.description }}
+                    </p>
+                </div>
+
+                <div
                     class="mb-6 flex flex-wrap items-start justify-between gap-3"
+                    :class="!isQuickMode ? 'hidden md:flex' : ''"
                 >
                     <div class="space-y-2">
                         <p class="journal-kicker">
