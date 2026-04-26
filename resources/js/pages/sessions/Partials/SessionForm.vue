@@ -38,6 +38,8 @@ interface RouteWaypoint {
     lng: number;
 }
 
+type SessionEntryMode = 'quick' | 'extended';
+
 const props = defineProps<{
     mode: 'create' | 'edit';
     profile: SessionProfileSummary;
@@ -207,10 +209,25 @@ const steps = [
     },
 ] as const;
 
+const canToggleEntryMode = computed(() => props.mode === 'create');
+const sessionEntryMode = ref<SessionEntryMode>(
+    props.mode === 'create' ? 'quick' : 'extended',
+);
+const isQuickMode = computed(() => sessionEntryMode.value === 'quick');
+
 const currentStep = ref(
     Math.max(0, Math.min(props.initialStep ?? 0, steps.length - 1)),
 );
-const currentStepMeta = computed(() => steps[currentStep.value]);
+const currentStepMeta = computed(() =>
+    isQuickMode.value
+        ? {
+              key: 'quick',
+              title: 'Quick session',
+              description:
+                  'Just the essentials: title, date, place, distance, duration, and an optional map point.',
+          }
+        : steps[currentStep.value],
+);
 const notesTextarea = ref<HTMLTextAreaElement | null>(null);
 const weatherPreviewState = ref<
     'idle' | 'loading' | 'filled' | 'warning' | 'error'
@@ -387,6 +404,12 @@ watch(
 watch(
     () => ({ ...form.errors }),
     (errors) => {
+        if (isQuickMode.value) {
+            currentStep.value = 0;
+
+            return;
+        }
+
         const firstStepWithError = Object.keys(errors)
             .map((field) => stepFieldMap[field])
             .find((step): step is number => step !== undefined);
@@ -415,8 +438,20 @@ const pageTitle = computed(() =>
 );
 const pageDescription = computed(() =>
     props.mode === 'create'
-        ? 'Capture the paddle, mark the sea state, and attach the files.'
+        ? isQuickMode.value
+            ? 'Log a paddle fast with only the essentials. Switch to extended anytime for the full journal.'
+            : 'Capture the paddle, mark the sea state, and attach the files.'
         : 'Refine the paddle, notes, files, and expedition fields.',
+);
+const modeHelperText = computed(() =>
+    isQuickMode.value
+        ? 'Quick keeps this to one step. Switch to extended anytime for full conditions, development, notes, and files.'
+        : 'Extended keeps the full journal flow with conditions, rescue, notes, and attachments.',
+);
+const errorLeadMessage = computed(() =>
+    isQuickMode.value
+        ? 'A required detail needs fixing before this session can be saved.'
+        : 'A required detail needs fixing. I moved you to the first step with a problem.',
 );
 
 const submitLabel = computed(() =>
@@ -425,7 +460,15 @@ const submitLabel = computed(() =>
 const fileInputClass =
     'journal-input file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium';
 const stepProgressLabel = computed(
-    () => `Step ${currentStep.value + 1} of ${steps.length}`,
+    () =>
+        isQuickMode.value
+            ? 'Quick session'
+            : `Step ${currentStep.value + 1} of ${steps.length}`,
+);
+const minimumRequirementText = computed(() =>
+    isQuickMode.value
+        ? 'Minimum save requirement: title, date, and distance or a manual trace.'
+        : 'Minimum save requirement: title, date, and distance or a route file.',
 );
 const launchLatNumber = computed(() =>
     form.launch_lat === '' ? null : Number(form.launch_lat),
@@ -730,6 +773,10 @@ function assignFile(
 }
 
 function goToStep(stepIndex: number) {
+    if (isQuickMode.value) {
+        return;
+    }
+
     currentStep.value = stepIndex;
 }
 
@@ -769,11 +816,24 @@ function syncDuration(hoursValue: string, minutesValue: string) {
 }
 
 function nextStep() {
+    if (isQuickMode.value) {
+        return;
+    }
+
     currentStep.value = Math.min(currentStep.value + 1, steps.length - 1);
 }
 
 function previousStep() {
+    if (isQuickMode.value) {
+        return;
+    }
+
     currentStep.value = Math.max(currentStep.value - 1, 0);
+}
+
+function setSessionEntryMode(mode: SessionEntryMode) {
+    sessionEntryMode.value = mode;
+    currentStep.value = 0;
 }
 
 function submit() {
@@ -796,7 +856,7 @@ function submit() {
 }
 
 onMounted(async () => {
-    if (currentStep.value !== 3) {
+    if (isQuickMode.value || currentStep.value !== 3) {
         return;
     }
 
@@ -823,8 +883,7 @@ onMounted(async () => {
         >
             <p class="journal-kicker">Session not saved</p>
             <p class="mt-2 text-sm leading-6 font-semibold md:text-base">
-                A required detail needs fixing. I moved you to the first step
-                with a problem.
+                {{ errorLeadMessage }}
             </p>
             <ul class="mt-3 space-y-1 text-sm leading-6">
                 <li
@@ -858,13 +917,63 @@ onMounted(async () => {
             </div>
         </section>
 
+        <section
+            v-if="canToggleEntryMode"
+            class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+        >
+            <div
+                class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+            >
+                <div class="space-y-2">
+                    <p class="journal-kicker">Session mode</p>
+                    <h3 class="text-[1.25rem] leading-none sm:text-[1.5rem]">
+                        {{ isQuickMode ? 'Quick session' : 'Extended session' }}
+                    </h3>
+                    <p class="journal-copy max-w-3xl text-sm md:text-base">
+                        {{ modeHelperText }}
+                    </p>
+                </div>
+
+                <div
+                    class="inline-flex rounded-full border border-[color:var(--journal-line)] bg-white/78 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                >
+                    <button
+                        type="button"
+                        class="rounded-full px-4 py-2 text-sm font-semibold transition"
+                        :class="
+                            isQuickMode
+                                ? 'bg-[#5f72ff] text-white shadow-[0_8px_18px_rgba(95,114,255,0.24)]'
+                                : 'text-[color:var(--journal-muted)] hover:text-[color:var(--journal-text)]'
+                        "
+                        @click="setSessionEntryMode('quick')"
+                    >
+                        Quick
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-full px-4 py-2 text-sm font-semibold transition"
+                        :class="
+                            !isQuickMode
+                                ? 'bg-[#5f72ff] text-white shadow-[0_8px_18px_rgba(95,114,255,0.24)]'
+                                : 'text-[color:var(--journal-muted)] hover:text-[color:var(--journal-text)]'
+                        "
+                        @click="setSessionEntryMode('extended')"
+                    >
+                        Extended
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <section class="journal-banner journal-banner--soft">
-            Keep this flow lightweight: journey first, sea next, then rescue and
-            notes once the core paddle is captured.
+            {{ modeHelperText }}
         </section>
 
         <form class="space-y-5" novalidate @submit.prevent="submit">
-            <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
+            <section
+                v-if="!isQuickMode"
+                class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+            >
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p
                         class="text-sm font-medium text-[color:var(--journal-muted)]"
@@ -926,15 +1035,244 @@ onMounted(async () => {
                         class="text-sm font-medium text-[color:var(--journal-muted)]"
                     >
                         {{
-                            currentStep === steps.length - 1
+                            isQuickMode || currentStep === steps.length - 1
                                 ? 'Ready to save'
                                 : 'Keep going'
                         }}
                     </span>
                 </div>
 
+                <div v-if="isQuickMode" class="space-y-5">
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <div class="xl:col-span-2">
+                            <label class="journal-field-label" for="quick_title"
+                                >Title</label
+                            >
+                            <input
+                                id="quick_title"
+                                v-model="form.title"
+                                class="journal-input"
+                                placeholder="Evening harbor circuit"
+                            />
+                            <InputError :message="form.errors.title" />
+                        </div>
+
+                        <div>
+                            <label class="journal-field-label" for="quick_session_date"
+                                >Date</label
+                            >
+                            <input
+                                id="quick_session_date"
+                                v-model="form.session_date"
+                                type="date"
+                                class="journal-input"
+                            />
+                            <InputError :message="form.errors.session_date" />
+                        </div>
+
+                        <div>
+                            <label
+                                class="journal-field-label"
+                                for="quick_start_time_local"
+                                >Start time</label
+                            >
+                            <input
+                                id="quick_start_time_local"
+                                v-model="form.start_time_local"
+                                type="time"
+                                class="journal-input"
+                            />
+                            <InputError :message="form.errors.start_time_local" />
+                        </div>
+
+                        <div>
+                            <label class="journal-field-label" for="quick_area_name"
+                                >Area</label
+                            >
+                            <input
+                                id="quick_area_name"
+                                v-model="form.area_name"
+                                class="journal-input"
+                                placeholder="Faxafloi"
+                            />
+                            <InputError :message="form.errors.area_name" />
+                        </div>
+
+                        <div>
+                            <label class="journal-field-label" for="quick_place"
+                                >Place</label
+                            >
+                            <input
+                                id="quick_place"
+                                v-model="form.launch_name"
+                                class="journal-input"
+                                placeholder="Reykjavik harbor"
+                            />
+                            <p
+                                class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
+                            >
+                                One place name is enough here. Switch to
+                                extended if you want separate launch and landing
+                                details.
+                            </p>
+                            <InputError :message="form.errors.launch_name" />
+                        </div>
+
+                        <div>
+                            <label class="journal-field-label" for="quick_distance_km"
+                                >Distance ({{ distanceUnitLabel }})</label
+                            >
+                            <input
+                                id="quick_distance_km"
+                                v-model="distanceDisplay"
+                                type="text"
+                                inputmode="decimal"
+                                class="journal-input"
+                                :readonly="hasManualTraceDistance"
+                                :class="
+                                    hasManualTraceDistance
+                                        ? 'bg-[color:var(--journal-surface-soft)] text-[color:var(--journal-muted)]'
+                                        : ''
+                                "
+                                :placeholder="
+                                    hasManualTraceDistance
+                                        ? 'Calculated from trace'
+                                        : '9.3'
+                                "
+                            />
+                            <p
+                                class="mt-2 text-xs leading-5 text-[color:var(--journal-muted)]"
+                            >
+                                {{
+                                    hasManualTraceDistance
+                                        ? 'Distance is being calculated from the traced route below.'
+                                        : 'Type a distance only if you are not tracing the route on the map.'
+                                }}
+                            </p>
+                            <InputError :message="form.errors.distance_km" />
+                        </div>
+
+                        <div>
+                            <label
+                                class="journal-field-label"
+                                for="quick_duration_hours"
+                                >Duration</label
+                            >
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-2">
+                                    <span
+                                        class="text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                        >Hours</span
+                                    >
+                                    <input
+                                        id="quick_duration_hours"
+                                        v-model="durationHours"
+                                        type="number"
+                                        min="0"
+                                        class="journal-input"
+                                        placeholder="1"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <span
+                                        class="text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                        >Minutes</span
+                                    >
+                                    <input
+                                        id="quick_duration_minutes"
+                                        v-model="durationRemainingMinutes"
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        class="journal-input"
+                                        placeholder="30"
+                                    />
+                                </div>
+                            </div>
+                            <InputError :message="form.errors.duration_minutes" />
+                        </div>
+                    </div>
+
+                    <label
+                        class="flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)]"
+                        :class="!weatherAutofillAvailable ? 'opacity-70' : ''"
+                    >
+                        <input
+                            v-model="form.autofill_weather"
+                            type="checkbox"
+                            class="mt-1 size-4 rounded border-[color:var(--journal-line)]"
+                            :disabled="!weatherAutofillAvailable"
+                        />
+                        <span class="space-y-1">
+                            <strong class="block font-medium"
+                                >Fill weather automatically</strong
+                            >
+                            <span
+                                class="block text-[color:var(--journal-muted)]"
+                            >
+                                If you place a point on the map, Stormglass can
+                                preview the conditions right away before you
+                                save.
+                                <template v-if="!weatherAutofillAvailable">
+                                    Add your Stormglass API key first to enable
+                                    this.</template
+                                >
+                            </span>
+                        </span>
+                    </label>
+
+                    <div
+                        v-if="
+                            weatherPreviewState !== 'idle' &&
+                            weatherPreviewMessage
+                        "
+                        class="journal-banner text-sm"
+                        :class="{
+                            'journal-banner--soft':
+                                weatherPreviewState === 'loading',
+                            'journal-banner--danger':
+                                weatherPreviewState === 'warning' ||
+                                weatherPreviewState === 'error',
+                        }"
+                    >
+                        {{ weatherPreviewMessage }}
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="space-y-2">
+                            <p class="journal-kicker">Place the session</p>
+                            <h4 class="text-[1.35rem] leading-none">
+                                Optional map trace
+                            </h4>
+                            <p
+                                class="journal-copy max-w-3xl text-sm md:text-base"
+                            >
+                                Add a point or trace a short route if you want
+                                the place saved and the distance calculated for
+                                you.
+                            </p>
+                        </div>
+
+                        <SessionLocationPicker
+                            :launch-lat="launchLatNumber"
+                            :launch-lng="launchLngNumber"
+                            :landing-lat="landingLatNumber"
+                            :landing-lng="landingLngNumber"
+                            :route-waypoints-json="form.manual_route_waypoints"
+                            :default-view="profile.defaultMapView"
+                            @update:launch-lat="form.launch_lat = $event"
+                            @update:launch-lng="form.launch_lng = $event"
+                            @update:landing-lat="form.landing_lat = $event"
+                            @update:landing-lng="form.landing_lng = $event"
+                            @update:route-waypoints-json="
+                                form.manual_route_waypoints = $event
+                            "
+                        />
+                    </div>
+                </div>
+
                 <div
-                    v-show="currentStep === 0"
+                    v-show="!isQuickMode && currentStep === 0"
                     class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
                 >
                     <div class="xl:col-span-2">
@@ -1255,7 +1593,7 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <div v-show="currentStep === 1" class="space-y-5">
+                <div v-show="!isQuickMode && currentStep === 1" class="space-y-5">
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <label
                             class="flex items-start gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm text-[color:var(--journal-text)] sm:col-span-2 xl:col-span-4"
@@ -1656,7 +1994,7 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <div v-show="currentStep === 2" class="space-y-5">
+                <div v-show="!isQuickMode && currentStep === 2" class="space-y-5">
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <div>
                             <label
@@ -1807,7 +2145,7 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <div v-show="currentStep === 3" class="space-y-5">
+                <div v-show="!isQuickMode && currentStep === 3" class="space-y-5">
                     <div class="grid gap-4 lg:grid-cols-2">
                         <label
                             class="flex items-center gap-3 rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--journal-text)]"
@@ -1970,14 +2308,14 @@ onMounted(async () => {
                 class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5"
             >
                 <p class="text-sm text-[color:var(--journal-muted)]">
-                    Minimum save requirement: title, date, and distance or a
-                    route file.
+                    {{ minimumRequirementText }}
                 </p>
 
                 <div
                     class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center md:w-auto"
                 >
                     <button
+                        v-if="!isQuickMode"
                         type="button"
                         class="journal-utility-link w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                         :disabled="currentStep === 0"
@@ -1987,7 +2325,7 @@ onMounted(async () => {
                     </button>
 
                     <button
-                        v-if="currentStep < steps.length - 1"
+                        v-if="!isQuickMode && currentStep < steps.length - 1"
                         type="button"
                         class="journal-primary-link w-full sm:w-auto"
                         @click="nextStep"
