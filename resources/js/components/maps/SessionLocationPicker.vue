@@ -360,7 +360,7 @@ onBeforeUnmount(() => {
 
 <template>
     <section
-        class="rounded-[24px] border border-[color:var(--journal-line)] bg-white/72 p-4"
+        class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/72 p-3 sm:rounded-[24px] sm:p-4"
     >
         <div
             class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
@@ -379,12 +379,10 @@ onBeforeUnmount(() => {
                 </p>
             </div>
 
-            <div
-                class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
-            >
+            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:pb-0">
                 <button
                     type="button"
-                    class="journal-utility-link shrink-0"
+                    class="journal-utility-link min-w-0 justify-center"
                     :disabled="renderedRoutePoints.length === 0"
                     @click="clearRouteTrace"
                 >
@@ -392,7 +390,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="journal-utility-link shrink-0"
+                    class="journal-utility-link min-w-0 justify-center"
                     @click="fitToCurrentCourse"
                 >
                     Fit view
@@ -403,11 +401,11 @@ onBeforeUnmount(() => {
         <div
             class="mt-4 overflow-hidden rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
         >
-            <div ref="mapElement" class="h-[280px] sm:h-[340px]" />
+            <div ref="mapElement" class="h-[240px] sm:h-[340px]" />
         </div>
 
         <div
-            class="mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium text-[color:var(--journal-muted)] [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
         >
             <span class="journal-chip shrink-0">First point = launch</span>
             <span class="journal-chip shrink-0">Last point = landing</span>

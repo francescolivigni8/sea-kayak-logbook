@@ -965,7 +965,7 @@ onMounted(async () => {
             </div>
         </section>
 
-        <section class="journal-banner journal-banner--soft">
+        <section class="journal-banner journal-banner--soft hidden sm:block">
             {{ modeHelperText }}
         </section>
 
@@ -995,7 +995,7 @@ onMounted(async () => {
                         type="button"
                         :class="[
                             'journal-step',
-                            'min-w-[220px] shrink-0 md:min-w-0',
+                            'min-w-[170px] shrink-0 md:min-w-0',
                             currentStep === index ? 'journal-step--active' : '',
                         ]"
                         @click="goToStep(index)"
@@ -1004,11 +1004,11 @@ onMounted(async () => {
                             `Step ${index + 1}`
                         }}</span>
                         <strong
-                            class="text-[1rem] text-[color:var(--journal-text)]"
+                            class="text-[0.92rem] text-[color:var(--journal-text)] sm:text-[1rem]"
                             >{{ step.title }}</strong
                         >
                         <span
-                            class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                            class="hidden text-sm leading-6 text-[color:var(--journal-muted)] sm:block"
                             >{{ step.description }}</span
                         >
                     </button>
@@ -1026,13 +1026,15 @@ onMounted(async () => {
                         <h3 class="text-[1.5rem] leading-none sm:text-[1.9rem]">
                             {{ currentStepMeta.title }}
                         </h3>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
+                        <p
+                            class="journal-copy hidden max-w-3xl text-sm md:block md:text-base"
+                        >
                             {{ currentStepMeta.description }}
                         </p>
                     </div>
 
                     <span
-                        class="text-sm font-medium text-[color:var(--journal-muted)]"
+                        class="hidden text-sm font-medium text-[color:var(--journal-muted)] sm:inline"
                     >
                         {{
                             isQuickMode || currentStep === steps.length - 1
@@ -2305,7 +2307,7 @@ onMounted(async () => {
             </section>
 
             <section
-                class="journal-panel sticky bottom-3 z-20 flex flex-col gap-3 px-4 py-4 backdrop-blur md:static md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5"
+                class="journal-panel flex flex-col gap-3 px-4 py-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6 md:py-5"
             >
                 <p class="text-sm text-[color:var(--journal-muted)]">
                     {{ minimumRequirementText }}

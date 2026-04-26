@@ -40,6 +40,13 @@ const integrations = computed(
     () => (page.props.integrations as IntegrationsShape | undefined) ?? null,
 );
 const heroTitle = 'Your kayaking journal';
+const isSessionEditorPath = computed(() => {
+    return (
+        currentPath.value === '/sessions/create' ||
+        (currentPath.value.startsWith('/sessions/') &&
+            currentPath.value.endsWith('/edit'))
+    );
+});
 
 type PrimaryNavItem = {
     label: string;
@@ -148,7 +155,12 @@ watch(
 <template>
     <div class="journal-page">
         <header
-            class="journal-panel journal-panel--hero overflow-hidden px-4 py-4 sm:px-5 md:px-6 md:py-5"
+            :class="
+                isSessionEditorPath
+                    ? 'px-3 py-3 sm:px-5 md:px-6 md:py-5'
+                    : 'px-4 py-4 sm:px-5 md:px-6 md:py-5'
+            "
+            class="journal-panel journal-panel--hero overflow-hidden"
         >
             <div class="flex flex-col gap-3 sm:gap-4">
                 <div
@@ -158,21 +170,33 @@ watch(
                         <img
                             src="/brand/ykj-logo-clean.png"
                             alt="Your Kayaking Journal logo"
-                            class="size-[4.4rem] shrink-0 rounded-[1.2rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)] sm:size-[6.15rem]"
+                            :class="
+                                isSessionEditorPath
+                                    ? 'size-[3.4rem] sm:size-[6.15rem]'
+                                    : 'size-[4.4rem] sm:size-[6.15rem]'
+                            "
+                            class="shrink-0 rounded-[1.2rem] border border-[rgba(103,114,255,0.16)] object-cover shadow-[0_18px_34px_rgba(37,43,82,0.14)]"
                             width="98"
                             height="98"
                         />
                         <div class="space-y-2">
                             <p class="journal-kicker">Sea kayak logbook</p>
                             <h1
-                                class="text-[1.85rem] leading-[0.94] text-[color:var(--journal-text)] sm:text-[clamp(2.1rem,4vw,3.35rem)]"
+                                :class="
+                                    isSessionEditorPath
+                                        ? 'text-[1.45rem] sm:text-[clamp(2.1rem,4vw,3.35rem)]'
+                                        : 'text-[1.85rem] sm:text-[clamp(2.1rem,4vw,3.35rem)]'
+                                "
+                                class="leading-[0.94] text-[color:var(--journal-text)]"
                             >
                                 {{ heroTitle }}
                             </h1>
                         </div>
                     </div>
 
-                    <div class="space-y-4 xl:text-right">
+                    <div
+                        :class="isSessionEditorPath ? 'hidden sm:block xl:text-right' : 'space-y-4 xl:text-right'"
+                    >
                         <div
                             class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-start sm:gap-3 xl:justify-end"
                         >
@@ -248,7 +272,11 @@ watch(
                     </nav>
 
                     <div
-                        class="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden"
+                        :class="
+                            isSessionEditorPath
+                                ? 'hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:pb-0'
+                                : 'flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden'
+                        "
                     >
                         <Link
                             v-for="link in utilityLinks"
