@@ -233,21 +233,24 @@ const marineWindRamp = ColorRamp.fromArrayDefinition([
 ]);
 
 const marineTemperatureRamp = ColorRamp.fromArrayDefinition([
-    [-15, [51, 89, 173, 112]],
-    [-5, [68, 167, 201, 108]],
-    [3, [122, 215, 208, 82]],
-    [10, [250, 228, 154, 92]],
-    [18, [244, 155, 107, 112]],
-    [28, [205, 78, 85, 128]],
+    [-18, [30, 64, 175, 166]],
+    [-8, [36, 141, 222, 156]],
+    [2, [89, 214, 255, 128]],
+    [10, [250, 232, 163, 138]],
+    [18, [250, 154, 74, 164]],
+    [28, [220, 38, 38, 186]],
+    [36, [127, 29, 29, 206]],
 ]);
 
 const marinePrecipitationRamp = ColorRamp.fromArrayDefinition([
     [0, [255, 255, 255, 0]],
-    [0.2, [180, 224, 236, 50]],
-    [1, [99, 179, 211, 88]],
-    [3, [49, 111, 194, 122]],
-    [8, [43, 67, 136, 150]],
-    [20, [90, 55, 122, 166]],
+    [0.12, [214, 244, 255, 78]],
+    [0.5, [110, 197, 255, 118]],
+    [1.5, [59, 130, 246, 164]],
+    [4, [29, 78, 216, 194]],
+    [10, [109, 40, 217, 210]],
+    [20, [126, 34, 206, 220]],
+    [40, [76, 29, 149, 232]],
 ]);
 
 const legends: Record<
@@ -275,19 +278,19 @@ const legends: Record<
         unit: 'mm/h',
         stops: [
             { label: 'Dry', color: '#f8fafc' },
-            { label: 'Light', color: '#63b3d3' },
-            { label: 'Rain', color: '#316fc2' },
-            { label: 'Heavy', color: '#5a377a' },
+            { label: 'Light', color: '#6ec5ff' },
+            { label: 'Rain', color: '#2563eb' },
+            { label: 'Heavy', color: '#7c3aed' },
         ],
     },
     temperature: {
         title: 'Temperature',
         unit: 'C',
         stops: [
-            { label: 'Cold', color: '#3359ad' },
-            { label: 'Cool', color: '#44a7c9' },
-            { label: 'Mild', color: '#fae49a' },
-            { label: 'Warm', color: '#cd4e55' },
+            { label: 'Cold', color: '#1e40af' },
+            { label: 'Cool', color: '#2496de' },
+            { label: 'Mild', color: '#fae8a3' },
+            { label: 'Warm', color: '#dc2626' },
         ],
     },
 };
@@ -676,15 +679,27 @@ function baseWeatherOpacity(layer: WeatherLayerKey): number {
     }
 
     if (layer === 'temperature') {
-        return 0.24;
+        return 0.38;
     }
 
-    return 0.3;
+    return 0.5;
+}
+
+function weatherOpacityCap(layer: WeatherLayerKey): number {
+    if (layer === 'temperature') {
+        return 0.78;
+    }
+
+    if (layer === 'precipitation') {
+        return 0.88;
+    }
+
+    return 0.94;
 }
 
 function weatherOpacity(layer: WeatherLayerKey): number {
     return Math.min(
-        0.94,
+        weatherOpacityCap(layer),
         baseWeatherOpacity(layer) *
             animationPreset.value.opacityScale *
             weatherVisibilityScale.value,
