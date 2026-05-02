@@ -480,11 +480,7 @@ const routeMapData = computed(() => {
                         "
                         class="journal-primary-link w-full justify-center sm:w-auto"
                     >
-                        {{
-                            session.notesPublic
-                                ? 'Edit session'
-                                : 'Add observation'
-                        }}
+                        Edit session
                     </Link>
                 </div>
             </div>

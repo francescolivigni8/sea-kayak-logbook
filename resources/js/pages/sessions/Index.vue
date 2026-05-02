@@ -1169,11 +1169,7 @@ watch(visibleSessions, () => {
                                     "
                                     class="journal-utility-link"
                                 >
-                                    {{
-                                        session.hasObservation
-                                            ? 'Edit'
-                                            : 'Add observation'
-                                    }}
+                                    Edit session
                                 </Link>
                             </div>
 
