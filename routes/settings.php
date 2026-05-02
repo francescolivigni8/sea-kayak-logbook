@@ -4,8 +4,13 @@ use App\Http\Controllers\CourseApplicationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(array_filter([
+    'auth',
+    Features::enabled(Features::emailVerification()) ? 'verified' : null,
+    'legal.accepted',
+]))->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -20,7 +25,11 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(array_filter([
+    'auth',
+    Features::enabled(Features::emailVerification()) ? 'verified' : null,
+    'legal.accepted',
+]))->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', fn () => redirect()->to(route('profile.edit').'#security'))->name('security.edit');

@@ -11,6 +11,10 @@ class LoginResponse implements LoginResponseContract
     public function toResponse($request): RedirectResponse
     {
         /** @var Request $request */
+        if ($request->user()->requiresLegalAcceptance()) {
+            return redirect()->to(route('legal.acceptance.edit', absolute: false));
+        }
+
         $profile = $request->user()->resolveActiveProfile();
 
         if ($profile->requiresSetup()) {

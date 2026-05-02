@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\CarbonInterface;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
@@ -134,5 +135,35 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $ownerEmails->contains(strtolower($this->email));
+    }
+
+    public function requiresLegalAcceptance(): bool
+    {
+        return blank($this->accepted_terms_at)
+            || blank($this->accepted_privacy_at)
+            || $this->accepted_terms_version !== $this->currentTermsVersion()
+            || $this->accepted_privacy_version !== $this->currentPrivacyVersion();
+    }
+
+    public function acceptCurrentLegal(?CarbonInterface $acceptedAt = null): void
+    {
+        $acceptedAt ??= now();
+
+        $this->forceFill([
+            'accepted_terms_at' => $acceptedAt,
+            'accepted_privacy_at' => $acceptedAt,
+            'accepted_terms_version' => $this->currentTermsVersion(),
+            'accepted_privacy_version' => $this->currentPrivacyVersion(),
+        ])->save();
+    }
+
+    public function currentTermsVersion(): string
+    {
+        return (string) config('kayak.legal.terms_version');
+    }
+
+    public function currentPrivacyVersion(): string
+    {
+        return (string) config('kayak.legal.privacy_version');
     }
 }

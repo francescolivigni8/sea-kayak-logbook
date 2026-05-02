@@ -3,6 +3,7 @@
 use App\Http\Middleware\AddNoindexHeader;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureJournalOwner;
+use App\Http\Middleware\EnsureLegalAcceptance;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->alias([
             'journal.owner' => EnsureJournalOwner::class,
+            'legal.accepted' => EnsureLegalAcceptance::class,
         ]);
 
         $middleware->web(append: [

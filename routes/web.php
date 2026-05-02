@@ -6,6 +6,7 @@ use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\JournalNotesController;
+use App\Http\Controllers\LegalAcceptanceController;
 use App\Http\Controllers\PaddleSessionController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PublicProfileController;
@@ -35,6 +36,18 @@ Route::get('/p/{profile:slug}/expeditions/{place}', [ExpeditionPlaceController::
 Route::middleware(array_filter([
     'auth',
     Features::enabled(Features::emailVerification()) ? 'verified' : null,
+]))->group(function () {
+    Route::get('legal/acceptance', [LegalAcceptanceController::class, 'edit'])
+        ->name('legal.acceptance.edit');
+    Route::patch('legal/acceptance', [LegalAcceptanceController::class, 'update'])
+        ->middleware('throttle:6,1')
+        ->name('legal.acceptance.update');
+});
+
+Route::middleware(array_filter([
+    'auth',
+    Features::enabled(Features::emailVerification()) ? 'verified' : null,
+    'legal.accepted',
 ]))->group(function () {
     Route::get('workspace', function (Request $request) {
         return response()->view('workspace', [
