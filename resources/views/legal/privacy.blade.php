@@ -18,13 +18,14 @@
         p, li { line-height: 1.75; color: rgba(37,43,82,.72); }
         ul { margin: 0; padding-left: 20px; }
         a { color: #252b52; font-weight: 700; }
+        .footer-note { margin-top: 28px; font-size: 12px; line-height: 1.6; color: rgba(37,43,82,.56); }
     </style>
 </head>
 <body>
     <main>
         <section>
             <h1>Privacy</h1>
-            <p>Last updated: 22 April 2026.</p>
+            <p>Last updated: {{ config('kayak.legal.privacy_version', '2026-05-02') }}.</p>
             <p>Your Kayaking Journal is a private-first kayaking journal for sessions, routes, planning, weather notes, uploaded activity files, photos, and account settings. Public sharing is disabled by default.</p>
 
             <h2>Who controls the data</h2>
@@ -69,6 +70,11 @@
             <h2>Safety note</h2>
             <p>Kayaking routes and weather notes can reveal sensitive location patterns. Treat exported files and screenshots carefully, especially before sharing them outside the app.</p>
             <p><a href="{{ route('login') }}">Back to login</a></p>
+            <p class="footer-note">
+                © {{ now()->year }} {{ config('kayak.legal.copyright_owner', 'Francesco Li Vigni') }}.
+                {{ config('kayak.legal.product_name', 'Your Kayaking Journal') }}. All rights reserved.
+                The app name, branding, layouts, and original journal content remain protected by applicable copyright and other rights.
+            </p>
         </section>
     </main>
 </body>

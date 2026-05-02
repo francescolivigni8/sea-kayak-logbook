@@ -34,6 +34,8 @@ class OptionalEmailVerificationTest extends TestCase
             'email' => 'staging@example.com',
             'password' => 'JournalPass123!',
             'password_confirmation' => 'JournalPass123!',
+            'accept_terms' => '1',
+            'accept_privacy' => '1',
         ])->assertRedirect(route('profile.edit', ['setup' => 1], false));
 
         $user = User::where('email', 'staging@example.com')->firstOrFail();

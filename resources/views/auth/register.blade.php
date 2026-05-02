@@ -120,6 +120,31 @@
         .muted { font-size: 14px; color: var(--muted); }
         .link { color: var(--text); font-weight: 700; text-decoration: none; }
         .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 13px; }
+        .checkbox {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 14px 16px;
+            border: 1px solid rgba(103, 114, 255, 0.16);
+            border-radius: 20px;
+            background: rgba(255,255,255,.74);
+        }
+        .checkbox input {
+            width: auto;
+            margin-top: 2px;
+            flex: 0 0 auto;
+        }
+        .checkbox-copy {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .footer-note {
+            margin-top: 22px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(37, 43, 82, 0.56);
+        }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
         @media (max-width: 520px) {
             .brand { align-items: flex-start; }
@@ -186,6 +211,42 @@
                     <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm password">
                 </div>
 
+                <div class="field">
+                    <label class="checkbox" for="accept_terms">
+                        <input
+                            id="accept_terms"
+                            type="checkbox"
+                            name="accept_terms"
+                            value="1"
+                            {{ old('accept_terms') ? 'checked' : '' }}
+                            required
+                        >
+                        <span class="checkbox-copy">
+                            I have read and accept the
+                            <a class="link" href="{{ route('legal.terms') }}" target="_blank" rel="noopener">Terms</a>.
+                        </span>
+                    </label>
+                    @error('accept_terms') <div class="error">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="field">
+                    <label class="checkbox" for="accept_privacy">
+                        <input
+                            id="accept_privacy"
+                            type="checkbox"
+                            name="accept_privacy"
+                            value="1"
+                            {{ old('accept_privacy') ? 'checked' : '' }}
+                            required
+                        >
+                        <span class="checkbox-copy">
+                            I have read and accept the
+                            <a class="link" href="{{ route('legal.privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.
+                        </span>
+                    </label>
+                    @error('accept_privacy') <div class="error">{{ $message }}</div> @enderror
+                </div>
+
                 <button class="button" type="submit">Create account</button>
             </form>
 
@@ -198,6 +259,11 @@
                 <a class="link" href="{{ route('legal.terms') }}">Terms</a>
                 <a class="link" href="{{ route('legal.contact') }}">Contact</a>
             </div>
+            <p class="footer-note">
+                © {{ now()->year }} {{ config('kayak.legal.copyright_owner', 'Francesco Li Vigni') }}.
+                {{ config('kayak.legal.product_name', 'Your Kayaking Journal') }}. All rights reserved.
+                Content, branding, and design remain protected except where permission is given.
+            </p>
         </section>
     </main>
 </body>

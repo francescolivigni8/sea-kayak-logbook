@@ -61,6 +61,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'legal' => [
+                'productName' => config('kayak.legal.product_name'),
+                'copyrightOwner' => config('kayak.legal.copyright_owner'),
+            ],
             'auth' => [
                 'user' => $request->user(),
             ],

@@ -18,13 +18,14 @@
         p, li { line-height: 1.75; color: rgba(37,43,82,.72); }
         ul { margin: 0; padding-left: 20px; }
         a { color: #252b52; font-weight: 700; }
+        .footer-note { margin-top: 28px; font-size: 12px; line-height: 1.6; color: rgba(37,43,82,.56); }
     </style>
 </head>
 <body>
     <main>
         <section>
             <h1>Terms</h1>
-            <p>Last updated: 22 April 2026.</p>
+            <p>Last updated: {{ config('kayak.legal.terms_version', '2026-05-02') }}.</p>
             <p>Your Kayaking Journal is a personal sea-kayaking journal and planning companion. By creating an account or using the app, you agree to use it responsibly and lawfully.</p>
 
             <h2>Not a safety or navigation service</h2>
@@ -59,6 +60,11 @@
             <h2>Contact</h2>
             <p>For support, terms questions, or privacy requests, contact <a href="mailto:{{ config('mail.from.address', 'hello@yourkayakingjournal.com') }}">{{ config('mail.from.address', 'hello@yourkayakingjournal.com') }}</a>.</p>
             <p><a href="{{ route('login') }}">Back to login</a></p>
+            <p class="footer-note">
+                © {{ now()->year }} {{ config('kayak.legal.copyright_owner', 'Francesco Li Vigni') }}.
+                {{ config('kayak.legal.product_name', 'Your Kayaking Journal') }}. All rights reserved.
+                Use of the service does not transfer ownership of the app, brand, or original design materials.
+            </p>
         </section>
     </main>
 </body>

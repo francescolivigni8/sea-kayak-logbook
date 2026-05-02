@@ -116,6 +116,12 @@
         .muted { font-size: 14px; color: var(--muted); }
         .link { color: var(--text); font-weight: 700; text-decoration: none; }
         .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 13px; }
+        .footer-note {
+            margin-top: 22px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(37, 43, 82, 0.56);
+        }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
         .status {
             margin-top: 16px;
@@ -199,6 +205,10 @@
                 <a class="link" href="{{ route('legal.terms') }}">Terms</a>
                 <a class="link" href="{{ route('legal.contact') }}">Contact</a>
             </div>
+            <p class="footer-note">
+                © {{ now()->year }} {{ config('kayak.legal.copyright_owner', 'Francesco Li Vigni') }}.
+                {{ config('kayak.legal.product_name', 'Your Kayaking Journal') }}. All rights reserved.
+            </p>
         </section>
     </main>
 </body>

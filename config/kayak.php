@@ -21,6 +21,12 @@ return [
     'owner_emails' => $ownerEmails->all(),
     'invite_only' => (bool) env('KAYAK_INVITE_ONLY', false),
     'invite_emails' => $inviteEmails->all(),
+    'legal' => [
+        'product_name' => env('KAYAK_PRODUCT_NAME', 'Your Kayaking Journal'),
+        'copyright_owner' => env('KAYAK_COPYRIGHT_OWNER', 'Francesco Li Vigni'),
+        'terms_version' => env('KAYAK_TERMS_VERSION', '2026-05-02'),
+        'privacy_version' => env('KAYAK_PRIVACY_VERSION', '2026-05-02'),
+    ],
     'weather' => [
         'providers' => [
             'stormglass' => [

@@ -17,6 +17,7 @@
         h2 { margin: 28px 0 10px; font-size: 20px; }
         p { line-height: 1.75; color: rgba(37,43,82,.72); }
         a { color: #252b52; font-weight: 700; }
+        .footer-note { margin-top: 28px; font-size: 12px; line-height: 1.6; color: rgba(37,43,82,.56); }
     </style>
 </head>
 <body>
@@ -27,6 +28,10 @@
             <h2><a href="mailto:{{ config('mail.from.address', 'hello@yourkayakingjournal.com') }}">{{ config('mail.from.address', 'hello@yourkayakingjournal.com') }}</a></h2>
             <p>If your message is about account access, include the email address used for the account. Do not email sensitive GPX/FIT files or passwords.</p>
             <p><a href="{{ route('login') }}">Back to login</a></p>
+            <p class="footer-note">
+                © {{ now()->year }} {{ config('kayak.legal.copyright_owner', 'Francesco Li Vigni') }}.
+                {{ config('kayak.legal.product_name', 'Your Kayaking Journal') }}. All rights reserved.
+            </p>
         </section>
     </main>
 </body>

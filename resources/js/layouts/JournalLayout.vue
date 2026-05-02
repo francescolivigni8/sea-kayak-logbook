@@ -26,6 +26,11 @@ type IntegrationsShape = {
     };
 };
 
+type LegalShape = {
+    productName?: string;
+    copyrightOwner?: string;
+};
+
 const page = usePage();
 const { unitPreferences } = useUnitPreferences();
 
@@ -39,7 +44,21 @@ const ownerTools = computed(
 const integrations = computed(
     () => (page.props.integrations as IntegrationsShape | undefined) ?? null,
 );
+const legal = computed(
+    () => (page.props.legal as LegalShape | undefined) ?? null,
+);
 const heroTitle = 'Your kayaking journal';
+const footerYear = new Date().getFullYear();
+const footerProductName = computed(
+    () => legal.value?.productName || 'Your Kayaking Journal',
+);
+const footerCopyrightOwner = computed(
+    () => legal.value?.copyrightOwner || 'Francesco Li Vigni',
+);
+const footerCopyright = computed(
+    () =>
+        `© ${footerYear} ${footerCopyrightOwner.value}. ${footerProductName.value}. All rights reserved.`,
+);
 const isSessionEditorPath = computed(() => {
     return (
         currentPath.value === '/sessions/create' ||
@@ -306,5 +325,26 @@ watch(
         </header>
 
         <slot />
+
+        <footer
+            class="px-1 pb-2 text-center text-[0.75rem] leading-6 text-[color:var(--journal-faint)]"
+        >
+            <p>{{ footerCopyright }}</p>
+            <p class="mt-1">
+                Use of the app does not transfer ownership of the brand,
+                original design, or protected content.
+            </p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
+                <Link class="underline underline-offset-4" href="/privacy">
+                    Privacy
+                </Link>
+                <Link class="underline underline-offset-4" href="/terms">
+                    Terms
+                </Link>
+                <Link class="underline underline-offset-4" href="/contact">
+                    Contact
+                </Link>
+            </div>
+        </footer>
     </div>
 </template>

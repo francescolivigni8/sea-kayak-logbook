@@ -31,10 +31,36 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'JournalPass123!',
             'password_confirmation' => 'JournalPass123!',
+            'accept_terms' => '1',
+            'accept_privacy' => '1',
         ]);
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('profile.edit', ['setup' => 1], false));
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'accepted_terms_version' => config('kayak.legal.terms_version'),
+            'accepted_privacy_version' => config('kayak.legal.privacy_version'),
+        ]);
+    }
+
+    public function test_new_users_must_accept_terms_and_privacy_to_register()
+    {
+        $response = $this->post(route('register.store'), [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'JournalPass123!',
+            'password_confirmation' => 'JournalPass123!',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'accept_terms',
+            'accept_privacy',
+        ]);
+        $this->assertDatabaseMissing('users', [
+            'email' => 'test@example.com',
+        ]);
     }
 
     public function test_invite_only_registration_blocks_uninvited_emails()
@@ -47,6 +73,8 @@ class RegistrationTest extends TestCase
             'email' => 'uninvited@example.com',
             'password' => 'JournalPass123!',
             'password_confirmation' => 'JournalPass123!',
+            'accept_terms' => '1',
+            'accept_privacy' => '1',
         ]);
 
         $this->assertGuest();
@@ -66,6 +94,8 @@ class RegistrationTest extends TestCase
             'email' => 'Invited@Example.com',
             'password' => 'JournalPass123!',
             'password_confirmation' => 'JournalPass123!',
+            'accept_terms' => '1',
+            'accept_privacy' => '1',
         ]);
 
         $this->assertAuthenticated();
