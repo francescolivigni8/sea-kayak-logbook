@@ -829,7 +829,7 @@
             <section class="grid two-col">
                 <article class="card">
                     <p class="kicker">Route mix</p>
-                    <h2 class="card-title">Session categories by distance</h2>
+                    <h2 class="card-title">Folders by distance</h2>
                     <div class="bar-list">
                         @foreach ($report['routeMix'] as $item)
                             <div class="bar-row">
@@ -980,7 +980,7 @@
                                 <span class="tag-count">{{ $folder['count'] }}</span>
                             </span>
                         @empty
-                            <p class="copy">No folders or grouped collections yet.</p>
+                            <p class="copy">No folders yet.</p>
                         @endforelse
                     </div>
                 </article>

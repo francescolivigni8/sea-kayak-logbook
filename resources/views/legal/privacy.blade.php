@@ -35,7 +35,7 @@
             <ul>
                 <li>Account details such as name, email address, password hash, session cookies, and two-factor settings if enabled.</li>
                 <li>Profile settings such as paddler name, home water, map defaults, club text, kayaks, and paddles.</li>
-                <li>Logged and planned paddles, including dates, launch and landing points, route points, categories, notes, gear used, rescue/development fields, and expedition tags.</li>
+                <li>Logged and planned paddles, including dates, launch and landing points, route points, folders, notes, gear used, rescue/development fields, and expedition tags.</li>
                 <li>Uploaded GPX, FIT, and photo files. Photos are re-encoded by the app to reduce embedded metadata before storage.</li>
                 <li>Weather and marine details that you enter manually or ask the app to fetch for a session or planned route.</li>
                 <li>Technical records such as application logs, security events, error reports, and basic request metadata needed to run and protect the service.</li>

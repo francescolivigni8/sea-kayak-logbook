@@ -18,7 +18,7 @@ class SessionCategoryController extends Controller
         ]);
 
         $name = trim($validated['name']);
-        $slug = Str::slug($name) ?: 'collection';
+        $slug = Str::slug($name) ?: 'folder';
         $category = $profile->sessionCategories()->firstOrCreate(
             ['slug' => $slug],
             ['name' => $name],

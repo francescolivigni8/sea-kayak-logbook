@@ -602,7 +602,7 @@ class PaddleSessionController extends Controller
     {
         $categoryIds = collect($this->categoryNamesFromText($namesText))
             ->map(function (string $name) use ($profile) {
-                $slug = Str::slug($name) ?: 'collection';
+                $slug = Str::slug($name) ?: 'folder';
                 $category = $profile->sessionCategories()->firstOrCreate(
                     ['slug' => $slug],
                     ['name' => $name],
