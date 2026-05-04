@@ -42,6 +42,10 @@ interface RouteWaypoint {
     lng: number;
 }
 
+interface SessionLocationPickerHandle {
+    refreshLayout: () => void;
+}
+
 type SessionEntryMode = 'quick' | 'extended';
 
 const props = defineProps<{
@@ -69,6 +73,8 @@ const form = useForm({
     fit_file: null as File | null,
     session_photo: null as File | null,
 });
+const quickLocationPickerRef = ref<SessionLocationPickerHandle | null>(null);
+const extendedLocationPickerRef = ref<SessionLocationPickerHandle | null>(null);
 
 function formatEditableNumber(value: number, digits = 1): string {
     return Number(value.toFixed(digits)).toString();
@@ -884,6 +890,23 @@ function setSessionEntryMode(mode: SessionEntryMode) {
     currentStep.value = 0;
 }
 
+function refreshVisibleLocationPicker() {
+    const picker =
+        isQuickMode.value || currentStep.value === 0
+            ? isQuickMode.value
+                ? quickLocationPickerRef.value
+                : extendedLocationPickerRef.value
+            : null;
+
+    if (!picker) {
+        return;
+    }
+
+    nextTick(() => {
+        picker.refreshLayout();
+    });
+}
+
 function applyQuickPrefill() {
     if (props.mode !== 'create' || !quickPrefill.value) {
         return;
@@ -954,6 +977,8 @@ function submit() {
 }
 
 onMounted(async () => {
+    refreshVisibleLocationPicker();
+
     if (isQuickMode.value || currentStep.value !== 3) {
         return;
     }
@@ -961,6 +986,13 @@ onMounted(async () => {
     await nextTick();
     notesTextarea.value?.focus();
 });
+
+watch(
+    () => [sessionEntryMode.value, currentStep.value],
+    () => {
+        refreshVisibleLocationPicker();
+    },
+);
 </script>
 
 <template>
@@ -1246,6 +1278,7 @@ onMounted(async () => {
                         </div>
 
                         <SessionLocationPicker
+                            ref="quickLocationPickerRef"
                             :launch-lat="launchLatNumber"
                             :launch-lng="launchLngNumber"
                             :landing-lat="landingLatNumber"
@@ -1600,6 +1633,7 @@ onMounted(async () => {
                     <div class="sm:col-span-2 xl:col-span-3">
                         <SessionLocationPicker
                             v-if="currentStep === 0"
+                            ref="extendedLocationPickerRef"
                             :launch-lat="launchLatNumber"
                             :launch-lng="launchLngNumber"
                             :landing-lat="landingLatNumber"

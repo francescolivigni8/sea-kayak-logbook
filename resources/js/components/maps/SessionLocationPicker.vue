@@ -234,6 +234,12 @@ function fitToCurrentCourse() {
     fitToPoints();
 }
 
+function refreshLayout() {
+    map?.invalidateSize();
+    fitToPoints();
+    invalidateMapSize();
+}
+
 function renderMarkers() {
     if (!map || !markerLayer) {
         return;
@@ -327,7 +333,11 @@ async function initializeMap() {
 
     renderMarkers();
 
-    if (renderedRoutePoints.value.length > 1) {
+    if (
+        renderedRoutePoints.value.length > 0 ||
+        launchPoint.value !== null ||
+        landingPoint.value !== null
+    ) {
         fitToPoints();
     }
 
@@ -344,17 +354,30 @@ watch(
     ],
     () => {
         renderMarkers();
+        invalidateMapSize();
     },
     { deep: true },
 );
 
+function handleWindowResize() {
+    invalidateMapSize();
+}
+
 onMounted(() => {
     initializeMap();
+    window.addEventListener('resize', handleWindowResize);
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('resize', handleWindowResize);
     map?.remove();
     map = null;
+});
+
+defineExpose({
+    refreshLayout,
+    fitToCurrentCourse,
+    clearRouteTrace,
 });
 </script>
 
