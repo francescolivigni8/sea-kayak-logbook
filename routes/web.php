@@ -49,11 +49,6 @@ Route::middleware(array_filter([
     Features::enabled(Features::emailVerification()) ? 'verified' : null,
     'legal.accepted',
 ]))->group(function () {
-    Route::get('workspace', function (Request $request) {
-        return response()->view('workspace', [
-            'user' => $request->user(),
-        ]);
-    })->name('workspace');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('diary', DiaryController::class)->name('diary');
     Route::get('observations', [JournalNotesController::class, 'observations'])->name('observations');

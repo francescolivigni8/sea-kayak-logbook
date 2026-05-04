@@ -23,13 +23,6 @@ Route::middleware(array_filter([
     Route::get('settings/profile/report', [CourseApplicationController::class, 'report'])
         ->name('profile.report');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-});
-
-Route::middleware(array_filter([
-    'auth',
-    Features::enabled(Features::emailVerification()) ? 'verified' : null,
-    'legal.accepted',
-]))->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', fn () => redirect()->to(route('profile.edit').'#security'))->name('security.edit');

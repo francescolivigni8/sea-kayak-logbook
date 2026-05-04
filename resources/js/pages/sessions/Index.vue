@@ -143,7 +143,7 @@ const statCards = computed(() => [
         detail: 'Logged in the journal',
     },
     {
-        label: 'Collections',
+        label: 'Folders',
         value: String(props.stats.collectionCount),
         detail: 'Folders for grouped paddles',
     },
@@ -432,7 +432,7 @@ watch(visibleSessions, () => {
                             aria-hidden="true"
                         />
                         <div>
-                            <p class="journal-kicker">Collections</p>
+                            <p class="journal-kicker">Folders</p>
                             <h3 class="mt-2 text-[1.75rem] leading-none">
                                 Session folders
                             </h3>
@@ -480,7 +480,7 @@ watch(visibleSessions, () => {
                             href="/sessions/create"
                             class="journal-primary-link"
                         >
-                            Add to collection
+                            Add session
                         </Link>
                         <button
                             type="button"
@@ -772,7 +772,7 @@ watch(visibleSessions, () => {
                         v-if="!categoryGroups.length"
                         class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
                     >
-                        No collections yet. Create “Anglesey 2026” or “Club
+                        No folders yet. Create “Anglesey 2026” or “Club
                         paddles” above, then turn on drag sorting and drop
                         sessions into the folder.
                     </article>
