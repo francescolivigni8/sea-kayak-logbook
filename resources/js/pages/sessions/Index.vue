@@ -12,13 +12,13 @@ interface ProfileSummary {
 interface SessionStats {
     plannedCount: number;
     sessionCount: number;
-    collectionCount: number;
+    folderCount: number;
     distanceKm: number;
     expeditionTrips: number;
     expeditionDays: number;
 }
 
-interface SessionCategoryPill {
+interface SessionFolderPill {
     id: number;
     name: string;
     slug: string;
@@ -38,7 +38,7 @@ interface SessionListItem {
     hasTrack: boolean;
     hasObservation: boolean;
     photoUrl: string | null;
-    categories: SessionCategoryPill[];
+    folders: SessionFolderPill[];
 }
 
 interface PlannedSessionListItem {
@@ -57,7 +57,7 @@ interface PlannedSessionListItem {
     gpxUrl: string | null;
 }
 
-interface CategoryGroup {
+interface FolderGroup {
     id: number;
     name: string;
     slug: string;
@@ -82,7 +82,7 @@ const props = defineProps<{
     stats: SessionStats;
     plannedSessions: PlannedSessionListItem[];
     sessions: SessionListItem[];
-    categoryGroups: CategoryGroup[];
+    folderGroups: FolderGroup[];
 }>();
 
 const page = usePage();
@@ -92,35 +92,35 @@ const successMessage = computed(
 );
 const showPlannedSessions = ref(true);
 const showLoggedSessions = ref(true);
-const showCollections = ref(true);
-const activeCategoryId = ref<number | null>(null);
+const showFolders = ref(true);
+const activeFolderId = ref<number | null>(null);
 const sortingMode = ref(false);
 const draggedSessionId = ref<number | null>(null);
 const draggedSessionIds = ref<number[]>([]);
 const selectedSessionIds = ref<number[]>([]);
-const dropTargetCategoryId = ref<number | null>(null);
-const createCategoryForm = useForm({
+const dropTargetFolderId = ref<number | null>(null);
+const createFolderForm = useForm({
     name: '',
 });
-const activeCategory = computed(
+const activeFolder = computed(
     () =>
-        props.categoryGroups.find(
-            (category) => category.id === activeCategoryId.value,
+        props.folderGroups.find(
+            (folder) => folder.id === activeFolderId.value,
         ) ?? null,
 );
 const visibleSessions = computed(() => {
-    if (activeCategoryId.value === null) {
+    if (activeFolderId.value === null) {
         return props.sessions;
     }
 
     return props.sessions.filter((session) =>
-        session.categories.some(
-            (category) => category.id === activeCategoryId.value,
+        session.folders.some(
+            (folder) => folder.id === activeFolderId.value,
         ),
     );
 });
-const activeCategorySessions = computed(() =>
-    activeCategory.value ? visibleSessions.value : [],
+const activeFolderSessions = computed(() =>
+    activeFolder.value ? visibleSessions.value : [],
 );
 const selectedSessionCount = computed(() => selectedSessionIds.value.length);
 const allVisibleSessionsSelected = computed(
@@ -144,7 +144,7 @@ const statCards = computed(() => [
     },
     {
         label: 'Folders',
-        value: String(props.stats.collectionCount),
+        value: String(props.stats.folderCount),
         detail: 'Folders for grouped paddles',
     },
     {
@@ -187,28 +187,28 @@ function formatPlanningSpeed(speedKnots: number): string {
     return formatSpeedKnots(speedKnots, unitPreferences.value);
 }
 
-function submitCategory() {
-    createCategoryForm.post('/session-categories', {
+function submitFolder() {
+    createFolderForm.post('/session-categories', {
         preserveScroll: true,
         onSuccess: () => {
-            createCategoryForm.reset('name');
-            showCollections.value = true;
+            createFolderForm.reset('name');
+            showFolders.value = true;
         },
     });
 }
 
-function openCategory(categoryId: number) {
+function openFolder(folderId: number) {
     if (sortingMode.value) {
         return;
     }
 
-    activeCategoryId.value = categoryId;
-    showCollections.value = true;
+    activeFolderId.value = folderId;
+    showFolders.value = true;
     showLoggedSessions.value = false;
 }
 
-function closeCategory() {
-    activeCategoryId.value = null;
+function closeFolder() {
+    activeFolderId.value = null;
     showLoggedSessions.value = true;
 }
 
@@ -268,23 +268,23 @@ function beginSessionDrag(sessionId: number, event: DragEvent) {
 function finishSessionDrag() {
     draggedSessionId.value = null;
     draggedSessionIds.value = [];
-    dropTargetCategoryId.value = null;
+    dropTargetFolderId.value = null;
 }
 
-function allowCategoryDrop(categoryId: number, event: DragEvent) {
+function allowFolderDrop(folderId: number, event: DragEvent) {
     if (!sortingMode.value) {
         return;
     }
 
     event.preventDefault();
-    dropTargetCategoryId.value = categoryId;
+    dropTargetFolderId.value = folderId;
 
     if (event.dataTransfer) {
         event.dataTransfer.dropEffect = 'copy';
     }
 }
 
-function dropSessionOnCategory(categoryId: number, event: DragEvent) {
+function dropSessionOnFolder(folderId: number, event: DragEvent) {
     if (!sortingMode.value) {
         return;
     }
@@ -306,7 +306,7 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
     }
 
     router.post(
-        `/session-categories/${categoryId}/sessions`,
+        `/session-categories/${folderId}/sessions`,
         {
             session_ids: sessionIds,
         },
@@ -322,8 +322,8 @@ function dropSessionOnCategory(categoryId: number, event: DragEvent) {
 
 watch(sortingMode, (isSorting) => {
     if (isSorting) {
-        activeCategoryId.value = null;
-        showCollections.value = true;
+        activeFolderId.value = null;
+        showFolders.value = true;
         showLoggedSessions.value = true;
     }
 
@@ -454,11 +454,11 @@ watch(visibleSessions, () => {
                             type="button"
                             :class="[
                                 'journal-utility-link',
-                                activeCategoryId === null
+                                activeFolderId === null
                                     ? 'border-[color:var(--journal-line-strong)] text-[color:var(--journal-text)]'
                                     : '',
                             ]"
-                            @click="closeCategory"
+                            @click="closeFolder"
                         >
                             All folders
                         </button>
@@ -485,18 +485,18 @@ watch(visibleSessions, () => {
                         <button
                             type="button"
                             class="journal-utility-link"
-                            :aria-expanded="showCollections"
+                            :aria-expanded="showFolders"
                             aria-controls="library-session-collections"
-                            @click="showCollections = !showCollections"
+                            @click="showFolders = !showFolders"
                         >
-                            {{ showCollections ? 'Collapse' : 'Expand' }}
+                            {{ showFolders ? 'Collapse' : 'Expand' }}
                         </button>
                     </div>
                 </div>
 
                 <form
                     class="mt-5 grid gap-3 rounded-[1.65rem] border border-[rgba(255,156,107,0.24)] bg-white/62 p-3 sm:grid-cols-[1fr_auto] sm:items-end"
-                    @submit.prevent="submitCategory"
+                    @submit.prevent="submitFolder"
                 >
                     <div>
                         <label class="journal-field-label" for="folder_name"
@@ -504,24 +504,24 @@ watch(visibleSessions, () => {
                         >
                         <input
                             id="folder_name"
-                            v-model="createCategoryForm.name"
+                            v-model="createFolderForm.name"
                             class="journal-input"
                             placeholder="Anglesey 2026, Club paddles, Skills weekends"
                         />
                         <p
-                            v-if="createCategoryForm.errors.name"
+                            v-if="createFolderForm.errors.name"
                             class="mt-2 text-sm font-medium text-red-600"
                         >
-                            {{ createCategoryForm.errors.name }}
+                            {{ createFolderForm.errors.name }}
                         </p>
                     </div>
                     <button
                         type="submit"
                         class="journal-primary-link justify-center"
-                        :disabled="createCategoryForm.processing"
+                        :disabled="createFolderForm.processing"
                     >
                         {{
-                            createCategoryForm.processing
+                            createFolderForm.processing
                                 ? 'Creating...'
                                 : 'Create folder'
                         }}
@@ -539,11 +539,11 @@ watch(visibleSessions, () => {
             </div>
 
             <div
-                v-if="showCollections"
+                v-if="showFolders"
                 id="library-session-collections"
                 class="border-t border-[rgba(255,156,107,0.2)] px-5 py-5 md:px-6"
             >
-                <section v-if="activeCategory" class="space-y-4">
+                <section v-if="activeFolder" class="space-y-4">
                     <div class="journal-card px-5 py-5 md:px-6">
                         <div
                             class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
@@ -553,7 +553,7 @@ watch(visibleSessions, () => {
                                 <h4
                                     class="mt-2 text-[1.6rem] leading-none text-[color:var(--journal-text)]"
                                 >
-                                    {{ activeCategory.name }}
+                                    {{ activeFolder.name }}
                                 </h4>
                                 <p
                                     class="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--journal-muted)]"
@@ -566,9 +566,9 @@ watch(visibleSessions, () => {
 
                             <div class="flex flex-wrap gap-2 lg:justify-end">
                                 <span class="journal-chip">
-                                    {{ activeCategory.sessionCount }}
+                                    {{ activeFolder.sessionCount }}
                                     {{
-                                        activeCategory.sessionCount === 1
+                                        activeFolder.sessionCount === 1
                                             ? 'session'
                                             : 'sessions'
                                     }}
@@ -576,7 +576,7 @@ watch(visibleSessions, () => {
                                 <span class="journal-chip">
                                     {{
                                         formatDistanceKm(
-                                            activeCategory.distanceKm,
+                                            activeFolder.distanceKm,
                                             unitPreferences,
                                         )
                                     }}
@@ -584,7 +584,7 @@ watch(visibleSessions, () => {
                                 <button
                                     type="button"
                                     class="journal-utility-link"
-                                    @click="closeCategory"
+                                    @click="closeFolder"
                                 >
                                     Back to folders
                                 </button>
@@ -594,7 +594,7 @@ watch(visibleSessions, () => {
 
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         <Link
-                            v-for="session in activeCategorySessions"
+                            v-for="session in activeFolderSessions"
                             :key="session.id"
                             :href="`/sessions/${session.id}`"
                             class="journal-card block px-4 py-4 transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
@@ -671,7 +671,7 @@ watch(visibleSessions, () => {
                         </Link>
 
                         <article
-                            v-if="!activeCategorySessions.length"
+                            v-if="!activeFolderSessions.length"
                             class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
                         >
                             This folder is empty. Go back to folders, turn on
@@ -682,41 +682,41 @@ watch(visibleSessions, () => {
 
                 <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <article
-                        v-for="category in categoryGroups"
-                        :key="category.id"
+                        v-for="folder in folderGroups"
+                        :key="folder.id"
                         :class="[
                             'journal-card px-5 py-5 text-left transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]',
                             sortingMode
                                 ? 'border-dashed ring-1 ring-transparent'
                                 : 'cursor-pointer',
-                            dropTargetCategoryId === category.id
+                            dropTargetFolderId === folder.id
                                 ? 'ring-2 ring-[#ff9c6b]'
                                 : '',
                         ]"
                         role="button"
                         tabindex="0"
-                        @click="openCategory(category.id)"
-                        @keydown.enter.prevent="openCategory(category.id)"
-                        @keydown.space.prevent="openCategory(category.id)"
-                        @dragover="allowCategoryDrop(category.id, $event)"
-                        @dragleave="dropTargetCategoryId = null"
-                        @drop="dropSessionOnCategory(category.id, $event)"
+                        @click="openFolder(folder.id)"
+                        @keydown.enter.prevent="openFolder(folder.id)"
+                        @keydown.space.prevent="openFolder(folder.id)"
+                        @dragover="allowFolderDrop(folder.id, $event)"
+                        @dragleave="dropTargetFolderId = null"
+                        @drop="dropSessionOnFolder(folder.id, $event)"
                     >
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="journal-kicker">
-                                    {{ category.latestDate ?? 'No date' }}
+                                    {{ folder.latestDate ?? 'No date' }}
                                 </p>
                                 <h4
                                     class="mt-2 text-[1.35rem] leading-none text-[color:var(--journal-text)]"
                                 >
-                                    {{ category.name }}
+                                    {{ folder.name }}
                                 </h4>
                             </div>
                             <span class="journal-chip"
-                                >{{ category.sessionCount }}
+                                >{{ folder.sessionCount }}
                                 {{
-                                    category.sessionCount === 1
+                                    folder.sessionCount === 1
                                         ? 'session'
                                         : 'sessions'
                                 }}</span
@@ -735,7 +735,7 @@ watch(visibleSessions, () => {
                                 >
                                     {{
                                         formatDistanceKm(
-                                            category.distanceKm,
+                                            folder.distanceKm,
                                             unitPreferences,
                                         )
                                     }}
@@ -757,7 +757,7 @@ watch(visibleSessions, () => {
 
                         <div class="mt-4 flex flex-wrap gap-2">
                             <Link
-                                v-for="session in category.sessions"
+                                v-for="session in folder.sessions"
                                 :key="session.id"
                                 :href="`/sessions/${session.id}`"
                                 class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
@@ -769,7 +769,7 @@ watch(visibleSessions, () => {
                     </article>
 
                     <article
-                        v-if="!categoryGroups.length"
+                        v-if="!folderGroups.length"
                         class="rounded-[1.75rem] border border-dashed border-[color:var(--journal-line)] bg-white/78 px-5 py-10 text-sm leading-7 text-[color:var(--journal-muted)]"
                     >
                         No folders yet. Create “Anglesey 2026” or “Club
@@ -982,7 +982,7 @@ watch(visibleSessions, () => {
         </section>
 
         <section
-            v-if="!activeCategory"
+            v-if="!activeFolder"
             class="overflow-hidden rounded-[2.1rem] border border-[rgba(103,114,255,0.28)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(103,114,255,0.08))] shadow-[0_18px_60px_rgba(66,87,120,0.08)]"
         >
             <div class="px-5 py-5 md:px-6">
@@ -1270,11 +1270,11 @@ watch(visibleSessions, () => {
                                     props.profile.homeWater
                                 }}</span>
                                 <button
-                                    v-for="category in session.categories"
+                                    v-for="category in session.folders"
                                     :key="category.id"
                                     type="button"
                                     class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                                    @click="openCategory(category.id)"
+                                    @click="openFolder(category.id)"
                                 >
                                     {{ category.name }}
                                 </button>

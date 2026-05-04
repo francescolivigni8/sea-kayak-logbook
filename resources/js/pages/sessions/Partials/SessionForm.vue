@@ -1566,11 +1566,11 @@ onMounted(async () => {
                             automatically and appear in Library.
                         </p>
                         <div
-                            v-if="profile.sessionCategories?.length"
+                            v-if="profile.folderNames?.length"
                             class="mt-2 flex flex-wrap gap-2"
                         >
                             <button
-                                v-for="categoryName in profile.sessionCategories"
+                                v-for="categoryName in profile.folderNames"
                                 :key="categoryName"
                                 type="button"
                                 class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"

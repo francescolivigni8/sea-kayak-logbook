@@ -295,11 +295,11 @@ class PaddleSessionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('sessions/Index')
-                ->where('stats.collectionCount', 2)
-                ->has('categoryGroups', 2)
-                ->where('categoryGroups.0.name', 'Anglesey 2026')
-                ->where('categoryGroups.0.sessionCount', 1)
-                ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
+                ->where('stats.folderCount', 2)
+                ->has('folderGroups', 2)
+                ->where('folderGroups.0.name', 'Anglesey 2026')
+                ->where('folderGroups.0.sessionCount', 1)
+                ->where('sessions.0.folders.0.name', 'Anglesey 2026'));
     }
 
     public function test_library_can_create_collection_folders(): void
@@ -324,8 +324,8 @@ class PaddleSessionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('sessions/Index')
-                ->where('stats.collectionCount', 1)
-                ->where('categoryGroups.0.name', 'Club paddles'));
+                ->where('stats.folderCount', 1)
+                ->where('folderGroups.0.name', 'Club paddles'));
     }
 
     public function test_logged_sessions_can_be_attached_to_collection_folders(): void
@@ -359,9 +359,9 @@ class PaddleSessionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('sessions/Index')
-                ->where('categoryGroups.0.name', 'Anglesey 2026')
-                ->where('categoryGroups.0.sessionCount', 1)
-                ->where('sessions.0.categories.0.name', 'Anglesey 2026'));
+                ->where('folderGroups.0.name', 'Anglesey 2026')
+                ->where('folderGroups.0.sessionCount', 1)
+                ->where('sessions.0.folders.0.name', 'Anglesey 2026'));
     }
 
     public function test_logged_sessions_can_be_batch_attached_to_collection_folders(): void
@@ -400,8 +400,8 @@ class PaddleSessionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('sessions/Index')
-                ->where('categoryGroups.0.name', 'Club paddles')
-                ->where('categoryGroups.0.sessionCount', 2));
+                ->where('folderGroups.0.name', 'Club paddles')
+                ->where('folderGroups.0.sessionCount', 2));
     }
 
     public function test_manual_sessions_can_store_launch_and_landing_coordinates_without_a_track_file(): void

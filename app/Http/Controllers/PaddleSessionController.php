@@ -8,6 +8,7 @@ use App\Models\PlannedSession;
 use App\Models\Profile;
 use App\Support\FitTrackService;
 use App\Support\GpxTrackService;
+use App\Support\SessionFolderService;
 use App\Support\SessionMediaService;
 use App\Support\StormglassWeatherService;
 use App\Support\UnitPreferences;
@@ -25,6 +26,7 @@ class PaddleSessionController extends Controller
     public function __construct(
         private readonly GpxTrackService $gpxTrackService,
         private readonly FitTrackService $fitTrackService,
+        private readonly SessionFolderService $folders,
         private readonly SessionMediaService $media,
         private readonly StormglassWeatherService $stormglassWeather,
     ) {}
@@ -53,14 +55,14 @@ class PaddleSessionController extends Controller
             'stats' => [
                 'plannedCount' => $plannedSessions->count(),
                 'sessionCount' => $sessions->count(),
-                'collectionCount' => $profile->sessionCategories()->count(),
+                'folderCount' => $this->folders->folderCount($profile),
                 'distanceKm' => round((float) $profile->sessions()->sum('distance_km'), 1),
                 'expeditionTrips' => (int) $profile->sessions()->where('is_expedition', true)->count(),
                 'expeditionDays' => (int) $profile->sessions()->where('is_expedition', true)->sum('expedition_days'),
             ],
             'plannedSessions' => $plannedSessions,
             'sessions' => $sessions,
-            'categoryGroups' => $this->mapCategoryGroups($profile),
+            'folderGroups' => $this->folders->mapFolderGroups($profile),
         ]);
     }
 
@@ -146,7 +148,7 @@ class PaddleSessionController extends Controller
         $payload = $this->buildPayload($request, $profile);
 
         $session = $profile->sessions()->create($payload);
-        $this->syncSessionCategories($session, $profile, $request->validated('category_names_text'));
+        $this->folders->syncSessionFolders($session, $profile, $request->validated('category_names_text'));
 
         $this->storeFiles($request, $session);
         $successMessage = 'Session saved. You can keep refining the notes, files, and expedition details.';
@@ -189,7 +191,7 @@ class PaddleSessionController extends Controller
 
         $session->fill($this->buildPayload($request, $profile, $session));
         $session->save();
-        $this->syncSessionCategories($session, $profile, $request->validated('category_names_text'));
+        $this->folders->syncSessionFolders($session, $profile, $request->validated('category_names_text'));
 
         $this->storeFiles($request, $session);
         $successMessage = 'Session saved.';
@@ -217,10 +219,7 @@ class PaddleSessionController extends Controller
             'defaultMapView' => $this->defaultMapView($profile),
             'kayaksOwned' => data_get($settings, 'kayaks_owned', []),
             'paddlesOwned' => data_get($settings, 'paddles_owned', []),
-            'sessionCategories' => $profile->sessionCategories()
-                ->orderBy('name')
-                ->pluck('name')
-                ->values(),
+            'folderNames' => $this->folders->folderNames($profile),
         ];
     }
 
@@ -240,7 +239,7 @@ class PaddleSessionController extends Controller
             'hasTrack' => $this->hasTrackData($session),
             'hasObservation' => filled($session->notes_public),
             'photoUrl' => $this->media->url($session->session_photo_path),
-            'categories' => $session->categories
+            'folders' => $session->categories
                 ->map(fn ($category) => [
                     'id' => $category->id,
                     'name' => $category->name,
@@ -248,38 +247,6 @@ class PaddleSessionController extends Controller
                 ])
                 ->values(),
         ];
-    }
-
-    private function mapCategoryGroups(Profile $profile): array
-    {
-        return $profile->sessionCategories()
-            ->with(['sessions' => fn ($query) => $query
-                ->latest('session_date')
-                ->latest('paddle_sessions.id')])
-            ->orderBy('name')
-            ->get()
-            ->map(function ($category) {
-                $sessions = $category->sessions;
-
-                return [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'slug' => $category->slug,
-                    'sessionCount' => $sessions->count(),
-                    'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
-                    'latestDate' => optional($sessions->first()?->session_date)->toDateString(),
-                    'sessions' => $sessions
-                        ->take(4)
-                        ->map(fn (PaddleSession $session) => [
-                            'id' => $session->id,
-                            'title' => $session->title,
-                            'date' => optional($session->session_date)->toDateString(),
-                        ])
-                        ->values(),
-                ];
-            })
-            ->values()
-            ->all();
     }
 
     private function mapPlannedSessionListItem(PlannedSession $plannedSession): array
@@ -345,7 +312,7 @@ class PaddleSessionController extends Controller
             'visibilityCode' => $session->visibility_code,
             'weatherSummary' => $session->weather_summary,
             'routeSummary' => $session->route_summary,
-            'categories' => $session->categories
+            'folders' => $session->categories
                 ->map(fn ($category) => [
                     'id' => $category->id,
                     'name' => $category->name,
@@ -596,39 +563,6 @@ class PaddleSessionController extends Controller
         }
 
         return $payload;
-    }
-
-    private function syncSessionCategories(PaddleSession $session, Profile $profile, ?string $namesText): void
-    {
-        $categoryIds = collect($this->categoryNamesFromText($namesText))
-            ->map(function (string $name) use ($profile) {
-                $slug = Str::slug($name) ?: 'folder';
-                $category = $profile->sessionCategories()->firstOrCreate(
-                    ['slug' => $slug],
-                    ['name' => $name],
-                );
-
-                return $category->id;
-            })
-            ->values()
-            ->all();
-
-        $session->categories()->sync($categoryIds);
-    }
-
-    private function categoryNamesFromText(?string $value): array
-    {
-        if (! $value) {
-            return [];
-        }
-
-        return collect(preg_split('/[,;\n]+/', $value) ?: [])
-            ->map(fn (string $name) => trim($name))
-            ->filter()
-            ->unique(fn (string $name) => Str::lower($name))
-            ->take(12)
-            ->values()
-            ->all();
     }
 
     private function storeFiles(UpsertPaddleSessionRequest $request, PaddleSession $session): void

@@ -29,7 +29,7 @@
 
         $chipValues = array_values(array_filter([
             $session['routeCategoryLabel'] ?? null,
-            ...collect($session['categories'] ?? [])->pluck('name')->map(fn (string $name) => 'Folder: '.$name)->all(),
+            ...collect($session['folders'] ?? [])->pluck('name')->map(fn (string $name) => 'Folder: '.$name)->all(),
             $session['bodyOfWater'] ?? null,
             $session['beaufort'] !== null ? 'F'.$session['beaufort'] : null,
             filled($session['kayakUsed'] ?? null) ? 'Kayak: '.$session['kayakUsed'] : null,

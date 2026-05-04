@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\PaddleSession;
 use App\Models\SessionCategory;
+use App\Support\SessionFolderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class SessionCategoryController extends Controller
 {
+    public function __construct(
+        private readonly SessionFolderService $folders,
+    ) {}
+
     public function store(Request $request): RedirectResponse
     {
         $profile = $request->user()->resolveActiveProfile();
@@ -18,11 +22,7 @@ class SessionCategoryController extends Controller
         ]);
 
         $name = trim($validated['name']);
-        $slug = Str::slug($name) ?: 'folder';
-        $category = $profile->sessionCategories()->firstOrCreate(
-            ['slug' => $slug],
-            ['name' => $name],
-        );
+        $category = $this->folders->firstOrCreateFolder($profile, $name);
 
         return back()->with(
             'success',

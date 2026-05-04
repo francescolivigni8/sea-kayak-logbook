@@ -9,7 +9,7 @@ export interface SessionProfileSummary {
     };
     kayaksOwned?: string[];
     paddlesOwned?: string[];
-    sessionCategories?: string[];
+    folderNames?: string[];
 }
 
 export interface QuickSessionMemory {

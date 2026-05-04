@@ -51,7 +51,7 @@ interface ConditionRating {
     value: string;
 }
 
-interface SessionCategory {
+interface SessionFolder {
     id: number;
     name: string;
     slug: string;
@@ -89,7 +89,7 @@ interface SessionDetail {
     visibilityCode: string | null;
     weatherSummary: string | null;
     routeSummary: string | null;
-    categories: SessionCategory[];
+    folders: SessionFolder[];
     notesPublic: string | null;
     notesPrivate: string | null;
     expeditionNotes: string | null;
@@ -144,7 +144,7 @@ const heroChips = computed(
     () =>
         [
             props.session.routeCategoryLabel,
-            ...props.session.categories.map(
+            ...props.session.folders.map(
                 (category) => `Folder: ${category.name}`,
             ),
             props.session.launchName,
