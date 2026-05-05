@@ -77,12 +77,6 @@ type PrimaryNavItem = {
 const primaryNav = [
     { label: 'Dashboard', href: '/dashboard', match: ['/dashboard'] },
     { label: 'Diary', href: '/diary', match: ['/diary'] },
-    { label: 'Observations', href: '/observations', match: ['/observations'] },
-    {
-        label: 'Expedition notes',
-        href: '/expedition-notes',
-        match: ['/expedition-notes', '/expeditions'],
-    },
     {
         label: 'Planning',
         href: '/planning',
