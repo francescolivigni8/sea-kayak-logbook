@@ -6,6 +6,7 @@ use App\Models\PaddleSession;
 use App\Models\PlannedSession;
 use App\Models\Profile;
 use App\Support\PlanningForecastService;
+use App\Support\ProfileViewData;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,7 @@ class PlanningController extends Controller
 
     public function __construct(
         private readonly PlanningForecastService $planningForecast,
+        private readonly ProfileViewData $profiles,
     ) {}
 
     public function index(Request $request): Response
@@ -83,7 +85,7 @@ class PlanningController extends Controller
     private function renderPlanner(Profile $profile, ?PlannedSession $plannedSession = null): Response
     {
         return Inertia::render('planning/Index', [
-            'profile' => $this->mapProfile($profile),
+            'profile' => $this->profiles->planning($profile),
             'weatherAutofillAvailable' => $this->planningForecast->isConfigured(),
             'forecastMeta' => [
                 'stormglassEnabled' => filled(config('kayak.weather.providers.stormglass.api_key')),
@@ -141,23 +143,6 @@ class PlanningController extends Controller
         ]);
     }
 
-    private function mapProfile(Profile $profile): array
-    {
-        $settings = $profile->settings ?? [];
-
-        return [
-            'name' => $profile->name,
-            'slug' => $profile->slug,
-            'homeWater' => $profile->home_water,
-            'timezone' => $profile->timezone,
-            'planningUnitSystem' => in_array(data_get($settings, 'planning_unit_system'), ['metric', 'marine'], true)
-                ? data_get($settings, 'planning_unit_system')
-                : 'metric',
-            'defaultMapView' => $this->defaultMapView($profile),
-            'hasCustomDefaultMapView' => is_array(data_get($settings, 'default_map_view')),
-        ];
-    }
-
     private function mapPlannedSession(PlannedSession $plannedSession): array
     {
         return [
@@ -200,15 +185,6 @@ class PlanningController extends Controller
             'route_waypoints' => $plannedSession ? $this->routeWaypointsJson($plannedSession) : '',
             'forecast_points' => $plannedSession && $plannedSession->forecast_points ? json_encode($plannedSession->forecast_points) : '',
             'notes' => $plannedSession?->notes ?? '',
-        ];
-    }
-
-    private function defaultMapView(Profile $profile): array
-    {
-        return [
-            'lat' => (float) data_get($profile->settings, 'default_map_view.lat', 64.1670),
-            'lng' => (float) data_get($profile->settings, 'default_map_view.lng', -21.8210),
-            'zoom' => (int) data_get($profile->settings, 'default_map_view.zoom', 10),
         ];
     }
 

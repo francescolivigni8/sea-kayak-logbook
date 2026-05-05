@@ -12,6 +12,7 @@ class ProfileDashboardData
 {
     public function __construct(
         private readonly SessionMediaService $media,
+        private readonly RouteCategoryLabeler $routeCategories,
     ) {}
 
     public function build(Profile $profile, Collection $sessions, bool $publicView = false): array
@@ -40,17 +41,7 @@ class ProfileDashboardData
         $expeditionPlaces = $this->buildExpeditionPlaces($profile, $expeditionSessions, $publicView);
 
         return [
-            'profile' => [
-                'name' => $profile->name,
-                'slug' => $profile->slug,
-                'bio' => $this->profileBio($profile),
-                'homeWater' => $profile->home_water,
-                'timezone' => $profile->timezone,
-                ...($publicView ? [
-                    'isPublic' => $profile->is_public,
-                    'publicPath' => '/p/'.$profile->slug,
-                ] : []),
-            ],
+            'profile' => $this->profileSummary($profile, $publicView),
             'unitPreferences' => $unitPreferences,
             'headline' => [
                 'sessionCount' => $sessionCount,
@@ -92,17 +83,7 @@ class ProfileDashboardData
         $expeditionPlaces = $this->buildExpeditionPlaces($profile, $expeditionSessions, $publicView);
 
         return [
-            'profile' => [
-                'name' => $profile->name,
-                'slug' => $profile->slug,
-                'bio' => $this->profileBio($profile),
-                'homeWater' => $profile->home_water,
-                'timezone' => $profile->timezone,
-                ...($publicView ? [
-                    'isPublic' => $profile->is_public,
-                    'publicPath' => '/p/'.$profile->slug,
-                ] : []),
-            ],
+            'profile' => $this->profileSummary($profile, $publicView),
             'unitPreferences' => $unitPreferences,
             'expeditionSummary' => $this->buildExpeditionSummary($expeditionSessions),
             'expeditionPlaces' => $expeditionPlaces,
@@ -208,7 +189,7 @@ class ProfileDashboardData
                 'durationMinutes' => (int) $session->duration_minutes,
                 'daysOut' => (int) ($session->expedition_days ?? 0),
                 'launchName' => $session->launch_name,
-                'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+                'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
                 'beaufort' => $session->wind_beaufort,
                 'photoUrl' => $this->media->url($session->session_photo_path),
                 'notes' => $publicView ? ($session->notes_public ?: $session->expedition_notes) : ($session->expedition_notes ?: $session->notes_public ?: $session->notes_private),
@@ -218,17 +199,7 @@ class ProfileDashboardData
             ->all();
 
         return [
-            'profile' => [
-                'name' => $profile->name,
-                'slug' => $profile->slug,
-                'bio' => $this->profileBio($profile),
-                'homeWater' => $profile->home_water,
-                'timezone' => $profile->timezone,
-                ...($publicView ? [
-                    'isPublic' => $profile->is_public,
-                    'publicPath' => '/p/'.$profile->slug,
-                ] : []),
-            ],
+            'profile' => $this->profileSummary($profile, $publicView),
             'unitPreferences' => $unitPreferences,
             'place' => [
                 'slug' => $place['slug'],
@@ -316,6 +287,21 @@ class ProfileDashboardData
             'Sea kayaker based around %s, keeping a running journal of routes, conditions, rescues, and expedition learnings.',
             $profile->home_water
         );
+    }
+
+    private function profileSummary(Profile $profile, bool $publicView): array
+    {
+        return [
+            'name' => $profile->name,
+            'slug' => $profile->slug,
+            'bio' => $this->profileBio($profile),
+            'homeWater' => $profile->home_water,
+            'timezone' => $profile->timezone,
+            ...($publicView ? [
+                'isPublic' => $profile->is_public,
+                'publicPath' => '/p/'.$profile->slug,
+            ] : []),
+        ];
     }
 
     private function buildMonthlyDistance(Collection $sessions, CarbonInterface $now): array
@@ -781,7 +767,7 @@ class ProfileDashboardData
             'date' => $session->session_date?->format('d M Y'),
             'distanceKm' => round((float) $session->distance_km, 1),
             'durationMinutes' => (int) $session->duration_minutes,
-            'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+            'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
             'launchName' => $session->launch_name,
             'beaufort' => $session->wind_beaufort,
             'hasTrack' => $this->hasTrackData($session),
@@ -801,19 +787,6 @@ class ProfileDashboardData
         $speedKmh = $distanceKm / ($minutes / 60);
 
         return $speedKmh / 1.852;
-    }
-
-    private function routeCategoryLabel(?string $category): string
-    {
-        return match ($category) {
-            'benchmark' => 'Benchmark',
-            'training' => 'Training',
-            'journey' => 'Journey',
-            'navigation' => 'Navigation',
-            'rescue-practice' => 'Rescue practice',
-            'expedition' => 'Expedition',
-            default => ucfirst(str_replace('-', ' ', (string) $category)),
-        };
     }
 
     private function defaultViewFor(Profile $profile): array

@@ -12,23 +12,16 @@ class SessionViewData
     public function __construct(
         private readonly SessionFolderService $folders,
         private readonly SessionMediaService $media,
+        private readonly ProfileViewData $profiles,
+        private readonly RouteCategoryLabeler $routeCategories,
     ) {}
 
     public function profile(Profile $profile): array
     {
-        $settings = $profile->settings ?? [];
-
         return [
-            'name' => $profile->name,
-            'slug' => $profile->slug,
-            'homeWater' => $profile->home_water,
-            'timezone' => $profile->timezone,
-            'planningUnitSystem' => in_array(data_get($settings, 'planning_unit_system'), ['metric', 'marine'], true)
-                ? data_get($settings, 'planning_unit_system')
-                : 'metric',
-            'defaultMapView' => $this->defaultMapView($profile),
-            'kayaksOwned' => data_get($settings, 'kayaks_owned', []),
-            'paddlesOwned' => data_get($settings, 'paddles_owned', []),
+            ...$this->profiles->planning($profile),
+            'kayaksOwned' => data_get($profile->settings, 'kayaks_owned', []),
+            'paddlesOwned' => data_get($profile->settings, 'paddles_owned', []),
             'folderNames' => $this->folders->folderNames($profile),
         ];
     }
@@ -43,7 +36,7 @@ class SessionViewData
             'distanceKm' => (float) $session->distance_km,
             'durationMinutes' => (int) $session->duration_minutes,
             'beaufort' => $session->wind_beaufort,
-            'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+            'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
             'hasTrack' => $this->hasTrackData($session),
@@ -101,7 +94,7 @@ class SessionViewData
             'landingName' => $session->landing_name,
             'landingLat' => $session->landing_lat !== null ? (float) $session->landing_lat : null,
             'landingLng' => $session->landing_lng !== null ? (float) $session->landing_lng : null,
-            'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+            'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
             'bodyOfWater' => $session->body_of_water,
             'kayakUsed' => $session->kayak_used,
             'paddleUsed' => $session->paddle_used,
@@ -266,15 +259,6 @@ class SessionViewData
             ->all();
     }
 
-    private function defaultMapView(Profile $profile): array
-    {
-        return [
-            'lat' => (float) data_get($profile->settings, 'default_map_view.lat', 64.1670),
-            'lng' => (float) data_get($profile->settings, 'default_map_view.lng', -21.8210),
-            'zoom' => (int) data_get($profile->settings, 'default_map_view.zoom', 10),
-        ];
-    }
-
     private function manualRouteWaypoints(?PaddleSession $session): string
     {
         if ($session === null || filled($session->gpx_path) || filled($session->fit_path) || ! is_array($session->route_profile)) {
@@ -302,17 +286,5 @@ class SessionViewData
         return filled($session->gpx_path)
             || filled($session->fit_path)
             || (is_array($session->route_profile) && count($session->route_profile) > 1);
-    }
-
-    private function routeCategoryLabel(?string $category): string
-    {
-        return match ($category) {
-            'benchmark' => 'Benchmark',
-            'journey' => 'Journey',
-            'skills' => 'Skills',
-            'coaching' => 'Coaching',
-            'expedition' => 'Expedition',
-            default => Str::headline((string) $category ?: 'Journey'),
-        };
     }
 }

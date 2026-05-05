@@ -11,6 +11,7 @@ class CourseApplicationReportData
 {
     public function __construct(
         private readonly ProfileDashboardData $dashboardData,
+        private readonly RouteCategoryLabeler $routeCategories,
     ) {}
 
     public function build(Profile $profile, Collection $sessions): array
@@ -95,7 +96,7 @@ class CourseApplicationReportData
                     'id' => $session->id,
                     'date' => $session->session_date?->format('d M Y'),
                     'title' => $session->title,
-                    'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+                    'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
                     'distanceKm' => round((float) $session->distance_km, 1),
                     'durationMinutes' => (int) $session->duration_minutes,
                     'beaufort' => $session->wind_beaufort,
@@ -162,7 +163,7 @@ class CourseApplicationReportData
                     'date' => $session->session_date?->format('d M Y'),
                     'title' => $session->title,
                     'launchName' => $session->launch_name,
-                    'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+                    'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
                     'distanceKm' => round((float) $session->distance_km, 1),
                     'durationMinutes' => (int) $session->duration_minutes,
                     'beaufort' => $session->wind_beaufort,
@@ -180,19 +181,6 @@ class CourseApplicationReportData
                 ];
             })
             ->all();
-    }
-
-    private function routeCategoryLabel(?string $category): string
-    {
-        return match ($category) {
-            'benchmark' => 'Benchmark',
-            'training' => 'Training',
-            'journey' => 'Journey',
-            'navigation' => 'Navigation',
-            'rescue-practice' => 'Rescue practice',
-            'expedition' => 'Expedition',
-            default => ucfirst(str_replace('-', ' ', (string) $category)),
-        };
     }
 
     private function hasTrackData(PaddleSession $session): bool

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\PaddleSession;
-use App\Models\Profile;
+use App\Support\ProfileViewData;
+use App\Support\RouteCategoryLabeler;
 use App\Support\SessionMediaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +14,8 @@ class JournalNotesController extends Controller
 {
     public function __construct(
         private readonly SessionMediaService $media,
+        private readonly ProfileViewData $profiles,
+        private readonly RouteCategoryLabeler $routeCategories,
     ) {}
 
     public function observations(Request $request): Response
@@ -26,7 +29,7 @@ class JournalNotesController extends Controller
             ->values();
 
         return Inertia::render('notes/Index', [
-            'profile' => $this->mapProfile($profile),
+            'profile' => $this->profiles->base($profile),
             'mode' => 'observations',
             'title' => 'Session notes',
             'description' => 'A diary-style wall of session observations, quick learnings, and short reflections without opening every paddle one by one.',
@@ -46,23 +49,13 @@ class JournalNotesController extends Controller
             ->values();
 
         return Inertia::render('notes/Index', [
-            'profile' => $this->mapProfile($profile),
+            'profile' => $this->profiles->base($profile),
             'mode' => 'expedition-notes',
             'title' => 'Expedition notes',
             'description' => 'Field learnings about food, gear, camp rhythm, and what to repeat or change on the next multiday journey.',
             'count' => $sessions->count(),
             'items' => $sessions->map(fn (PaddleSession $session) => $this->mapItem($session, true))->values(),
         ]);
-    }
-
-    private function mapProfile(Profile $profile): array
-    {
-        return [
-            'name' => $profile->name,
-            'slug' => $profile->slug,
-            'homeWater' => $profile->home_water,
-            'timezone' => $profile->timezone,
-        ];
     }
 
     private function mapItem(PaddleSession $session, bool $expeditionMode): array
@@ -75,7 +68,7 @@ class JournalNotesController extends Controller
             'id' => $session->id,
             'title' => $session->title,
             'date' => $session->session_date?->format('l, j F Y'),
-            'category' => $this->routeCategoryLabel($session->route_category),
+            'category' => $this->routeCategories->notes($session->route_category),
             'beaufort' => $session->wind_beaufort,
             'launchName' => $session->launch_name,
             'summary' => $primaryNote ?: 'No note text saved yet.',
@@ -87,17 +80,5 @@ class JournalNotesController extends Controller
             'photoUrl' => $this->media->url($session->session_photo_path),
             'path' => route('sessions.show', $session),
         ];
-    }
-
-    private function routeCategoryLabel(?string $category): string
-    {
-        return match ($category) {
-            'training' => 'Training',
-            'benchmark' => 'Benchmark',
-            'navigation' => 'Navigation',
-            'rescue-practice' => 'Rescue',
-            'expedition' => 'Expedition',
-            default => 'Journey',
-        };
     }
 }

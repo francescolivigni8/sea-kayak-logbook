@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\PaddleSession;
-use App\Models\Profile;
+use App\Support\ProfileViewData;
+use App\Support\RouteCategoryLabeler;
 use App\Support\SessionMediaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +14,8 @@ class DiaryController extends Controller
 {
     public function __construct(
         private readonly SessionMediaService $media,
+        private readonly ProfileViewData $profiles,
+        private readonly RouteCategoryLabeler $routeCategories,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -24,7 +27,7 @@ class DiaryController extends Controller
             ->get();
 
         return Inertia::render('diary/Index', [
-            'profile' => $this->mapProfile($profile),
+            'profile' => $this->profiles->base($profile),
             'stats' => [
                 'sessionCount' => $sessions->count(),
                 'paddledDays' => $sessions
@@ -41,16 +44,6 @@ class DiaryController extends Controller
         ]);
     }
 
-    private function mapProfile(Profile $profile): array
-    {
-        return [
-            'name' => $profile->name,
-            'slug' => $profile->slug,
-            'homeWater' => $profile->home_water,
-            'timezone' => $profile->timezone,
-        ];
-    }
-
     private function mapDiaryEntry(PaddleSession $session): array
     {
         return [
@@ -62,7 +55,7 @@ class DiaryController extends Controller
             'distanceKm' => round((float) $session->distance_km, 1),
             'durationMinutes' => (int) $session->duration_minutes,
             'beaufort' => $session->wind_beaufort,
-            'routeCategoryLabel' => $this->routeCategoryLabel($session->route_category),
+            'routeCategoryLabel' => $this->routeCategories->standard($session->route_category),
             'isExpedition' => (bool) $session->is_expedition,
             'expeditionDays' => $session->expedition_days,
             'hasTrack' => $this->hasTrackData($session),
@@ -71,19 +64,6 @@ class DiaryController extends Controller
             'weatherSummary' => $session->weather_summary,
             'path' => route('sessions.show', $session),
         ];
-    }
-
-    private function routeCategoryLabel(?string $category): string
-    {
-        return match ($category) {
-            'benchmark' => 'Benchmark',
-            'training' => 'Training',
-            'journey' => 'Journey',
-            'navigation' => 'Navigation',
-            'rescue-practice' => 'Rescue practice',
-            'expedition' => 'Expedition',
-            default => ucfirst(str_replace('-', ' ', (string) $category)),
-        };
     }
 
     private function hasTrackData(PaddleSession $session): bool

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ImportGarminHistoryRequest;
-use App\Models\Profile;
 use App\Support\GarminImportService;
+use App\Support\ProfileViewData;
 use App\Support\StormglassWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +17,7 @@ class GarminImportController extends Controller
 {
     public function __construct(
         private readonly StormglassWeatherService $stormglassWeather,
+        private readonly ProfileViewData $profiles,
     ) {}
 
     public function create(Request $request): Response
@@ -24,7 +25,7 @@ class GarminImportController extends Controller
         $profile = $request->user()->resolveActiveProfile();
 
         return Inertia::render('imports/Garmin', [
-            'profile' => $this->mapProfile($profile),
+            'profile' => $this->profiles->base($profile),
             'weatherAutofillAvailable' => $this->stormglassWeather->isConfigured(),
             'stats' => [
                 'sessionCount' => $profile->sessions()->count(),
@@ -105,14 +106,5 @@ class GarminImportController extends Controller
         return redirect()
             ->route('sessions.index')
             ->with('success', $message);
-    }
-
-    private function mapProfile(Profile $profile): array
-    {
-        return [
-            'name' => $profile->name,
-            'homeWater' => $profile->home_water,
-            'timezone' => $profile->timezone,
-        ];
     }
 }
