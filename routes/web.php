@@ -50,6 +50,8 @@ Route::middleware(array_filter([
     'legal.accepted',
 ]))->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::put('dashboard/preferences', [DashboardController::class, 'updatePreferences'])
+        ->name('dashboard.preferences.update');
     Route::get('diary', DiaryController::class)->name('diary');
     Route::get('observations', [JournalNotesController::class, 'observations'])->name('observations');
     Route::get('expedition-notes', [JournalNotesController::class, 'expeditionNotes'])->name('expedition-notes');

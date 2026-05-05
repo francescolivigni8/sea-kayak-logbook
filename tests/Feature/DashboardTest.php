@@ -26,6 +26,50 @@ class DashboardTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_dashboard_exposes_saved_layout_preferences(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [
+            'dashboard_layout' => [
+                'order' => ['route-map', 'headline', 'expeditions', 'sea-state'],
+                'hidden' => ['sea-state'],
+            ],
+        ];
+        $profile->save();
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dashboardPreferences.order', ['route-map', 'headline', 'expeditions', 'sea-state'])
+                ->where('dashboardPreferences.hidden', ['sea-state']));
+    }
+
+    public function test_authenticated_users_can_save_dashboard_layout_preferences(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $this->actingAs($user)
+            ->put(route('dashboard.preferences.update'), [
+                'order' => ['expeditions', 'route-map', 'headline', 'sea-state'],
+                'hidden' => ['route-map'],
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $profile->refresh();
+
+        $this->assertSame(
+            [
+                'order' => ['expeditions', 'route-map', 'headline', 'sea-state'],
+                'hidden' => ['route-map'],
+            ],
+            data_get($profile->settings, 'dashboard_layout'),
+        );
+    }
+
     public function test_dashboard_includes_expedition_summary_and_world_map_data(): void
     {
         $user = User::factory()->create();
