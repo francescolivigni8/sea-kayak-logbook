@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { GripVertical } from 'lucide-vue-next';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import {
     convertTemperatureC,
@@ -72,6 +73,7 @@ interface SpeedVisual {
 }
 
 interface MetricCard {
+    id: string;
     label: string;
     value: string;
     detail: string;
@@ -89,12 +91,27 @@ const props = withDefaults(
         seaState: SeaState;
         monthlyDistance: MonthlyDistanceRow[];
         context?: 'private' | 'public';
+        editable?: boolean;
+        cardOrder?: string[];
+        hiddenCardIds?: string[];
     }>(),
     {
         context: 'private',
+        editable: false,
+        cardOrder: () => [],
+        hiddenCardIds: () => [],
     },
 );
+const emit = defineEmits<{
+    (event: 'toggle-card', cardId: string): void;
+    (event: 'move-card-before', payload: {
+        cardId: string;
+        targetCardId: string;
+    }): void;
+}>();
 const { unitPreferences } = useUnitPreferences();
+const draggingCardId = ref<string | null>(null);
+const dropTargetCardId = ref<string | null>(null);
 
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max);
@@ -263,6 +280,7 @@ const durationBands = computed<BandVisual[]>(() => [
 
 const cards = computed<MetricCard[]>(() => [
     {
+        id: 'metric-distance',
         label: 'Total distance',
         value: formatDistanceKm(props.headline.distanceKm, unitPreferences.value),
         detail:
@@ -279,6 +297,7 @@ const cards = computed<MetricCard[]>(() => [
         ),
     },
     {
+        id: 'metric-duration',
         label: 'Total duration',
         value: `${props.headline.durationHours.toFixed(1)} h`,
         detail:
@@ -290,6 +309,7 @@ const cards = computed<MetricCard[]>(() => [
         bands: durationBands.value,
     },
     {
+        id: 'metric-air-temperature',
         label: 'Average air temperature',
         value:
             props.seaState.temperatureAverages.air !== null
@@ -313,6 +333,7 @@ const cards = computed<MetricCard[]>(() => [
         ),
     },
     {
+        id: 'metric-sea-temperature',
         label: 'Average sea temperature',
         value:
             props.seaState.temperatureAverages.sea !== null
@@ -336,6 +357,7 @@ const cards = computed<MetricCard[]>(() => [
         ),
     },
     {
+        id: 'metric-average-speed',
         label: 'Average speed',
         value:
             props.headline.averageSpeedKnots !== null
@@ -353,16 +375,126 @@ const cards = computed<MetricCard[]>(() => [
         speed: describeSpeed(props.headline.averageSpeedKnots),
     },
 ]);
+
+const defaultCardIds = computed(() => cards.value.map((card) => card.id));
+const hiddenCardLookup = computed(() => new Set(props.hiddenCardIds));
+const orderedCards = computed(() => {
+    const cardMap = new Map(cards.value.map((card) => [card.id, card]));
+    const orderedIds = props.cardOrder.filter((cardId) => cardMap.has(cardId));
+
+    for (const cardId of defaultCardIds.value) {
+        if (! orderedIds.includes(cardId)) {
+            orderedIds.push(cardId);
+        }
+    }
+
+    return orderedIds
+        .map((cardId) => cardMap.get(cardId))
+        .filter((card): card is MetricCard => Boolean(card));
+});
+const visibleCards = computed(() =>
+    orderedCards.value.filter((card) => ! hiddenCardLookup.value.has(card.id)),
+);
+const hiddenCards = computed(() =>
+    orderedCards.value.filter((card) => hiddenCardLookup.value.has(card.id)),
+);
+
+function toggleCard(cardId: string) {
+    emit('toggle-card', cardId);
+}
+
+function clearDragState() {
+    draggingCardId.value = null;
+    dropTargetCardId.value = null;
+}
+
+function handleCardDragStart(cardId: string) {
+    if (! props.editable) {
+        return;
+    }
+
+    draggingCardId.value = cardId;
+    dropTargetCardId.value = cardId;
+}
+
+function handleCardDragOver(cardId: string) {
+    if (! props.editable || draggingCardId.value === null) {
+        return;
+    }
+
+    dropTargetCardId.value = cardId;
+}
+
+function handleCardDrop(cardId: string) {
+    if (! props.editable || draggingCardId.value === null) {
+        return;
+    }
+
+    emit('move-card-before', {
+        cardId: draggingCardId.value,
+        targetCardId: cardId,
+    });
+    clearDragState();
+}
+
+function cardShellClasses(cardId: string) {
+    if (! props.editable) {
+        return '';
+    }
+
+    return [
+        'relative',
+        'rounded-[28px] border border-dashed border-[rgba(103,114,255,0.22)] bg-[rgba(255,255,255,0.32)] p-2',
+        draggingCardId.value === cardId ? 'opacity-60' : '',
+        dropTargetCardId.value === cardId
+            ? 'ring-2 ring-[rgba(103,114,255,0.28)] ring-offset-2 ring-offset-transparent'
+            : '',
+    ].join(' ');
+}
 </script>
 
 <template>
+    <div v-if="editable && hiddenCards.length" class="flex flex-wrap gap-2">
+        <button
+            v-for="card in hiddenCards"
+            :key="card.id"
+            type="button"
+            class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+            @click="toggleCard(card.id)"
+        >
+            Show {{ card.label }}
+        </button>
+    </div>
+
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <article
-            v-for="card in cards"
-            :key="card.label"
-            class="journal-metric-card"
+            v-for="card in visibleCards"
+            :key="card.id"
+            :class="['journal-metric-card', cardShellClasses(card.id)]"
             :style="{ background: card.style }"
+            :draggable="editable"
+            @dragstart="handleCardDragStart(card.id)"
+            @dragover.prevent="handleCardDragOver(card.id)"
+            @drop.prevent="handleCardDrop(card.id)"
+            @dragend="clearDragState"
         >
+            <div
+                v-if="editable"
+                class="mb-3 flex items-center justify-between gap-2 rounded-full border border-[rgba(103,114,255,0.12)] bg-white/88 px-2.5 py-1.5"
+            >
+                <div class="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--journal-muted)]">
+                    <GripVertical class="h-3.5 w-3.5 text-[color:var(--journal-faint)]" />
+                    Move
+                </div>
+                <button
+                    type="button"
+                    class="journal-chip !px-2.5 !py-1 text-[10px]"
+                    @click="toggleCard(card.id)"
+                >
+                    Hide
+                </button>
+            </div>
+
             <p class="journal-kicker">{{ card.label }}</p>
 
             <div class="mt-4 flex items-end justify-between gap-3">

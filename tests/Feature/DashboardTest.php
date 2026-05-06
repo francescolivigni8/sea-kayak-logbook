@@ -32,6 +32,126 @@ class DashboardTest extends TestCase
         $profile = $user->resolveActiveProfile();
         $profile->settings = [
             'dashboard_layout' => [
+                'order' => [
+                    'route-map',
+                    'metric-distance',
+                    'metric-duration',
+                    'metric-air-temperature',
+                    'metric-sea-temperature',
+                    'metric-average-speed',
+                    'sea-beaufort-distribution',
+                    'sea-wind-counts',
+                    'sea-rescue-events',
+                    'sea-profile',
+                    'sea-environmental-conditions',
+                    'sea-distance-by-month',
+                    'sea-timeframe-comparison',
+                    'expedition-distance',
+                    'expedition-days',
+                    'expedition-trips',
+                    'expedition-map',
+                    'expedition-sessions',
+                ],
+                'hidden' => ['sea-profile', 'expedition-sessions'],
+            ],
+        ];
+        $profile->save();
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dashboardPreferences.order', [
+                    'route-map',
+                    'metric-distance',
+                    'metric-duration',
+                    'metric-air-temperature',
+                    'metric-sea-temperature',
+                    'metric-average-speed',
+                    'sea-beaufort-distribution',
+                    'sea-wind-counts',
+                    'sea-rescue-events',
+                    'sea-profile',
+                    'sea-environmental-conditions',
+                    'sea-distance-by-month',
+                    'sea-timeframe-comparison',
+                    'expedition-distance',
+                    'expedition-days',
+                    'expedition-trips',
+                    'expedition-map',
+                    'expedition-sessions',
+                ])
+                ->where('dashboardPreferences.hidden', ['sea-profile', 'expedition-sessions']));
+    }
+
+    public function test_authenticated_users_can_save_dashboard_layout_preferences(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        $this->actingAs($user)
+            ->put(route('dashboard.preferences.update'), [
+                'order' => [
+                    'metric-average-speed',
+                    'metric-distance',
+                    'metric-duration',
+                    'metric-air-temperature',
+                    'metric-sea-temperature',
+                    'sea-rescue-events',
+                    'sea-beaufort-distribution',
+                    'sea-wind-counts',
+                    'sea-profile',
+                    'sea-environmental-conditions',
+                    'sea-distance-by-month',
+                    'sea-timeframe-comparison',
+                    'route-map',
+                    'expedition-days',
+                    'expedition-distance',
+                    'expedition-trips',
+                    'expedition-map',
+                    'expedition-sessions',
+                ],
+                'hidden' => ['route-map', 'expedition-sessions'],
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $profile->refresh();
+
+        $this->assertSame(
+            [
+                'order' => [
+                    'metric-average-speed',
+                    'metric-distance',
+                    'metric-duration',
+                    'metric-air-temperature',
+                    'metric-sea-temperature',
+                    'sea-rescue-events',
+                    'sea-beaufort-distribution',
+                    'sea-wind-counts',
+                    'sea-profile',
+                    'sea-environmental-conditions',
+                    'sea-distance-by-month',
+                    'sea-timeframe-comparison',
+                    'route-map',
+                    'expedition-days',
+                    'expedition-distance',
+                    'expedition-trips',
+                    'expedition-map',
+                    'expedition-sessions',
+                ],
+                'hidden' => ['route-map', 'expedition-sessions'],
+            ],
+            data_get($profile->settings, 'dashboard_layout'),
+        );
+    }
+
+    public function test_legacy_section_preferences_expand_to_card_preferences(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+        $profile->settings = [
+            'dashboard_layout' => [
                 'order' => ['route-map', 'headline', 'expeditions', 'sea-state'],
                 'hidden' => ['sea-state'],
             ],
@@ -43,31 +163,18 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('dashboardPreferences.order', ['route-map', 'headline', 'expeditions', 'sea-state'])
-                ->where('dashboardPreferences.hidden', ['sea-state']));
-    }
-
-    public function test_authenticated_users_can_save_dashboard_layout_preferences(): void
-    {
-        $user = User::factory()->create();
-        $profile = $user->resolveActiveProfile();
-
-        $this->actingAs($user)
-            ->put(route('dashboard.preferences.update'), [
-                'order' => ['expeditions', 'route-map', 'headline', 'sea-state'],
-                'hidden' => ['route-map'],
-            ])
-            ->assertRedirect(route('dashboard'));
-
-        $profile->refresh();
-
-        $this->assertSame(
-            [
-                'order' => ['expeditions', 'route-map', 'headline', 'sea-state'],
-                'hidden' => ['route-map'],
-            ],
-            data_get($profile->settings, 'dashboard_layout'),
-        );
+                ->where('dashboardPreferences.order.0', 'route-map')
+                ->where('dashboardPreferences.order.1', 'metric-distance')
+                ->where('dashboardPreferences.order.6', 'expedition-distance')
+                ->where('dashboardPreferences.hidden', [
+                    'sea-beaufort-distribution',
+                    'sea-wind-counts',
+                    'sea-rescue-events',
+                    'sea-profile',
+                    'sea-environmental-conditions',
+                    'sea-distance-by-month',
+                    'sea-timeframe-comparison',
+                ]));
     }
 
     public function test_dashboard_includes_expedition_summary_and_world_map_data(): void

@@ -7,13 +7,60 @@ class DashboardPreferences
     /**
      * @return array<int, string>
      */
-    public static function sectionIds(): array
+    public static function cardIds(): array
     {
         return [
-            'headline',
-            'sea-state',
+            'metric-distance',
+            'metric-duration',
+            'metric-air-temperature',
+            'metric-sea-temperature',
+            'metric-average-speed',
+            'sea-beaufort-distribution',
+            'sea-wind-counts',
+            'sea-rescue-events',
+            'sea-profile',
+            'sea-environmental-conditions',
+            'sea-distance-by-month',
+            'sea-timeframe-comparison',
             'route-map',
-            'expeditions',
+            'expedition-distance',
+            'expedition-days',
+            'expedition-trips',
+            'expedition-map',
+            'expedition-sessions',
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    public static function legacySectionMap(): array
+    {
+        return [
+            'headline' => [
+                'metric-distance',
+                'metric-duration',
+                'metric-air-temperature',
+                'metric-sea-temperature',
+                'metric-average-speed',
+            ],
+            'sea-state' => [
+                'sea-beaufort-distribution',
+                'sea-wind-counts',
+                'sea-rescue-events',
+                'sea-profile',
+                'sea-environmental-conditions',
+                'sea-distance-by-month',
+                'sea-timeframe-comparison',
+            ],
+            'route-map' => ['route-map'],
+            'expeditions' => [
+                'expedition-distance',
+                'expedition-days',
+                'expedition-trips',
+                'expedition-map',
+                'expedition-sessions',
+            ],
         ];
     }
 
@@ -23,7 +70,7 @@ class DashboardPreferences
     public static function defaults(): array
     {
         return [
-            'order' => self::sectionIds(),
+            'order' => self::cardIds(),
             'hidden' => [],
         ];
     }
@@ -43,7 +90,8 @@ class DashboardPreferences
     public static function sanitize(mixed $value): array
     {
         $defaults = self::defaults();
-        $allowed = self::sectionIds();
+        $allowed = self::cardIds();
+        $legacy = self::legacySectionMap();
 
         if (! is_array($value)) {
             return $defaults;
@@ -53,20 +101,38 @@ class DashboardPreferences
         $rawHidden = is_array($value['hidden'] ?? null) ? $value['hidden'] : [];
 
         $order = collect($rawOrder)
-            ->map(fn ($item) => is_string($item) ? $item : null)
-            ->filter(fn (?string $item) => $item !== null && in_array($item, $allowed, true))
+            ->flatMap(function ($item) use ($allowed, $legacy) {
+                if (! is_string($item)) {
+                    return [];
+                }
+
+                if (array_key_exists($item, $legacy)) {
+                    return $legacy[$item];
+                }
+
+                return in_array($item, $allowed, true) ? [$item] : [];
+            })
             ->unique()
             ->values();
 
-        foreach ($allowed as $sectionId) {
-            if (! $order->contains($sectionId)) {
-                $order->push($sectionId);
+        foreach ($allowed as $cardId) {
+            if (! $order->contains($cardId)) {
+                $order->push($cardId);
             }
         }
 
         $hidden = collect($rawHidden)
-            ->map(fn ($item) => is_string($item) ? $item : null)
-            ->filter(fn (?string $item) => $item !== null && in_array($item, $allowed, true))
+            ->flatMap(function ($item) use ($allowed, $legacy) {
+                if (! is_string($item)) {
+                    return [];
+                }
+
+                if (array_key_exists($item, $legacy)) {
+                    return $legacy[$item];
+                }
+
+                return in_array($item, $allowed, true) ? [$item] : [];
+            })
             ->unique()
             ->values()
             ->all();
