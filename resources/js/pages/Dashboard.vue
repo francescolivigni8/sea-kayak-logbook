@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
@@ -136,7 +145,6 @@ const { unitPreferences } = useUnitPreferences();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
-const showCustomize = ref(false);
 const isSavingLayout = ref(false);
 
 const dashboardSectionCatalog: Array<{
@@ -147,12 +155,12 @@ const dashboardSectionCatalog: Array<{
     {
         id: 'headline',
         label: 'Headline metrics',
-        description: 'Top summary cards, wind distribution, monthly distance, and rescue totals.',
+        description: 'Top summary cards and overview blocks.',
     },
     {
         id: 'sea-state',
         label: 'Sea state panels',
-        description: 'Conditions matrix, distance windows, and exposure breakdowns.',
+        description: 'Conditions matrix and exposure breakdowns.',
     },
     {
         id: 'route-map',
@@ -340,90 +348,93 @@ function saveDashboardLayout() {
             {{ successMessage }}
         </section>
 
-        <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <p class="journal-kicker">Dashboard</p>
-                    <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">
-                        Customize this view
-                    </h3>
-                    <p class="mt-3 max-w-3xl text-sm leading-6 text-[color:var(--journal-muted)]">
-                        Reorder the main dashboard sections, hide the ones you do not want, and save the layout to your profile.
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                    @click="showCustomize = !showCustomize"
+        <div class="flex justify-end">
+            <Dialog>
+                <DialogTrigger as-child>
+                    <button
+                        type="button"
+                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                    >
+                        Customize dashboard
+                    </button>
+                </DialogTrigger>
+                <DialogContent
+                    class="border-[color:var(--journal-line)] bg-white/96 text-[color:var(--journal-text)] shadow-[var(--journal-shadow)] sm:max-w-xl sm:rounded-[28px]"
                 >
-                    {{ showCustomize ? 'Hide controls' : 'Customize dashboard' }}
-                </button>
-            </div>
+                    <DialogHeader class="space-y-3">
+                        <DialogTitle>Customize dashboard</DialogTitle>
+                        <DialogDescription>
+                            Reorder the main dashboard sections or hide the ones
+                            you do not want to see.
+                        </DialogDescription>
+                    </DialogHeader>
 
-            <div v-if="showCustomize" class="mt-5 grid gap-3">
-                <article
-                    v-for="(section, index) in orderedSections"
-                    :key="section.id"
-                    class="journal-surface-shell rounded-[24px] px-4 py-4"
-                >
-                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                                {{ section.label }}
-                            </p>
-                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                {{ section.description }}
-                            </p>
-                        </div>
+                    <div class="grid gap-3">
+                        <article
+                            v-for="(section, index) in orderedSections"
+                            :key="section.id"
+                            class="journal-surface-shell rounded-[22px] px-4 py-4"
+                        >
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                        {{ section.label }}
+                                    </p>
+                                    <p class="mt-1 text-xs leading-5 text-[color:var(--journal-muted)]">
+                                        {{ section.hidden ? 'Hidden' : 'Visible' }}
+                                    </p>
+                                </div>
 
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                                :disabled="index === 0"
-                                @click="moveSection(section.id, -1)"
-                            >
-                                Move up
-                            </button>
-                            <button
-                                type="button"
-                                class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                                :disabled="index === orderedSections.length - 1"
-                                @click="moveSection(section.id, 1)"
-                            >
-                                Move down
-                            </button>
-                            <button
-                                type="button"
-                                class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                                @click="toggleSectionVisibility(section.id)"
-                            >
-                                {{ section.hidden ? 'Show section' : 'Hide section' }}
-                            </button>
-                        </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
+                                        :disabled="index === 0"
+                                        @click="moveSection(section.id, -1)"
+                                    >
+                                        Up
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
+                                        :disabled="index === orderedSections.length - 1"
+                                        @click="moveSection(section.id, 1)"
+                                    >
+                                        Down
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                                        @click="toggleSectionVisibility(section.id)"
+                                    >
+                                        {{ section.hidden ? 'Show' : 'Hide' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
                     </div>
-                </article>
 
-                <div class="flex flex-wrap gap-2 pt-1">
-                    <button
-                        type="button"
-                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                        :disabled="!dashboardLayoutIsDirty || isSavingLayout"
-                        @click="saveDashboardLayout"
-                    >
-                        {{ isSavingLayout ? 'Saving…' : 'Save dashboard' }}
-                    </button>
-                    <button
-                        type="button"
-                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                        :disabled="isSavingLayout"
-                        @click="resetDashboardLayout"
-                    >
-                        Reset defaults
-                    </button>
-                </div>
-            </div>
-        </section>
+                    <DialogFooter class="mt-2 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
+                            :disabled="isSavingLayout"
+                            @click="resetDashboardLayout"
+                        >
+                            Reset
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px disabled:opacity-45"
+                            :disabled="!dashboardLayoutIsDirty || isSavingLayout"
+                            @click="saveDashboardLayout"
+                        >
+                            {{ isSavingLayout ? 'Saving…' : 'Save layout' }}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
 
         <section
             v-if="!visibleSections.length"
