@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { GripVertical, RotateCcw } from 'lucide-vue-next';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
@@ -145,7 +137,10 @@ const { unitPreferences } = useUnitPreferences();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
+const isEditingLayout = ref(false);
 const isSavingLayout = ref(false);
+const draggingSectionId = ref<DashboardSectionId | null>(null);
+const dropTargetSectionId = ref<DashboardSectionId | null>(null);
 
 const dashboardSectionCatalog: Array<{
     id: DashboardSectionId;
@@ -277,6 +272,9 @@ const orderedSections = computed(() =>
 const visibleSections = computed(() =>
     orderedSections.value.filter((section) => !section.hidden),
 );
+const hiddenSectionEntries = computed(() =>
+    orderedSections.value.filter((section) => section.hidden),
+);
 
 const dashboardLayoutIsDirty = computed(() => {
     const currentOrder = sectionOrder.value.join('|');
@@ -317,6 +315,68 @@ function resetDashboardLayout() {
     hiddenSections.value = [];
 }
 
+function toggleLayoutEditor() {
+    isEditingLayout.value = !isEditingLayout.value;
+
+    if (!isEditingLayout.value) {
+        clearDragState();
+    }
+}
+
+function clearDragState() {
+    draggingSectionId.value = null;
+    dropTargetSectionId.value = null;
+}
+
+function restoreSection(sectionId: DashboardSectionId) {
+    hiddenSections.value = hiddenSections.value.filter((id) => id !== sectionId);
+}
+
+function moveSectionBefore(sectionId: DashboardSectionId, targetId: DashboardSectionId) {
+    if (sectionId === targetId) {
+        return;
+    }
+
+    const next = [...sectionOrder.value];
+    const fromIndex = next.indexOf(sectionId);
+    const targetIndex = next.indexOf(targetId);
+
+    if (fromIndex === -1 || targetIndex === -1) {
+        return;
+    }
+
+    next.splice(fromIndex, 1);
+    const insertIndex = next.indexOf(targetId);
+    next.splice(insertIndex, 0, sectionId);
+    sectionOrder.value = next;
+}
+
+function handleSectionDragStart(sectionId: DashboardSectionId) {
+    if (!isEditingLayout.value) {
+        return;
+    }
+
+    draggingSectionId.value = sectionId;
+    dropTargetSectionId.value = sectionId;
+}
+
+function handleSectionDragOver(sectionId: DashboardSectionId) {
+    if (!isEditingLayout.value || draggingSectionId.value === null) {
+        return;
+    }
+
+    dropTargetSectionId.value = sectionId;
+}
+
+function handleSectionDrop(sectionId: DashboardSectionId) {
+    if (!isEditingLayout.value || draggingSectionId.value === null) {
+        return;
+    }
+
+    moveSectionBefore(draggingSectionId.value, sectionId);
+    clearDragState();
+}
+
 function saveDashboardLayout() {
     if (!dashboardLayoutIsDirty.value) {
         return;
@@ -332,11 +392,31 @@ function saveDashboardLayout() {
         },
         {
             preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            onSuccess: () => {
+                isEditingLayout.value = false;
+                clearDragState();
+            },
             onFinish: () => {
                 isSavingLayout.value = false;
             },
         },
     );
+}
+
+function sectionShellClasses(sectionId: DashboardSectionId) {
+    if (!isEditingLayout.value) {
+        return '';
+    }
+
+    return [
+        'rounded-[28px] border border-dashed border-[rgba(103,114,255,0.22)] bg-[rgba(255,255,255,0.36)] p-2',
+        draggingSectionId.value === sectionId ? 'opacity-55' : '',
+        dropTargetSectionId.value === sectionId
+            ? 'ring-2 ring-[rgba(103,114,255,0.34)] ring-offset-2 ring-offset-transparent'
+            : '',
+    ].join(' ');
 }
 </script>
 
@@ -348,265 +428,253 @@ function saveDashboardLayout() {
             {{ successMessage }}
         </section>
 
-        <div class="flex justify-end">
-            <Dialog>
-                <DialogTrigger as-child>
-                    <button
-                        type="button"
-                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                    >
-                        Customize dashboard
-                    </button>
-                </DialogTrigger>
-                <DialogContent
-                    class="border-[color:var(--journal-line)] bg-white/96 text-[color:var(--journal-text)] shadow-[var(--journal-shadow)] sm:max-w-xl sm:rounded-[28px]"
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div
+                v-if="isEditingLayout && hiddenSectionEntries.length"
+                class="flex flex-wrap items-center gap-2"
+            >
+                <span class="text-xs font-medium tracking-[0.12em] text-[color:var(--journal-faint)] uppercase">
+                    Hidden
+                </span>
+                <button
+                    v-for="section in hiddenSectionEntries"
+                    :key="section.id"
+                    type="button"
+                    class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                    @click="restoreSection(section.id)"
                 >
-                    <DialogHeader class="space-y-3">
-                        <DialogTitle>Customize dashboard</DialogTitle>
-                        <DialogDescription>
-                            Reorder the main dashboard sections or hide the ones
-                            you do not want to see.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div class="grid gap-3">
-                        <article
-                            v-for="(section, index) in orderedSections"
-                            :key="section.id"
-                            class="journal-surface-shell rounded-[22px] px-4 py-4"
-                        >
-                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-[color:var(--journal-text)]">
-                                        {{ section.label }}
-                                    </p>
-                                    <p class="mt-1 text-xs leading-5 text-[color:var(--journal-muted)]">
-                                        {{ section.hidden ? 'Hidden' : 'Visible' }}
-                                    </p>
-                                </div>
-
-                                <div class="flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                                        :disabled="index === 0"
-                                        @click="moveSection(section.id, -1)"
-                                    >
-                                        Up
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                                        :disabled="index === orderedSections.length - 1"
-                                        @click="moveSection(section.id, 1)"
-                                    >
-                                        Down
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                                        @click="toggleSectionVisibility(section.id)"
-                                    >
-                                        {{ section.hidden ? 'Show' : 'Hide' }}
-                                    </button>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-
-                    <DialogFooter class="mt-2 flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
-                            :disabled="isSavingLayout"
-                            @click="resetDashboardLayout"
-                        >
-                            Reset
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px disabled:opacity-45"
-                            :disabled="!dashboardLayoutIsDirty || isSavingLayout"
-                            @click="saveDashboardLayout"
-                        >
-                            {{ isSavingLayout ? 'Saving…' : 'Save layout' }}
-                        </button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    Show {{ section.label }}
+                </button>
+            </div>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                    @click="toggleLayoutEditor"
+                >
+                    {{ isEditingLayout ? 'Done editing' : 'Edit layout' }}
+                </button>
+                <button
+                    v-if="isEditingLayout"
+                    type="button"
+                    class="journal-chip inline-flex items-center gap-1 transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)] disabled:opacity-45"
+                    :disabled="isSavingLayout"
+                    @click="resetDashboardLayout"
+                >
+                    <RotateCcw class="h-3.5 w-3.5" />
+                    Reset
+                </button>
+                <button
+                    v-if="isEditingLayout"
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px disabled:opacity-45"
+                    :disabled="!dashboardLayoutIsDirty || isSavingLayout"
+                    @click="saveDashboardLayout"
+                >
+                    {{ isSavingLayout ? 'Saving…' : 'Save layout' }}
+                </button>
+            </div>
         </div>
 
         <section
             v-if="!visibleSections.length"
             class="journal-banner journal-banner--soft"
         >
-            All dashboard sections are currently hidden. Open customize dashboard and show at least one section.
+            All dashboard sections are currently hidden. Use edit layout to bring at least one back.
         </section>
 
         <template v-for="section in visibleSections" :key="section.id">
-            <HeadlineMetricCards
-                v-if="section.id === 'headline'"
-                :headline="headline"
-                :sea-state="seaState"
-                :monthly-distance="monthlyDistance"
-                context="private"
-            />
-
-            <SeaStatePanels
-                v-else-if="section.id === 'sea-state'"
-                :sea-state="seaState"
-                :year-snapshots="yearSnapshots"
-                :monthly-distance="monthlyDistance"
-                compare-chip="Distance"
-            />
-
-            <section
-                v-else-if="section.id === 'route-map'"
-                class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+            <div
+                :class="sectionShellClasses(section.id)"
+                :draggable="isEditingLayout"
+                @dragstart="handleSectionDragStart(section.id)"
+                @dragover.prevent="handleSectionDragOver(section.id)"
+                @drop.prevent="handleSectionDrop(section.id)"
+                @dragend="clearDragState"
             >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="journal-kicker">Map</p>
-                        <h3
-                            class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
-                        >
-                            Route map
-                        </h3>
-                    </div>
-                    <span class="journal-chip"
-                        >{{ mapData.routes.length }} routes</span
-                    >
-                </div>
-
-                <div class="mt-6">
-                    <RouteAtlasMap
-                        :routes="mapData.routes"
-                        :pins="mapData.pins"
-                        :default-view="mapData.defaultView"
-                        :storage-key="`${profile.slug}-route-atlas`"
-                        :show-filters="false"
-                        height-class="h-[320px] sm:h-[420px] lg:h-[560px]"
-                    />
-                </div>
-            </section>
-
-            <section
-                v-else-if="section.id === 'expeditions'"
-                class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
-            >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="journal-kicker">Expeditions</p>
-                        <h3
-                            class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
-                        >
-                            Expeditions and multiday
-                        </h3>
-                    </div>
-                    <span class="journal-chip">Checklist tagged</span>
-                </div>
-
                 <div
-                    class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
+                    v-if="isEditingLayout"
+                    class="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-full border border-[rgba(103,114,255,0.14)] bg-white/88 px-3 py-2 shadow-[0_10px_24px_rgba(41,48,81,0.08)]"
                 >
-                    <p
-                        class="text-base font-semibold text-[color:var(--journal-text)]"
-                    >
-                        Longer journeys, kept separate and still counted in the full
-                        logbook totals.
-                    </p>
-                    <p
-                        class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
-                    >
-                        Tag a session as expedition and optionally log the days out
-                        in the checklist. The footprint map below now marks every
-                        paddled location with a saved track or coordinate, grouping
-                        repeats into one pin.
-                    </p>
+                    <div class="flex items-center gap-2 text-sm font-medium text-[color:var(--journal-text)]">
+                        <GripVertical class="h-4 w-4 text-[color:var(--journal-faint)]" />
+                        {{ section.label }}
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                            @click="toggleSectionVisibility(section.id)"
+                        >
+                            Hide
+                        </button>
+                    </div>
                 </div>
 
-                <div class="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 lg:grid-cols-3">
-                    <article
-                        v-for="card in expeditionCards"
-                        :key="card.label"
-                        class="journal-surface-shell rounded-[24px] px-4 py-4"
-                    >
-                        <p class="journal-kicker">{{ card.label }}</p>
-                        <p
-                            class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]"
+                <HeadlineMetricCards
+                    v-if="section.id === 'headline'"
+                    :headline="headline"
+                    :sea-state="seaState"
+                    :monthly-distance="monthlyDistance"
+                    context="private"
+                />
+
+                <SeaStatePanels
+                    v-else-if="section.id === 'sea-state'"
+                    :sea-state="seaState"
+                    :year-snapshots="yearSnapshots"
+                    :monthly-distance="monthlyDistance"
+                    compare-chip="Distance"
+                />
+
+                <section
+                    v-else-if="section.id === 'route-map'"
+                    class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">Map</p>
+                            <h3
+                                class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
+                            >
+                                Route map
+                            </h3>
+                        </div>
+                        <span class="journal-chip"
+                            >{{ mapData.routes.length }} routes</span
                         >
-                            {{ card.value }}
+                    </div>
+
+                    <div class="mt-6">
+                        <RouteAtlasMap
+                            :routes="mapData.routes"
+                            :pins="mapData.pins"
+                            :default-view="mapData.defaultView"
+                            :storage-key="`${profile.slug}-route-atlas`"
+                            :show-filters="false"
+                            height-class="h-[320px] sm:h-[420px] lg:h-[560px]"
+                        />
+                    </div>
+                </section>
+
+                <section
+                    v-else-if="section.id === 'expeditions'"
+                    class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">Expeditions</p>
+                            <h3
+                                class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]"
+                            >
+                                Expeditions and multiday
+                            </h3>
+                        </div>
+                        <span class="journal-chip">Checklist tagged</span>
+                    </div>
+
+                    <div
+                        class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
+                    >
+                        <p
+                            class="text-base font-semibold text-[color:var(--journal-text)]"
+                        >
+                            Longer journeys, kept separate and still counted in the full
+                            logbook totals.
                         </p>
                         <p
                             class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
                         >
-                            {{ card.detail }}
+                            Tag a session as expedition and optionally log the days out
+                            in the checklist. The footprint map below now marks every
+                            paddled location with a saved track or coordinate, grouping
+                            repeats into one pin.
                         </p>
-                    </article>
-                </div>
-
-                <section
-                    v-if="expeditionMapWarning"
-                    class="journal-banner journal-banner--danger mt-6"
-                >
-                    {{ expeditionMapWarning }}
-                </section>
-
-                <div class="mt-6">
-                    <div
-                        class="mb-4 flex flex-wrap items-start justify-between gap-3"
-                    >
-                        <div>
-                            <p class="journal-kicker">Expeditions</p>
-                            <h4
-                                class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
-                            >
-                                I paddled here
-                            </h4>
-                        </div>
-                        <span
-                            class="text-sm font-medium text-[color:var(--journal-muted)]"
-                            >{{ expeditionMapData.pins.length }} places</span
-                        >
                     </div>
 
-                    <RouteAtlasMap
-                        :routes="expeditionMapData.routes"
-                        :pins="expeditionMapData.pins"
-                        :default-view="expeditionMapData.defaultView"
-                        :storage-key="`${profile.slug}-expedition-footprint`"
-                        pin-presentation="expedition"
-                        :auto-fit-to-geometry="false"
-                        :show-legend="false"
-                        :show-filters="false"
-                        :show-kind-filter="false"
-                        :show-geometry-filter="false"
-                        empty-message="No paddled locations logged yet."
-                        height-class="h-[280px] sm:h-[360px] lg:h-[440px]"
-                    />
-                </div>
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 lg:grid-cols-3">
+                        <article
+                            v-for="card in expeditionCards"
+                            :key="card.label"
+                            class="journal-surface-shell rounded-[24px] px-4 py-4"
+                        >
+                            <p class="journal-kicker">{{ card.label }}</p>
+                            <p
+                                class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]"
+                            >
+                                {{ card.value }}
+                            </p>
+                            <p
+                                class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                            >
+                                {{ card.detail }}
+                            </p>
+                        </article>
+                    </div>
 
-                <div
-                    v-if="expeditionSessionChips.length"
-                    class="mt-5 flex flex-wrap gap-2"
-                >
-                    <Link
-                        v-for="session in expeditionSessionChips"
-                        :key="session.id"
-                        :href="session.path"
-                        class="journal-chip transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                    <section
+                        v-if="expeditionMapWarning"
+                        class="journal-banner journal-banner--danger mt-6"
                     >
-                        {{ session.label }}
-                    </Link>
-                </div>
-                <p
-                    v-if="expeditionSessionChips.length"
-                    class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
-                >
-                    Expedition chips below jump straight into sessions tagged in the
-                    expedition checklist.
-                </p>
-            </section>
+                        {{ expeditionMapWarning }}
+                    </section>
+
+                    <div class="mt-6">
+                        <div
+                            class="mb-4 flex flex-wrap items-start justify-between gap-3"
+                        >
+                            <div>
+                                <p class="journal-kicker">Expeditions</p>
+                                <h4
+                                    class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
+                                >
+                                    I paddled here
+                                </h4>
+                            </div>
+                            <span
+                                class="text-sm font-medium text-[color:var(--journal-muted)]"
+                                >{{ expeditionMapData.pins.length }} places</span
+                            >
+                        </div>
+
+                        <RouteAtlasMap
+                            :routes="expeditionMapData.routes"
+                            :pins="expeditionMapData.pins"
+                            :default-view="expeditionMapData.defaultView"
+                            :storage-key="`${profile.slug}-expedition-footprint`"
+                            pin-presentation="expedition"
+                            :auto-fit-to-geometry="false"
+                            :show-legend="false"
+                            :show-filters="false"
+                            :show-kind-filter="false"
+                            :show-geometry-filter="false"
+                            empty-message="No paddled locations logged yet."
+                            height-class="h-[280px] sm:h-[360px] lg:h-[440px]"
+                        />
+                    </div>
+
+                    <div
+                        v-if="expeditionSessionChips.length"
+                        class="mt-5 flex flex-wrap gap-2"
+                    >
+                        <Link
+                            v-for="session in expeditionSessionChips"
+                            :key="session.id"
+                            :href="session.path"
+                            class="journal-chip transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                        >
+                            {{ session.label }}
+                        </Link>
+                    </div>
+                    <p
+                        v-if="expeditionSessionChips.length"
+                        class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
+                        Expedition chips below jump straight into sessions tagged in the
+                        expedition checklist.
+                    </p>
+                </section>
+            </div>
         </template>
     </div>
 </template>
