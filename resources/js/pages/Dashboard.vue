@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, watch, ref } from 'vue';
 import { GripVertical, RotateCcw } from 'lucide-vue-next';
+import { usePageHeaderActions } from '@/composables/usePageHeaderActions';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
@@ -148,6 +149,7 @@ const props = defineProps<{
 
 const page = usePage();
 const { unitPreferences } = useUnitPreferences();
+const { setPageHeaderActions, clearPageHeaderActions } = usePageHeaderActions();
 const successMessage = computed(
     () => (page.props as FlashPageProps).flash?.success,
 );
@@ -433,6 +435,25 @@ function saveDashboardLayout() {
         },
     );
 }
+
+watch(
+    isEditingLayout,
+    (editing) => {
+        setPageHeaderActions([
+            {
+                id: 'dashboard-edit-layout',
+                label: editing ? 'Done editing' : 'Edit layout',
+                active: editing,
+                onClick: toggleLayoutEditor,
+            },
+        ]);
+    },
+    { immediate: true },
+);
+
+onBeforeUnmount(() => {
+    clearPageHeaderActions();
+});
 </script>
 
 <template>
@@ -445,13 +466,6 @@ function saveDashboardLayout() {
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="ml-auto flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
-                    @click="toggleLayoutEditor"
-                >
-                    {{ isEditingLayout ? 'Done editing' : 'Edit layout' }}
-                </button>
                 <button
                     v-if="isEditingLayout"
                     type="button"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, watch } from 'vue';
+import { usePageHeaderActions } from '@/composables/usePageHeaderActions';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import { capturePageview, initProductAnalytics } from '@/lib/productAnalytics';
@@ -33,6 +34,7 @@ type LegalShape = {
 
 const page = usePage();
 const { unitPreferences } = useUnitPreferences();
+const { pageHeaderActions } = usePageHeaderActions();
 
 const currentPath = computed(() => page.url.split('?')[0] || '/dashboard');
 const journalNav = computed(
@@ -109,6 +111,12 @@ const utilityLinks = computed(() => {
         { label: 'Account', href: '/settings/profile', match: ['/settings'] },
     ];
 });
+const trailingUtilityLink = computed(
+    () => utilityLinks.value[utilityLinks.value.length - 1] ?? null,
+);
+const leadingUtilityLinks = computed(() =>
+    utilityLinks.value.slice(0, Math.max(utilityLinks.value.length - 1, 0)),
+);
 
 function isActive(item: {
     href: string;
@@ -292,7 +300,7 @@ watch(
                         "
                     >
                         <Link
-                            v-for="link in utilityLinks"
+                            v-for="link in leadingUtilityLinks"
                             :key="link.label"
                             :href="link.href"
                             :class="[
@@ -304,6 +312,34 @@ watch(
                             ]"
                         >
                             {{ link.label }}
+                        </Link>
+                        <button
+                            v-for="action in pageHeaderActions"
+                            :key="action.id"
+                            type="button"
+                            :class="[
+                                'journal-utility-link',
+                                'shrink-0',
+                                action.active
+                                    ? 'journal-utility-link--active'
+                                    : '',
+                            ]"
+                            @click="action.onClick"
+                        >
+                            {{ action.label }}
+                        </button>
+                        <Link
+                            v-if="trailingUtilityLink"
+                            :href="trailingUtilityLink.href"
+                            :class="[
+                                'journal-utility-link',
+                                'shrink-0',
+                                isUtilityActive(trailingUtilityLink)
+                                    ? 'journal-utility-link--active'
+                                    : '',
+                            ]"
+                        >
+                            {{ trailingUtilityLink.label }}
                         </Link>
                         <Link
                             href="/logout"
