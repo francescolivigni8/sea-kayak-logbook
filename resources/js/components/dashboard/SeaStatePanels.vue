@@ -381,18 +381,6 @@ const conditionSummaryRows = computed(() =>
     }),
 );
 
-const conditionHighlights = computed(() =>
-    conditionSummaryRows.value
-        .filter((item) => item.dominant && item.dominant.count > 0)
-        .map((item) => ({
-            label: item.label,
-            tone: item.dominant?.label ?? 'Low',
-            count: item.dominant?.count ?? 0,
-            bg: item.dominant?.bg ?? 'rgba(103,114,255,0.08)',
-            text: item.dominant?.text ?? 'var(--journal-text)',
-        })),
-);
-
 const comparisonSnapshots = computed(() =>
     props.yearSnapshots.map((snapshot, index) => ({
         ...snapshot,
@@ -422,7 +410,6 @@ const visibleComparisonSnapshots = computed(() => {
         : comparisonSnapshots.value;
 });
 
-const comparisonLeader = computed(() => visibleComparisonSnapshots.value[0] ?? null);
 const comparisonContextRows = computed(() =>
     visibleComparisonSnapshots.value.map((snapshot) => ({
         ...snapshot,
@@ -431,9 +418,9 @@ const comparisonContextRows = computed(() =>
                 ? Math.round((snapshot.value / comparisonMax.value) * 100)
                 : 0,
         leadLabel:
-            comparisonLeader.value?.label === snapshot.label
+            visibleComparisonSnapshots.value[0]?.label === snapshot.label
                 ? 'Baseline'
-                : `${Math.round((snapshot.value / Math.max(comparisonLeader.value?.value ?? 1, 1)) * 100)}% of ${comparisonLeader.value?.label.toLowerCase() ?? 'baseline'}`,
+                : `${Math.round((snapshot.value / Math.max(visibleComparisonSnapshots.value[0]?.value ?? 1, 1)) * 100)}% of ${visibleComparisonSnapshots.value[0]?.label.toLowerCase() ?? 'baseline'}`,
     })),
 );
 
@@ -762,13 +749,13 @@ function cardShellClasses(cardId: SeaStateCardId) {
         </div>
 
         <section
-            class="grid items-start gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]"
+            class="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]"
         >
             <article
                 v-for="card in visibleBottomCards"
                 :key="card.id"
                 :class="[
-                    'journal-card self-start px-4 py-4 sm:px-5 sm:py-5 md:px-6',
+                    'journal-card flex h-full flex-col px-4 py-4 sm:px-5 sm:py-5 md:px-6',
                     cardShellClasses(card.id),
                 ]"
                 :draggable="editable"
@@ -798,117 +785,85 @@ function cardShellClasses(cardId: SeaStateCardId) {
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <p class="journal-kicker">Conditions</p>
-                            <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">
+                            <h3 class="mt-2 text-[1.35rem] leading-none sm:text-[1.55rem]">
                                 Environmental conditions
                             </h3>
                         </div>
-                        <span class="journal-chip">Condition pulse</span>
+                        <span class="journal-chip">Checklist</span>
                     </div>
 
                     <div
                         v-if="hasConditionData"
-                        class="mt-6 grid gap-3"
+                        class="mt-5 flex h-full flex-col"
                     >
-                        <div
-                            v-if="conditionHighlights.length"
-                            class="flex flex-wrap gap-2"
-                        >
-                            <span
-                                v-for="highlight in conditionHighlights"
-                                :key="highlight.label"
-                                class="rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                :style="{
-                                    background: highlight.bg,
-                                    color: highlight.text,
-                                }"
-                            >
-                                {{ highlight.label }} · {{ highlight.tone }}
-                            </span>
+                        <div class="rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-3.5 sm:px-5">
+                            <div class="grid divide-y divide-[color:var(--journal-line)]">
+                                <article
+                                    v-for="item in conditionSummaryRows"
+                                    :key="item.label"
+                                    class="grid gap-2.5 py-3 first:pt-0 last:pb-0"
+                                >
+                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                                {{ item.label }}
+                                            </p>
+                                            <p class="mt-0.5 text-[10px] tracking-[0.14em] text-[color:var(--journal-faint)] uppercase">
+                                                {{ item.total }} logged
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] uppercase"
+                                            :style="
+                                                item.dominant
+                                                    ? {
+                                                          background: item.dominant.bg,
+                                                          color: item.dominant.text,
+                                                      }
+                                                    : {
+                                                          background: 'rgba(103,114,255,0.08)',
+                                                          color: 'var(--journal-faint)',
+                                                      }
+                                            "
+                                        >
+                                            {{
+                                                item.dominant
+                                                    ? `${item.dominant.label} · ${item.dominant.count}`
+                                                    : 'No signal'
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex h-2 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                                        <div
+                                            v-for="segment in item.segments"
+                                            :key="`${item.label}-${segment.key}`"
+                                            class="h-full first:rounded-l-full last:rounded-r-full"
+                                            :style="{
+                                                width: `${Math.max(segment.percent, segment.count > 0 ? 8 : 0)}%`,
+                                                background: segment.fill,
+                                                opacity: segment.count > 0 ? 1 : 0.18,
+                                            }"
+                                        />
+                                    </div>
+
+                                    <div class="grid grid-cols-4 gap-1.5 text-[10px] font-medium text-[color:var(--journal-faint)]">
+                                        <span
+                                            v-for="segment in item.segments"
+                                            :key="`${item.label}-${segment.key}-legend`"
+                                            class="truncate"
+                                        >
+                                            {{ segment.label }} {{ segment.count || '—' }}
+                                        </span>
+                                    </div>
+                                </article>
+                            </div>
                         </div>
-
-                        <article
-                            v-for="item in conditionSummaryRows"
-                            :key="item.label"
-                            class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
-                        >
-                            <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                                        {{ item.label }}
-                                    </p>
-                                    <p
-                                        class="mt-1 text-[11px] tracking-[0.12em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        {{ item.total }} logged
-                                    </p>
-                                </div>
-                                <span
-                                    class="rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.14em] uppercase"
-                                    :style="
-                                        item.dominant
-                                            ? {
-                                                  background: item.dominant.bg,
-                                                  color: item.dominant.text,
-                                              }
-                                            : {
-                                                  background:
-                                                      'rgba(103,114,255,0.08)',
-                                                  color:
-                                                      'var(--journal-faint)',
-                                              }
-                                    "
-                                >
-                                    {{
-                                        item.dominant
-                                            ? `${item.dominant.label} focus`
-                                            : 'No signal'
-                                    }}
-                                </span>
-                            </div>
-
-                            <div
-                                class="mt-4 flex h-3 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]"
-                            >
-                                <div
-                                    v-for="segment in item.segments"
-                                    :key="`${item.label}-${segment.key}`"
-                                    class="h-full first:rounded-l-full last:rounded-r-full"
-                                    :style="{
-                                        width: `${Math.max(segment.percent, segment.count > 0 ? 8 : 0)}%`,
-                                        background: segment.fill,
-                                        opacity: segment.count > 0 ? 1 : 0.22,
-                                    }"
-                                />
-                            </div>
-
-                            <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                <div
-                                    v-for="segment in item.segments"
-                                    :key="`${item.label}-${segment.key}-chip`"
-                                    class="rounded-[16px] border px-2.5 py-2 text-center"
-                                    :style="{
-                                        background: segment.bg,
-                                        borderColor: 'rgba(103,114,255,0.08)',
-                                        color: segment.text,
-                                        opacity: segment.count > 0 ? 1 : 0.5,
-                                    }"
-                                >
-                                    <p
-                                        class="text-[10px] font-semibold tracking-[0.14em] uppercase"
-                                    >
-                                        {{ segment.label }}
-                                    </p>
-                                    <p class="mt-1 text-base font-semibold">
-                                        {{ segment.count || '—' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </article>
                     </div>
 
                     <div
                         v-else
-                        class="mt-6 rounded-[20px] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-5 text-sm leading-6 text-[color:var(--journal-muted)]"
+                        class="mt-5 flex h-full items-center rounded-[20px] border border-dashed border-[color:var(--journal-line)] bg-white/72 px-4 py-5 text-sm leading-6 text-[color:var(--journal-muted)]"
                     >
                         No checklist condition ratings saved yet.
                     </div>
@@ -918,74 +873,58 @@ function cardShellClasses(cardId: SeaStateCardId) {
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <p class="journal-kicker">Consistency</p>
-                            <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">
+                            <h3 class="mt-2 text-[1.35rem] leading-none sm:text-[1.55rem]">
                                 Distance by month
                             </h3>
                         </div>
-                        <span class="journal-chip">Year arc</span>
+                        <span class="journal-chip">Year view</span>
                     </div>
 
-                    <div class="mt-6 rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 p-4 sm:p-5">
-                        <div class="grid gap-3 sm:grid-cols-2">
-                            <div class="rounded-[18px] bg-[rgba(103,114,255,0.05)] px-4 py-3">
-                                <p
-                                    class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    Peak month
-                                </p>
-                                <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
-                                    {{ peakMonth?.label ?? '—' }}
-                                </p>
-                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
+                    <div class="mt-5 flex h-full flex-col rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:px-5">
+                        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                            <div>
+                                <p class="text-sm font-semibold text-[color:var(--journal-text)]">
                                     {{
                                         peakMonth
-                                            ? formatDistanceKm(
-                                                  peakMonth.distanceKm,
-                                                  unitPreferences,
-                                              )
+                                            ? `${peakMonth.label} is leading this year`
                                             : 'No month logged yet'
                                     }}
                                 </p>
-                            </div>
-                            <div class="rounded-[18px] bg-[rgba(122,215,208,0.08)] px-4 py-3">
-                                <p
-                                    class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    Active months
-                                </p>
-                                <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
-                                    {{ activeMonthCount }}
-                                </p>
-                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
-                                    Months with distance logged this year
+                                <p class="mt-1 text-[12px] leading-5 text-[color:var(--journal-muted)]">
+                                    {{
+                                        peakMonth
+                                            ? `${formatDistanceKm(peakMonth.distanceKm, unitPreferences)} in your busiest month`
+                                            : 'Start logging paddles to build the monthly view.'
+                                    }}
                                 </p>
                             </div>
+                            <span class="text-[11px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase">
+                                {{ activeMonthCount }} active
+                            </span>
                         </div>
 
-                        <div class="mt-6 grid grid-cols-6 gap-2 sm:grid-cols-12 sm:gap-3">
-                            <div
+                        <div class="mt-4 grid flex-1 content-start gap-2">
+                            <article
                                 v-for="item in monthlyDistance"
                                 :key="item.key"
-                                class="flex flex-col items-center gap-2"
+                                class="grid grid-cols-[32px_minmax(0,1fr)_56px] items-center gap-2.5"
                             >
-                                <span
-                                    class="text-[10px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase"
-                                >
+                                <span class="text-[10px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase">
                                     {{ item.label }}
                                 </span>
-                                <div class="flex h-28 w-full items-end sm:h-36">
+                                <div class="h-2 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                                     <div
-                                        class="w-full rounded-t-[14px]"
+                                        class="h-full rounded-full"
                                         :style="{
-                                            height: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 3)}%`,
+                                            width: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 0)}%`,
                                             background:
                                                 item.distanceKm > 0
-                                                    ? 'linear-gradient(180deg, #ff9c6b 0%, #9c80ff 54%, #6772ff 100%)'
-                                                    : 'rgba(103,114,255,0.08)',
+                                                    ? 'linear-gradient(90deg, #6772ff 0%, #9c80ff 56%, #ff9c6b 100%)'
+                                                    : 'rgba(103,114,255,0.12)',
                                         }"
                                     />
                                 </div>
-                                <span class="text-[11px] font-medium text-[color:var(--journal-muted)]">
+                                <span class="text-right text-[11px] font-medium text-[color:var(--journal-muted)]">
                                     {{
                                         item.distanceKm
                                             ? formatDistanceKm(
@@ -996,7 +935,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                             : '–'
                                     }}
                                 </span>
-                            </div>
+                            </article>
                         </div>
                     </div>
                 </template>
@@ -1005,91 +944,58 @@ function cardShellClasses(cardId: SeaStateCardId) {
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <p class="journal-kicker">Distance windows</p>
-                            <h3 class="mt-2 text-[1.5rem] leading-none sm:text-[1.7rem]">
+                            <h3 class="mt-2 text-[1.35rem] leading-none sm:text-[1.55rem]">
                                 Timeframe comparison
                             </h3>
                         </div>
                         <span class="journal-chip">Distance</span>
                     </div>
 
-                    <div class="mt-6 rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 p-4 sm:p-5">
-                        <div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                            <div>
-                                <p class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
-                                    Lead window
-                                </p>
-                                <p
-                                    v-if="comparisonLeader"
-                                    class="mt-2 text-[2rem] leading-none font-semibold text-[color:var(--journal-text)] sm:text-[2.4rem]"
-                                >
-                                    {{ comparisonLeader.displayValue.split(' ')[0] }}
-                                    <span class="text-base font-medium text-[color:var(--journal-muted)]">
-                                        {{ comparisonLeader.displayUnit }}
-                                    </span>
-                                </p>
-                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                    {{
-                                        comparisonLeader
-                                            ? `${comparisonLeader.label} sets the current baseline for the other windows.`
-                                            : 'How your current year and rolling window sit against your wider logbook baseline.'
-                                    }}
-                                </p>
-                            </div>
-                            <span class="text-[11px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
+                    <div class="mt-5 flex h-full flex-col rounded-[20px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4 sm:px-5">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-[12px] leading-5 text-[color:var(--journal-muted)]">
+                                Compare the current year and rolling window against the wider journal baseline.
+                            </p>
+                            <span class="text-[11px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase">
                                 {{ visibleComparisonSnapshots.length }} windows
                             </span>
                         </div>
 
-                        <div class="grid gap-3">
-                        <article
-                            v-for="snapshot in comparisonContextRows"
-                            :key="snapshot.label"
-                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/88 px-4 py-4"
-                        >
-                            <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                    <p
-                                        class="text-xs font-semibold tracking-[0.24em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        {{ snapshot.label }}
-                                    </p>
-                                    <p class="mt-2 text-2xl font-semibold text-[color:var(--journal-text)]">
-                                        {{ snapshot.displayValue.split(' ')[0] }}
-                                        <span class="text-base text-[color:var(--journal-muted)]">
-                                            {{ snapshot.displayUnit }}
-                                        </span>
-                                    </p>
-                                    <p class="mt-1 text-[11px] font-semibold tracking-[0.12em] text-[color:var(--journal-faint)] uppercase">
+                        <div class="mt-4 grid flex-1 content-start gap-3">
+                            <article
+                                v-for="snapshot in comparisonContextRows"
+                                :key="snapshot.label"
+                                class="grid gap-2.5"
+                            >
+                                <div class="flex items-end justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
+                                            {{ snapshot.label }}
+                                        </p>
+                                        <p class="mt-1 text-lg font-semibold text-[color:var(--journal-text)]">
+                                            {{ snapshot.displayValue }}
+                                        </p>
+                                    </div>
+                                    <p class="text-right text-[10px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase">
                                         {{ snapshot.leadLabel }}
                                     </p>
                                 </div>
-                                <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
-                                    {{ snapshot.detail }}
-                                </p>
-                            </div>
 
-                            <div class="mt-4 grid gap-2">
-                                <div
-                                    class="flex items-center justify-between text-[11px] font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                >
-                                    <span>0 {{ snapshot.displayUnit }}</span>
-                                    <span>{{ snapshot.ratio }}%</span>
-                                </div>
-                                <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
+                                <div class="h-2 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                                     <div
-                                        class="relative h-full rounded-full"
+                                        class="h-full rounded-full"
                                         :style="{
                                             width: `${snapshot.percent}%`,
                                             background: snapshot.gradient,
                                         }"
-                                    >
-                                        <span
-                                            class="absolute top-1/2 right-1 h-3 w-3 -translate-y-1/2 rounded-full border border-white/90 bg-white/92 shadow-[0_6px_16px_rgba(37,43,82,0.14)]"
-                                        />
-                                    </div>
+                                    />
                                 </div>
-                            </div>
-                        </article>
+
+                                <div class="flex items-center justify-between text-[11px] text-[color:var(--journal-muted)]">
+                                    <span>{{ snapshot.detail }}</span>
+                                    <span>{{ snapshot.ratio }}%</span>
+                                </div>
+                            </article>
                         </div>
                     </div>
                 </template>
