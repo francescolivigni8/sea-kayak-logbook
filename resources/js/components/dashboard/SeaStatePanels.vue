@@ -381,6 +381,18 @@ const conditionSummaryRows = computed(() =>
     }),
 );
 
+const conditionHighlights = computed(() =>
+    conditionSummaryRows.value
+        .filter((item) => item.dominant && item.dominant.count > 0)
+        .map((item) => ({
+            label: item.label,
+            tone: item.dominant?.label ?? 'Low',
+            count: item.dominant?.count ?? 0,
+            bg: item.dominant?.bg ?? 'rgba(103,114,255,0.08)',
+            text: item.dominant?.text ?? 'var(--journal-text)',
+        })),
+);
+
 const comparisonSnapshots = computed(() =>
     props.yearSnapshots.map((snapshot, index) => ({
         ...snapshot,
@@ -409,6 +421,21 @@ const visibleComparisonSnapshots = computed(() => {
         ? nonZeroSnapshots
         : comparisonSnapshots.value;
 });
+
+const comparisonLeader = computed(() => visibleComparisonSnapshots.value[0] ?? null);
+const comparisonContextRows = computed(() =>
+    visibleComparisonSnapshots.value.map((snapshot) => ({
+        ...snapshot,
+        ratio:
+            comparisonMax.value > 0
+                ? Math.round((snapshot.value / comparisonMax.value) * 100)
+                : 0,
+        leadLabel:
+            comparisonLeader.value?.label === snapshot.label
+                ? 'Baseline'
+                : `${Math.round((snapshot.value / Math.max(comparisonLeader.value?.value ?? 1, 1)) * 100)}% of ${comparisonLeader.value?.label.toLowerCase() ?? 'baseline'}`,
+    })),
+);
 
 const monthlyActiveRows = computed(() =>
     props.monthlyDistance.filter((item) => item.distanceKm > 0),
@@ -782,6 +809,23 @@ function cardShellClasses(cardId: SeaStateCardId) {
                         v-if="hasConditionData"
                         class="mt-6 grid gap-3"
                     >
+                        <div
+                            v-if="conditionHighlights.length"
+                            class="flex flex-wrap gap-2"
+                        >
+                            <span
+                                v-for="highlight in conditionHighlights"
+                                :key="highlight.label"
+                                class="rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase"
+                                :style="{
+                                    background: highlight.bg,
+                                    color: highlight.text,
+                                }"
+                            >
+                                {{ highlight.label }} · {{ highlight.tone }}
+                            </span>
+                        </div>
+
                         <article
                             v-for="item in conditionSummaryRows"
                             :key="item.label"
@@ -969,10 +1013,28 @@ function cardShellClasses(cardId: SeaStateCardId) {
                     </div>
 
                     <div class="mt-6 rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 p-4 sm:p-5">
-                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                                How your current year and rolling window sit against your wider logbook baseline.
-                            </p>
+                        <div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                            <div>
+                                <p class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
+                                    Lead window
+                                </p>
+                                <p
+                                    v-if="comparisonLeader"
+                                    class="mt-2 text-[2rem] leading-none font-semibold text-[color:var(--journal-text)] sm:text-[2.4rem]"
+                                >
+                                    {{ comparisonLeader.displayValue.split(' ')[0] }}
+                                    <span class="text-base font-medium text-[color:var(--journal-muted)]">
+                                        {{ comparisonLeader.displayUnit }}
+                                    </span>
+                                </p>
+                                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                                    {{
+                                        comparisonLeader
+                                            ? `${comparisonLeader.label} sets the current baseline for the other windows.`
+                                            : 'How your current year and rolling window sit against your wider logbook baseline.'
+                                    }}
+                                </p>
+                            </div>
                             <span class="text-[11px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
                                 {{ visibleComparisonSnapshots.length }} windows
                             </span>
@@ -980,7 +1042,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
 
                         <div class="grid gap-3">
                         <article
-                            v-for="snapshot in visibleComparisonSnapshots"
+                            v-for="snapshot in comparisonContextRows"
                             :key="snapshot.label"
                             class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/88 px-4 py-4"
                         >
@@ -997,6 +1059,9 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                             {{ snapshot.displayUnit }}
                                         </span>
                                     </p>
+                                    <p class="mt-1 text-[11px] font-semibold tracking-[0.12em] text-[color:var(--journal-faint)] uppercase">
+                                        {{ snapshot.leadLabel }}
+                                    </p>
                                 </div>
                                 <p class="max-w-[140px] text-right text-xs leading-5 text-[color:var(--journal-muted)]">
                                     {{ snapshot.detail }}
@@ -1008,7 +1073,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                     class="flex items-center justify-between text-[11px] font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
                                 >
                                     <span>0 {{ snapshot.displayUnit }}</span>
-                                    <span>{{ Math.round(snapshot.percent) }}%</span>
+                                    <span>{{ snapshot.ratio }}%</span>
                                 </div>
                                 <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                                     <div
