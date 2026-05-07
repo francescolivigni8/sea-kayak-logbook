@@ -435,12 +435,12 @@ function cardShellClasses(cardId: SeaStateCardId) {
         </div>
 
         <section
-            class="grid gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]"
+            class="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]"
         >
             <article
                 v-for="card in visibleTopCards"
                 :key="card.id"
-                :class="['journal-card h-full px-4 py-4 md:px-5', cardShellClasses(card.id)]"
+                :class="['journal-card self-start px-4 py-4 md:px-5', cardShellClasses(card.id)]"
                 :draggable="editable"
                 @dragstart="handleCardDragStart(card.id)"
                 @dragover.prevent="handleCardDragOver(card.id)"
@@ -665,13 +665,13 @@ function cardShellClasses(cardId: SeaStateCardId) {
         </div>
 
         <section
-            class="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]"
+            class="grid items-start gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.26fr)_minmax(0,0.95fr)]"
         >
             <article
                 v-for="card in visibleBottomCards"
                 :key="card.id"
                 :class="[
-                    'journal-card px-4 py-4 sm:px-5 sm:py-5 md:px-6',
+                    'journal-card self-start px-4 py-4 sm:px-5 sm:py-5 md:px-6',
                     cardShellClasses(card.id),
                 ]"
                 :draggable="editable"
