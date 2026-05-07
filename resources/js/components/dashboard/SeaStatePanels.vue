@@ -339,6 +339,48 @@ const hasConditionData = computed(() =>
     conditionHeatmapRows.value.some((item) => item.total > 0),
 );
 
+const conditionSummaryRows = computed(() =>
+    conditionHeatmapRows.value.map((item) => {
+        const segments = severityOrder.map((severity) => {
+            const current = item.values.find((value) => value.key === severity) ?? {
+                key: severity,
+                count: 0,
+                style: severityStyles[severity],
+            };
+            const percent = item.total ? (current.count / item.total) * 100 : 0;
+
+            return {
+                key: severity,
+                label: severityLabels[severity],
+                count: current.count,
+                percent,
+                fill:
+                    severity === 'low'
+                        ? 'linear-gradient(90deg, rgba(122,215,208,0.92), rgba(122,215,208,0.72))'
+                        : severity === 'moderate'
+                          ? 'linear-gradient(90deg, rgba(122,162,255,0.92), rgba(122,162,255,0.72))'
+                          : severity === 'high'
+                            ? 'linear-gradient(90deg, rgba(255,156,107,0.96), rgba(255,156,107,0.76))'
+                            : 'linear-gradient(90deg, rgba(255,138,128,0.96), rgba(255,138,128,0.76))',
+                text: severityStyles[severity]?.text ?? 'var(--journal-text)',
+                bg: severityStyles[severity]?.bg ?? 'rgba(103,114,255,0.12)',
+            };
+        });
+
+        const dominant = [...segments].sort((left, right) => right.count - left.count)[0];
+
+        return {
+            label: item.label,
+            total: item.total,
+            segments,
+            dominant:
+                dominant && dominant.count > 0
+                    ? dominant
+                    : null,
+        };
+    }),
+);
+
 const comparisonSnapshots = computed(() =>
     props.yearSnapshots.map((snapshot, index) => ({
         ...snapshot,
@@ -357,6 +399,34 @@ const comparisonSnapshots = computed(() =>
         gradient: comparisonGradients[index % comparisonGradients.length],
     })),
 );
+
+const visibleComparisonSnapshots = computed(() => {
+    const nonZeroSnapshots = comparisonSnapshots.value.filter(
+        (snapshot) => snapshot.value > 0.01,
+    );
+
+    return nonZeroSnapshots.length
+        ? nonZeroSnapshots
+        : comparisonSnapshots.value;
+});
+
+const monthlyActiveRows = computed(() =>
+    props.monthlyDistance.filter((item) => item.distanceKm > 0),
+);
+
+const peakMonth = computed(() => {
+    const source = monthlyActiveRows.value;
+
+    if (!source.length) {
+        return null;
+    }
+
+    return source.reduce((best, item) =>
+        item.distanceKm > best.distanceKm ? item : best,
+    );
+});
+
+const activeMonthCount = computed(() => monthlyActiveRows.value.length);
 
 function tidePercent(count: number) {
     if (!tideTotal.value) {
@@ -705,57 +775,91 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                 Environmental conditions
                             </h3>
                         </div>
-                        <span class="journal-chip">Session checklist</span>
+                        <span class="journal-chip">Condition pulse</span>
                     </div>
 
                     <div
                         v-if="hasConditionData"
-                        class="mt-6 overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/78"
+                        class="mt-6 grid gap-3"
                     >
-                        <div class="overflow-x-auto">
-                            <div class="grid min-w-[430px] grid-cols-[minmax(128px,1.05fr)_repeat(4,minmax(62px,1fr))]">
-                                <div class="border-b border-[color:var(--journal-line)] px-4 py-3" />
-                                <div
-                                    v-for="severity in severityOrder"
-                                    :key="severity"
-                                    class="border-b border-l border-[color:var(--journal-line)] px-2 py-3 text-center text-[10px] leading-tight font-semibold text-[color:var(--journal-faint)]"
-                                >
-                                    {{ severityLabels[severity] }}
-                                </div>
-
-                                <template v-for="item in conditionHeatmapRows" :key="item.label">
-                                    <div class="border-b border-[color:var(--journal-line)] px-4 py-3">
-                                        <p class="text-sm leading-5 font-semibold text-[color:var(--journal-text)]">
-                                            {{ item.label }}
-                                        </p>
-                                        <p
-                                            class="mt-1 text-[11px] tracking-[0.12em] text-[color:var(--journal-faint)] uppercase"
-                                        >
-                                            {{ item.total }} logged
-                                        </p>
-                                    </div>
-
-                                    <div
-                                        v-for="value in item.values"
-                                        :key="`${item.label}-${value.key}`"
-                                        class="border-b border-l border-[color:var(--journal-line)] p-2"
-                                    >
-                                        <div
-                                            class="grid min-h-[62px] place-items-center rounded-[16px] border text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
-                                            :style="value.style"
-                                        >
-                                            <span class="text-lg font-semibold">{{ value.count || '—' }}</span>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        <div
-                            class="border-t border-[color:var(--journal-line)] px-4 py-3 text-sm leading-6 text-[color:var(--journal-muted)]"
+                        <article
+                            v-for="item in conditionSummaryRows"
+                            :key="item.label"
+                            class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
                         >
-                            Darker cells mean those conditions recur more often in your saved checklist ratings.
-                        </div>
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-base font-semibold text-[color:var(--journal-text)]">
+                                        {{ item.label }}
+                                    </p>
+                                    <p
+                                        class="mt-1 text-[11px] tracking-[0.12em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        {{ item.total }} logged
+                                    </p>
+                                </div>
+                                <span
+                                    class="rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.14em] uppercase"
+                                    :style="
+                                        item.dominant
+                                            ? {
+                                                  background: item.dominant.bg,
+                                                  color: item.dominant.text,
+                                              }
+                                            : {
+                                                  background:
+                                                      'rgba(103,114,255,0.08)',
+                                                  color:
+                                                      'var(--journal-faint)',
+                                              }
+                                    "
+                                >
+                                    {{
+                                        item.dominant
+                                            ? `${item.dominant.label} focus`
+                                            : 'No signal'
+                                    }}
+                                </span>
+                            </div>
+
+                            <div
+                                class="mt-4 flex h-3 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]"
+                            >
+                                <div
+                                    v-for="segment in item.segments"
+                                    :key="`${item.label}-${segment.key}`"
+                                    class="h-full first:rounded-l-full last:rounded-r-full"
+                                    :style="{
+                                        width: `${Math.max(segment.percent, segment.count > 0 ? 8 : 0)}%`,
+                                        background: segment.fill,
+                                        opacity: segment.count > 0 ? 1 : 0.22,
+                                    }"
+                                />
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                <div
+                                    v-for="segment in item.segments"
+                                    :key="`${item.label}-${segment.key}-chip`"
+                                    class="rounded-[16px] border px-2.5 py-2 text-center"
+                                    :style="{
+                                        background: segment.bg,
+                                        borderColor: 'rgba(103,114,255,0.08)',
+                                        color: segment.text,
+                                        opacity: segment.count > 0 ? 1 : 0.5,
+                                    }"
+                                >
+                                    <p
+                                        class="text-[10px] font-semibold tracking-[0.14em] uppercase"
+                                    >
+                                        {{ segment.label }}
+                                    </p>
+                                    <p class="mt-1 text-base font-semibold">
+                                        {{ segment.count || '—' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
                     </div>
 
                     <div
@@ -774,36 +878,81 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                 Distance by month
                             </h3>
                         </div>
-                        <span class="journal-chip">Year view</span>
+                        <span class="journal-chip">Year arc</span>
                     </div>
 
-                    <div class="mt-6 grid gap-4">
-                        <div
-                            v-for="item in monthlyDistance"
-                            :key="item.key"
-                            class="grid grid-cols-[42px_minmax(0,1fr)_72px] items-center gap-3"
-                        >
-                            <span
-                                class="text-xs font-semibold tracking-[0.24em] text-[color:var(--journal-faint)] uppercase"
-                            >
-                                {{ item.label }}
-                            </span>
-                            <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
-                                <div
-                                    class="h-full rounded-full"
-                                    :style="{
-                                        width: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 0)}%`,
-                                        background: 'linear-gradient(90deg, #6772ff, #9c80ff 48%, #ff9c6b)',
-                                    }"
-                                />
+                    <div class="mt-6 rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 p-4 sm:p-5">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="rounded-[18px] bg-[rgba(103,114,255,0.05)] px-4 py-3">
+                                <p
+                                    class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                >
+                                    Peak month
+                                </p>
+                                <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
+                                    {{ peakMonth?.label ?? '—' }}
+                                </p>
+                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
+                                    {{
+                                        peakMonth
+                                            ? formatDistanceKm(
+                                                  peakMonth.distanceKm,
+                                                  unitPreferences,
+                                              )
+                                            : 'No month logged yet'
+                                    }}
+                                </p>
                             </div>
-                            <span class="text-right text-sm font-medium text-[color:var(--journal-muted)]">
-                                {{
-                                    item.distanceKm
-                                        ? formatDistanceKm(item.distanceKm, unitPreferences)
-                                        : '–'
-                                }}
-                            </span>
+                            <div class="rounded-[18px] bg-[rgba(122,215,208,0.08)] px-4 py-3">
+                                <p
+                                    class="text-[10px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase"
+                                >
+                                    Active months
+                                </p>
+                                <p class="mt-2 text-lg font-semibold text-[color:var(--journal-text)]">
+                                    {{ activeMonthCount }}
+                                </p>
+                                <p class="mt-1 text-sm text-[color:var(--journal-muted)]">
+                                    Months with distance logged this year
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 grid grid-cols-6 gap-2 sm:grid-cols-12 sm:gap-3">
+                            <div
+                                v-for="item in monthlyDistance"
+                                :key="item.key"
+                                class="flex flex-col items-center gap-2"
+                            >
+                                <span
+                                    class="text-[10px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase"
+                                >
+                                    {{ item.label }}
+                                </span>
+                                <div class="flex h-28 w-full items-end sm:h-36">
+                                    <div
+                                        class="w-full rounded-t-[14px]"
+                                        :style="{
+                                            height: `${Math.max((item.distanceKm / monthlyMax) * 100, item.distanceKm > 0 ? 8 : 3)}%`,
+                                            background:
+                                                item.distanceKm > 0
+                                                    ? 'linear-gradient(180deg, #ff9c6b 0%, #9c80ff 54%, #6772ff 100%)'
+                                                    : 'rgba(103,114,255,0.08)',
+                                        }"
+                                    />
+                                </div>
+                                <span class="text-[11px] font-medium text-[color:var(--journal-muted)]">
+                                    {{
+                                        item.distanceKm
+                                            ? formatDistanceKm(
+                                                  item.distanceKm,
+                                                  unitPreferences,
+                                                  0,
+                                              )
+                                            : '–'
+                                    }}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -816,14 +965,24 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                 Timeframe comparison
                             </h3>
                         </div>
-                        <span class="journal-chip">{{ compareChip }}</span>
+                        <span class="journal-chip">Distance</span>
                     </div>
 
-                    <div class="mt-6 grid gap-4">
+                    <div class="mt-6 rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 p-4 sm:p-5">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
+                                How your current year and rolling window sit against your wider logbook baseline.
+                            </p>
+                            <span class="text-[11px] font-semibold tracking-[0.18em] text-[color:var(--journal-faint)] uppercase">
+                                {{ visibleComparisonSnapshots.length }} windows
+                            </span>
+                        </div>
+
+                        <div class="grid gap-3">
                         <article
-                            v-for="snapshot in comparisonSnapshots"
+                            v-for="snapshot in visibleComparisonSnapshots"
                             :key="snapshot.label"
-                            class="rounded-[22px] border border-[color:var(--journal-line)] bg-white/78 px-4 py-4"
+                            class="rounded-[18px] border border-[color:var(--journal-line)] bg-white/88 px-4 py-4"
                         >
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
@@ -849,7 +1008,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                     class="flex items-center justify-between text-[11px] font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
                                 >
                                     <span>0 {{ snapshot.displayUnit }}</span>
-                                    <span>{{ snapshot.label }}</span>
+                                    <span>{{ Math.round(snapshot.percent) }}%</span>
                                 </div>
                                 <div class="h-4 overflow-hidden rounded-full bg-[rgba(103,114,255,0.08)]">
                                     <div
@@ -866,6 +1025,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                 </div>
                             </div>
                         </article>
+                        </div>
                     </div>
                 </template>
             </article>
