@@ -519,12 +519,15 @@ function cardShellClasses(cardId: SeaStateCardId) {
         </div>
 
         <section
-            class="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]"
+            class="grid gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,0.8fr)_minmax(0,0.84fr)_minmax(0,0.92fr)]"
         >
             <article
                 v-for="card in visibleTopCards"
                 :key="card.id"
-                :class="['journal-card self-start px-4 py-4 md:px-5', cardShellClasses(card.id)]"
+                :class="[
+                    'journal-card flex h-full flex-col px-4 py-4 md:px-5',
+                    cardShellClasses(card.id),
+                ]"
                 :draggable="editable"
                 @dragstart="handleCardDragStart(card.id)"
                 @dragover.prevent="handleCardDragOver(card.id)"
@@ -643,7 +646,7 @@ function cardShellClasses(cardId: SeaStateCardId) {
 
                 <template v-else-if="card.id === 'sea-rescue-events'">
                     <div
-                        class="-m-2 rounded-[20px] px-4 py-4 md:px-5"
+                        class="-m-2 flex h-full flex-col rounded-[20px] px-4 py-4 md:px-5"
                         style="
                             background: linear-gradient(
                                 180deg,
