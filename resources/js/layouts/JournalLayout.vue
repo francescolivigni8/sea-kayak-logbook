@@ -12,6 +12,12 @@ import {
 } from 'lucide-vue-next';
 import { computed, onMounted, watch, type Component } from 'vue';
 import { usePageHeaderActions } from '@/composables/usePageHeaderActions';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import { capturePageview, initProductAnalytics } from '@/lib/productAnalytics';
@@ -356,96 +362,120 @@ watch(
                         </component>
                     </nav>
 
-                    <div
-                        :class="
-                            isSessionEditorPath
-                                ? 'hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:pb-0'
-                                : 'flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden'
-                        "
-                    >
-                        <Link
-                            v-for="link in leadingUtilityLinks"
-                            :key="link.label"
-                            :href="link.href"
-                            :class="[
-                                'journal-utility-link',
-                                'journal-utility-link--icon',
-                                'shrink-0',
-                                isUtilityActive(link)
-                                    ? 'journal-utility-link--active'
-                                    : '',
-                            ]"
-                            :title="link.label"
-                            :aria-label="link.label"
+                    <TooltipProvider :delay-duration="120">
+                        <div
+                            :class="
+                                isSessionEditorPath
+                                    ? 'hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:pb-0'
+                                    : 'flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:pb-0 [&::-webkit-scrollbar]:hidden'
+                            "
                         >
-                            <component
-                                :is="link.icon"
-                                class="journal-utility-link__icon"
-                                aria-hidden="true"
-                            />
-                            <span class="sr-only">{{ link.label }}</span>
-                        </Link>
-                        <button
-                            v-for="action in pageHeaderActions"
-                            :key="action.id"
-                            type="button"
-                            :class="[
-                                'journal-utility-link',
-                                'journal-utility-link--icon',
-                                'shrink-0',
-                                action.active
-                                    ? 'journal-utility-link--active'
-                                    : '',
-                            ]"
-                            :title="action.label"
-                            :aria-label="action.label"
-                            @click="action.onClick"
-                        >
-                            <component
-                                :is="pageHeaderActionIcon(action)"
-                                class="journal-utility-link__icon"
-                                aria-hidden="true"
-                            />
-                            <span class="sr-only">{{ action.label }}</span>
-                        </button>
-                        <Link
-                            v-if="trailingUtilityLink"
-                            :href="trailingUtilityLink.href"
-                            :class="[
-                                'journal-utility-link',
-                                'journal-utility-link--icon',
-                                'shrink-0',
-                                isUtilityActive(trailingUtilityLink)
-                                    ? 'journal-utility-link--active'
-                                    : '',
-                            ]"
-                            :title="trailingUtilityLink.label"
-                            :aria-label="trailingUtilityLink.label"
-                        >
-                            <component
-                                :is="trailingUtilityLink.icon"
-                                class="journal-utility-link__icon"
-                                aria-hidden="true"
-                            />
-                            <span class="sr-only">{{
-                                trailingUtilityLink.label
-                            }}</span>
-                        </Link>
-                        <Link
-                            href="/logout"
-                            method="post"
-                            as="button"
-                            class="journal-utility-link journal-utility-link--icon shrink-0"
-                            title="Sign out"
-                            aria-label="Sign out"
-                        >
-                            <LogOut
-                                class="journal-utility-link__icon"
-                                aria-hidden="true"
-                            />
-                            <span class="sr-only">Sign out</span>
-                        </Link>
-                    </div>
+                            <Tooltip v-for="link in leadingUtilityLinks" :key="link.label">
+                                <TooltipTrigger as-child>
+                                    <Link
+                                        :href="link.href"
+                                        :class="[
+                                            'journal-utility-link',
+                                            'journal-utility-link--icon',
+                                            'shrink-0',
+                                            isUtilityActive(link)
+                                                ? 'journal-utility-link--active'
+                                                : '',
+                                        ]"
+                                        :aria-label="link.label"
+                                    >
+                                        <component
+                                            :is="link.icon"
+                                            class="journal-utility-link__icon"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="sr-only">{{ link.label }}</span>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="center">
+                                    {{ link.label }}
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip v-for="action in pageHeaderActions" :key="action.id">
+                                <TooltipTrigger as-child>
+                                    <button
+                                        type="button"
+                                        :class="[
+                                            'journal-utility-link',
+                                            'journal-utility-link--icon',
+                                            'shrink-0',
+                                            action.active
+                                                ? 'journal-utility-link--active'
+                                                : '',
+                                        ]"
+                                        :aria-label="action.label"
+                                        @click="action.onClick"
+                                    >
+                                        <component
+                                            :is="pageHeaderActionIcon(action)"
+                                            class="journal-utility-link__icon"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="sr-only">{{ action.label }}</span>
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="center">
+                                    {{ action.label }}
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip v-if="trailingUtilityLink">
+                                <TooltipTrigger as-child>
+                                    <Link
+                                        :href="trailingUtilityLink.href"
+                                        :class="[
+                                            'journal-utility-link',
+                                            'journal-utility-link--icon',
+                                            'shrink-0',
+                                            isUtilityActive(trailingUtilityLink)
+                                                ? 'journal-utility-link--active'
+                                                : '',
+                                        ]"
+                                        :aria-label="trailingUtilityLink.label"
+                                    >
+                                        <component
+                                            :is="trailingUtilityLink.icon"
+                                            class="journal-utility-link__icon"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="sr-only">{{
+                                            trailingUtilityLink.label
+                                        }}</span>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="center">
+                                    {{ trailingUtilityLink.label }}
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger as-child>
+                                    <Link
+                                        href="/logout"
+                                        method="post"
+                                        as="button"
+                                        class="journal-utility-link journal-utility-link--icon shrink-0"
+                                        aria-label="Sign out"
+                                    >
+                                        <LogOut
+                                            class="journal-utility-link__icon"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="sr-only">Sign out</span>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="center">
+                                    Sign out
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </TooltipProvider>
                 </div>
             </div>
         </header>
