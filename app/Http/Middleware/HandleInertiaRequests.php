@@ -71,6 +71,7 @@ class HandleInertiaRequests extends Middleware
             'journalNav' => $journalNav,
             'ownerTools' => [
                 'canViewUsers' => $request->user()?->canViewOwnerTools() ?? false,
+                'canViewFeedback' => $request->user()?->canViewOwnerTools() ?? false,
             ],
             'unitPreferences' => $unitPreferences,
             'integrations' => [

@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiaryController;
 use App\Http\Controllers\ExpeditionPlaceController;
+use App\Http\Controllers\FeedbackInsightsController;
 use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\JournalNotesController;
@@ -87,6 +88,9 @@ Route::middleware(array_filter([
     Route::get('insights/users', UserInsightsController::class)
         ->middleware('journal.owner')
         ->name('insights.users');
+    Route::get('insights/feedback', FeedbackInsightsController::class)
+        ->middleware('journal.owner')
+        ->name('insights.feedback');
 
     Route::resource('sessions', PaddleSessionController::class)
         ->except(['destroy']);

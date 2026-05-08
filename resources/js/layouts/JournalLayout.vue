@@ -15,6 +15,7 @@ type JournalNavShape = {
 
 type OwnerToolsShape = {
     canViewUsers?: boolean;
+    canViewFeedback?: boolean;
 };
 
 type IntegrationsShape = {
@@ -116,7 +117,16 @@ const utilityLinks = computed(() => {
                   {
                       label: 'Users',
                       href: '/insights/users',
-                      match: ['/insights'],
+                      match: ['/insights/users'],
+                  },
+              ]
+            : []),
+        ...(ownerTools.value?.canViewFeedback
+            ? [
+                  {
+                      label: 'Feedback',
+                      href: '/insights/feedback',
+                      match: ['/insights/feedback'],
                   },
               ]
             : []),

@@ -10,8 +10,10 @@
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
-        "lint:check": "php artisan wayfinder:generate --with-form --ansi && eslint .",
-        "types:check": "php artisan wayfinder:generate --with-form --ansi && vue-tsc --noEmit"
+        "wayfinder:generate": "php artisan wayfinder:generate --with-form --ansi",
+        "lint:check": "npm run wayfinder:generate && eslint .",
+        "types:check": "npm run wayfinder:generate && vue-tsc --noEmit",
+        "verify": "npm run wayfinder:generate && vue-tsc --noEmit && node scripts/run-vite.cjs build && php artisan test"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
