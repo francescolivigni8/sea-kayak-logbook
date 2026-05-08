@@ -2,6 +2,10 @@
 
 This file parks the remaining launch work so we can switch context and return later without losing the thread.
 
+For the current practical go-live checkbox list, see:
+
+- `docs/go-live-checklist.md`
+
 ## Current status
 
 The Laravel app is code-ready for private staging, but not yet ready for a wider public launch. The remaining work is mostly external production setup: domain, mail, Laravel Cloud environment, storage verification, smoke testing, and monitoring/backups.
