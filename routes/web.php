@@ -15,12 +15,13 @@ use App\Http\Controllers\SessionCategoryController;
 use App\Http\Controllers\UserInsightsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function (Request $request) {
     return $request->user()
         ? redirect()->route('dashboard')
-        : redirect()->route('login');
+        : Inertia::render('landing/Preview');
 })->name('home');
 
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');

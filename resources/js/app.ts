@@ -13,6 +13,8 @@ createInertiaApp({
         switch (true) {
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case name.startsWith('landing/'):
+                return null;
             case name.startsWith('profiles/'):
                 return null;
             default:
