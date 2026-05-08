@@ -592,58 +592,33 @@ watch(visibleSessions, () => {
                         </div>
                     </div>
 
-                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                         <Link
                             v-for="session in activeFolderSessions"
                             :key="session.id"
                             :href="`/sessions/${session.id}`"
                             class="journal-card block px-4 py-4 transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
                         >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="journal-kicker">
-                                        {{ session.date ?? 'No date' }}
-                                    </p>
+                            <div class="flex items-start gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="journal-kicker">
+                                            {{ session.date ?? 'No date' }}
+                                        </p>
+                                        <span
+                                            v-if="session.beaufort !== null"
+                                            class="journal-chip shrink-0"
+                                        >
+                                            F{{ session.beaufort }}
+                                        </span>
+                                    </div>
                                     <h5
-                                        class="mt-2 truncate text-[1.12rem] leading-none text-[color:var(--journal-text)]"
+                                        class="mt-2 truncate text-[1rem] font-semibold leading-tight text-[color:var(--journal-text)]"
                                     >
                                         {{ session.title }}
                                     </h5>
-                                </div>
-                                <span
-                                    v-if="session.beaufort !== null"
-                                    class="journal-chip shrink-0"
-                                >
-                                    F{{ session.beaufort }}
-                                </span>
-                            </div>
-
-                            <div class="mt-4 grid grid-cols-2 gap-2">
-                                <div class="journal-soft-card">
                                     <p
-                                        class="text-[0.62rem] font-black tracking-[0.16em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        Distance
-                                    </p>
-                                    <p
-                                        class="mt-1 text-sm font-semibold text-[color:var(--journal-text)]"
-                                    >
-                                        {{
-                                            formatDistanceKm(
-                                                session.distanceKm,
-                                                unitPreferences,
-                                            )
-                                        }}
-                                    </p>
-                                </div>
-                                <div class="journal-soft-card">
-                                    <p
-                                        class="text-[0.62rem] font-black tracking-[0.16em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        Launch
-                                    </p>
-                                    <p
-                                        class="mt-1 truncate text-sm font-semibold text-[color:var(--journal-text)]"
+                                        class="mt-1 truncate text-sm text-[color:var(--journal-muted)]"
                                     >
                                         {{
                                             session.launchName ??
@@ -651,22 +626,80 @@ watch(visibleSessions, () => {
                                         }}
                                     </p>
                                 </div>
+                                <img
+                                    v-if="session.photoUrl"
+                                    :src="session.photoUrl"
+                                    alt="Session cover"
+                                    class="h-14 w-14 shrink-0 rounded-2xl border border-[color:var(--journal-line)] object-cover"
+                                />
                             </div>
 
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <span class="journal-chip">{{
-                                    session.routeCategoryLabel
-                                }}</span>
-                                <span
-                                    v-if="session.hasObservation"
-                                    class="journal-chip"
-                                    >Observation</span
-                                >
+                            <div class="mt-4 flex flex-wrap gap-2 text-[0.76rem] font-medium text-[color:var(--journal-muted)]">
+                                <span class="journal-chip">
+                                    {{
+                                        formatDistanceKm(
+                                            session.distanceKm,
+                                            unitPreferences,
+                                        )
+                                    }}
+                                </span>
+                                <span class="journal-chip">
+                                    {{ formatMinutes(session.durationMinutes) }}
+                                </span>
+                                <span class="journal-chip">
+                                    {{ session.routeCategoryLabel }}
+                                </span>
                                 <span
                                     v-if="session.hasTrack"
                                     class="journal-chip"
                                     >Track</span
                                 >
+                                <span
+                                    v-if="session.hasObservation"
+                                    class="journal-chip"
+                                    >Observation</span
+                                >
+                            </div>
+
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <span class="journal-chip">{{
+                                    session.launchName ??
+                                    props.profile.homeWater
+                                }}</span>
+                                <span
+                                    v-if="session.isExpedition"
+                                    class="journal-chip journal-chip--primary"
+                                    >Expedition</span
+                                >
+                                <span
+                                    v-if="
+                                        session.isExpedition &&
+                                        session.expeditionDays
+                                    "
+                                    class="journal-chip"
+                                >
+                                    {{ session.expeditionDays }} days out
+                                </span>
+                                <span
+                                    v-for="category in session.folders"
+                                    :key="category.id"
+                                    class="journal-chip"
+                                >
+                                    {{ category.name }}
+                                </span>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between gap-3">
+                                <span
+                                    class="text-xs font-medium text-[color:var(--journal-muted)]"
+                                >
+                                    Open from folder
+                                </span>
+                                <span
+                                    class="text-sm font-semibold text-[color:var(--journal-text)]"
+                                >
+                                    View
+                                </span>
                             </div>
                         </Link>
 
@@ -1076,7 +1109,9 @@ watch(visibleSessions, () => {
                 id="library-logged-sessions"
                 :class="[
                     'grid border-t border-[rgba(103,114,255,0.18)] px-5 py-5 md:px-6',
-                    sortingMode ? 'gap-2' : 'gap-4 md:grid-cols-2',
+                    sortingMode
+                        ? 'gap-2'
+                        : 'gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4',
                 ]"
             >
                 <article
@@ -1087,7 +1122,7 @@ watch(visibleSessions, () => {
                         'journal-card overflow-hidden',
                         sortingMode
                             ? 'cursor-grab px-3 py-2 ring-1 ring-[rgba(255,156,107,0.26)] select-none active:cursor-grabbing'
-                            : 'px-5 py-5 md:px-6',
+                            : 'px-4 py-4',
                         isSessionSelected(session.id)
                             ? 'border-[color:var(--journal-line-strong)] bg-white/92 shadow-[0_14px_36px_rgba(255,156,107,0.14)]'
                             : '',
@@ -1138,119 +1173,72 @@ watch(visibleSessions, () => {
                         </div>
 
                         <template v-else>
-                            <div class="flex items-start justify-between gap-3">
-                                <div
-                                    class="flex flex-wrap gap-2 text-xs font-medium"
-                                >
-                                    <span class="journal-kicker">{{
-                                        session.date ?? 'No date'
-                                    }}</span>
-                                    <span class="journal-chip">{{
-                                        session.routeCategoryLabel
-                                    }}</span>
-                                    <span
-                                        v-if="session.beaufort !== null"
-                                        class="journal-chip"
-                                        >F{{ session.beaufort }}</span
+                            <div class="flex items-start gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2 text-xs font-medium"
                                     >
-                                    <span
-                                        v-if="sortingMode"
-                                        class="journal-chip"
+                                        <span class="journal-kicker">{{
+                                            session.date ?? 'No date'
+                                        }}</span>
+                                        <span
+                                            v-if="session.beaufort !== null"
+                                            class="journal-chip"
+                                            >F{{ session.beaufort }}</span
+                                        >
+                                        <span
+                                            v-if="sortingMode"
+                                            class="journal-chip"
+                                        >
+                                            Drag to folder
+                                        </span>
+                                    </div>
+                                    <h3
+                                        class="mt-2 truncate text-[1rem] font-semibold leading-tight text-[color:var(--journal-text)]"
                                     >
-                                        Drag to folder
-                                    </span>
-                                </div>
-
-                                <Link
-                                    :href="
-                                        session.hasObservation
-                                            ? `/sessions/${session.id}/edit`
-                                            : `/sessions/${session.id}/edit?step=notes`
-                                    "
-                                    class="journal-utility-link"
-                                >
-                                    Edit session
-                                </Link>
-                            </div>
-
-                            <div class="space-y-2">
-                                <h3
-                                    class="text-[1.45rem] leading-none text-[color:var(--journal-text)]"
-                                >
-                                    {{ session.title }}
-                                </h3>
-                                <p
-                                    class="text-sm leading-6 text-[color:var(--journal-muted)]"
-                                >
-                                    {{
-                                        session.launchName ??
-                                        props.profile.homeWater
-                                    }}
-                                </p>
-                            </div>
-
-                            <div class="grid gap-3 sm:grid-cols-3">
-                                <div class="journal-soft-card">
+                                        {{ session.title }}
+                                    </h3>
                                     <p
-                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        Distance
-                                    </p>
-                                    <p
-                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
+                                        class="mt-1 truncate text-sm text-[color:var(--journal-muted)]"
                                     >
                                         {{
-                                            formatDistanceKm(
-                                                session.distanceKm,
-                                                unitPreferences,
-                                            )
+                                            session.launchName ??
+                                            props.profile.homeWater
                                         }}
                                     </p>
                                 </div>
-                                <div class="journal-soft-card">
-                                    <p
-                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        Time
-                                    </p>
-                                    <p
-                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
-                                    >
-                                        {{ session.durationMinutes }} min
-                                    </p>
-                                </div>
-                                <div class="journal-soft-card">
-                                    <p
-                                        class="text-xs font-semibold tracking-[0.2em] text-[color:var(--journal-faint)] uppercase"
-                                    >
-                                        Track
-                                    </p>
-                                    <p
-                                        class="mt-2 text-base font-semibold text-[color:var(--journal-text)]"
-                                    >
-                                        {{
-                                            session.hasTrack
-                                                ? 'Attached'
-                                                : 'None'
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
 
-                            <div
-                                v-if="session.photoUrl"
-                                class="overflow-hidden rounded-[22px] border border-[color:var(--journal-line)] bg-white/72"
-                            >
                                 <img
+                                    v-if="session.photoUrl"
                                     :src="session.photoUrl"
                                     alt="Session cover"
-                                    class="h-40 w-full object-cover"
+                                    class="h-14 w-14 shrink-0 rounded-2xl border border-[color:var(--journal-line)] object-cover"
                                 />
                             </div>
 
                             <div
-                                class="flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
+                                class="flex flex-wrap gap-2 text-[0.76rem] font-medium text-[color:var(--journal-muted)]"
                             >
+                                <span class="journal-chip">{{
+                                    session.routeCategoryLabel
+                                }}</span>
+                                <span class="journal-chip">
+                                    {{
+                                        formatDistanceKm(
+                                            session.distanceKm,
+                                            unitPreferences,
+                                        )
+                                    }}
+                                </span>
+                                <span class="journal-chip">
+                                    {{ formatMinutes(session.durationMinutes) }}
+                                </span>
+                                <span
+                                    v-if="session.hasTrack"
+                                    class="journal-chip"
+                                >
+                                    Track
+                                </span>
                                 <span
                                     v-if="session.isExpedition"
                                     class="journal-chip journal-chip--primary"
@@ -1265,10 +1253,11 @@ watch(visibleSessions, () => {
                                 >
                                     {{ session.expeditionDays }} days out
                                 </span>
-                                <span class="journal-chip">{{
-                                    session.launchName ??
-                                    props.profile.homeWater
-                                }}</span>
+                                <span
+                                    v-if="session.hasObservation"
+                                    class="journal-chip"
+                                    >Observation</span
+                                >
                                 <button
                                     v-for="category in session.folders"
                                     :key="category.id"
@@ -1280,10 +1269,20 @@ watch(visibleSessions, () => {
                                 </button>
                             </div>
 
-                            <div class="mt-auto">
+                            <div class="mt-auto flex gap-2">
+                                <Link
+                                    :href="
+                                        session.hasObservation
+                                            ? `/sessions/${session.id}/edit`
+                                            : `/sessions/${session.id}/edit?step=notes`
+                                    "
+                                    class="journal-utility-link flex-1 justify-center"
+                                >
+                                    Edit session
+                                </Link>
                                 <Link
                                     :href="`/sessions/${session.id}`"
-                                    class="journal-utility-link w-full justify-center"
+                                    class="journal-utility-link flex-1 justify-center"
                                 >
                                     Open session
                                 </Link>
