@@ -23,7 +23,7 @@ Route::middleware(array_filter([
         ->name('profile.export');
     Route::post('settings/profile/feedback', [FeedbackController::class, 'store'])
         ->middleware('throttle:8,1')
-        ->name('profile.feedback.store');
+        ->name('feedback.store');
     Route::get('settings/profile/report', [CourseApplicationController::class, 'report'])
         ->name('profile.report');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

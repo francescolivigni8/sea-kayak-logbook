@@ -45,6 +45,27 @@ If you want the dev server too:
 npm run dev
 ```
 
+## iOS / TestFlight path
+
+The repo is now prepared for a Capacitor-based iOS wrapper around the live app.
+
+Useful commands:
+
+```bash
+npm run ios:check
+npm run ios:assets
+npm run ios:add
+npm run mobile:sync
+npm run ios:open
+```
+
+Start here:
+
+- [iOS fast track](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/app-store/ios-fast-track.md)
+- [TestFlight checklist](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/app-store/testflight-checklist.md)
+- [App Store metadata draft](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/app-store/metadata-draft.md)
+- [App privacy matrix](/Users/francesco/Documents/New project/sea-kayak-logbook-laravel/docs/app-store/privacy-matrix.md)
+
 ## Node note
 
 This starter currently wants a newer Node runtime than the machine default. To keep the global setup untouched, the project now uses:

@@ -52,7 +52,7 @@ class ProfileController extends Controller
                 'reportUrl' => route('profile.report'),
                 'backupUrl' => route('profile.backup'),
                 'exportUrl' => route('profile.export'),
-                'feedbackUrl' => route('profile.feedback.store'),
+                'feedbackUrl' => route('feedback.store'),
                 'feedbackContext' => (string) Str::limit((string) $request->query('from', ''), 180, ''),
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),

@@ -19,7 +19,7 @@ class FeedbackStoreTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('profile.feedbackContext', '/planning')
-                ->where('profile.feedbackUrl', route('profile.feedback.store')));
+                ->where('profile.feedbackUrl', route('feedback.store')));
     }
 
     public function test_authenticated_user_can_submit_feedback(): void
@@ -29,7 +29,7 @@ class FeedbackStoreTest extends TestCase
 
         $this->actingAs($user)
             ->from(route('profile.edit'))
-            ->post(route('profile.feedback.store'), [
+            ->post(route('feedback.store'), [
                 'kind' => 'issue',
                 'subject' => 'Planning map control overlap',
                 'page_context' => 'planning',
@@ -57,7 +57,7 @@ class FeedbackStoreTest extends TestCase
 
         $this->actingAs($user)
             ->from(route('profile.edit'))
-            ->post(route('profile.feedback.store'), [
+            ->post(route('feedback.store'), [
                 'kind' => 'complaint',
                 'subject' => '',
                 'message' => 'short',
