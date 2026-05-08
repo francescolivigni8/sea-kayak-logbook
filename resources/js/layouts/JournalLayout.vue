@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, watch } from 'vue';
+import {
+    Check,
+    FileUp,
+    LayoutGrid,
+    Library,
+    LogOut,
+    MessageSquareText,
+    UserRound,
+    Users,
+} from 'lucide-vue-next';
+import { computed, onMounted, watch, type Component } from 'vue';
 import { usePageHeaderActions } from '@/composables/usePageHeaderActions';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
@@ -89,6 +99,13 @@ type PrimaryNavItem = {
     placeholder?: boolean;
 };
 
+type UtilityNavItem = {
+    label: string;
+    href: string;
+    match: string[];
+    icon: Component;
+};
+
 const primaryNav = [
     { label: 'Dashboard', href: '/dashboard', match: ['/dashboard'] },
     { label: 'Diary', href: '/diary', match: ['/diary'] },
@@ -104,13 +121,19 @@ const primaryNav = [
     },
 ] satisfies readonly PrimaryNavItem[];
 
-const utilityLinks = computed(() => {
+const utilityLinks = computed<UtilityNavItem[]>(() => {
     return [
-        { label: 'Library', href: '/sessions', match: ['/sessions'] },
+        {
+            label: 'Library',
+            href: '/sessions',
+            match: ['/sessions'],
+            icon: Library,
+        },
         {
             label: 'Import',
             href: '/imports/garmin',
             match: ['/imports/garmin'],
+            icon: FileUp,
         },
         ...(ownerTools.value?.canViewUsers
             ? [
@@ -118,6 +141,7 @@ const utilityLinks = computed(() => {
                       label: 'Users',
                       href: '/insights/users',
                       match: ['/insights/users'],
+                      icon: Users,
                   },
               ]
             : []),
@@ -127,10 +151,16 @@ const utilityLinks = computed(() => {
                       label: 'Feedback',
                       href: '/insights/feedback',
                       match: ['/insights/feedback'],
+                      icon: MessageSquareText,
                   },
               ]
             : []),
-        { label: 'Account', href: '/settings/profile', match: ['/settings'] },
+        {
+            label: 'Account',
+            href: '/settings/profile',
+            match: ['/settings'],
+            icon: UserRound,
+        },
     ];
 });
 const trailingUtilityLink = computed(
@@ -181,6 +211,18 @@ function isPlaceholder(item: PrimaryNavItem) {
 
 function isUtilityActive(item: { href: string; match: string[] }) {
     return item.match.some((prefix) => currentPath.value.startsWith(prefix));
+}
+
+function pageHeaderActionIcon(action: {
+    id: string;
+    label: string;
+    active?: boolean;
+}) {
+    if (action.id === 'dashboard-edit-layout') {
+        return action.active ? Check : LayoutGrid;
+    }
+
+    return LayoutGrid;
 }
 
 onMounted(() => {
@@ -327,13 +369,21 @@ watch(
                             :href="link.href"
                             :class="[
                                 'journal-utility-link',
+                                'journal-utility-link--icon',
                                 'shrink-0',
                                 isUtilityActive(link)
                                     ? 'journal-utility-link--active'
                                     : '',
                             ]"
+                            :title="link.label"
+                            :aria-label="link.label"
                         >
-                            {{ link.label }}
+                            <component
+                                :is="link.icon"
+                                class="journal-utility-link__icon"
+                                aria-hidden="true"
+                            />
+                            <span class="sr-only">{{ link.label }}</span>
                         </Link>
                         <button
                             v-for="action in pageHeaderActions"
@@ -341,35 +391,59 @@ watch(
                             type="button"
                             :class="[
                                 'journal-utility-link',
+                                'journal-utility-link--icon',
                                 'shrink-0',
                                 action.active
                                     ? 'journal-utility-link--active'
                                     : '',
                             ]"
+                            :title="action.label"
+                            :aria-label="action.label"
                             @click="action.onClick"
                         >
-                            {{ action.label }}
+                            <component
+                                :is="pageHeaderActionIcon(action)"
+                                class="journal-utility-link__icon"
+                                aria-hidden="true"
+                            />
+                            <span class="sr-only">{{ action.label }}</span>
                         </button>
                         <Link
                             v-if="trailingUtilityLink"
                             :href="trailingUtilityLink.href"
                             :class="[
                                 'journal-utility-link',
+                                'journal-utility-link--icon',
                                 'shrink-0',
                                 isUtilityActive(trailingUtilityLink)
                                     ? 'journal-utility-link--active'
                                     : '',
                             ]"
+                            :title="trailingUtilityLink.label"
+                            :aria-label="trailingUtilityLink.label"
                         >
-                            {{ trailingUtilityLink.label }}
+                            <component
+                                :is="trailingUtilityLink.icon"
+                                class="journal-utility-link__icon"
+                                aria-hidden="true"
+                            />
+                            <span class="sr-only">{{
+                                trailingUtilityLink.label
+                            }}</span>
                         </Link>
                         <Link
                             href="/logout"
                             method="post"
                             as="button"
-                            class="journal-utility-link shrink-0"
+                            class="journal-utility-link journal-utility-link--icon shrink-0"
+                            title="Sign out"
+                            aria-label="Sign out"
                         >
-                            Sign out
+                            <LogOut
+                                class="journal-utility-link__icon"
+                                aria-hidden="true"
+                            />
+                            <span class="sr-only">Sign out</span>
                         </Link>
                     </div>
                 </div>

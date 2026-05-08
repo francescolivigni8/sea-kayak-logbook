@@ -19,7 +19,7 @@ import type {
     WindUnit,
 } from '@/lib/units';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { update as updateProfile } from '@/routes/profile';
+import { update as updateProfile } from '@/routes/profile/index';
 import { disable, enable } from '@/routes/two-factor';
 import { update as updatePassword } from '@/routes/user-password';
 
