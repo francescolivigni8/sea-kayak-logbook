@@ -28,6 +28,7 @@ class PruneUsersCommandTest extends TestCase
     public function test_prune_users_command_deletes_everyone_except_the_keeper(): void
     {
         Storage::fake('public');
+        config()->set('kayak.media_disk', 'public');
 
         $keeper = User::factory()->create(['email' => 'francescolivigni@gmail.com']);
         $deletedUser = User::factory()->create(['email' => 'friend@example.com']);

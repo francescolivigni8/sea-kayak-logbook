@@ -475,6 +475,7 @@ class PaddleSessionTest extends TestCase
     public function test_manual_gpx_uploads_are_parsed_into_route_data(): void
     {
         Storage::fake('public');
+        config()->set('kayak.media_disk', 'public');
 
         $user = User::factory()->create();
         $gpx = UploadedFile::fake()->createWithContent('harbor-loop.gpx', <<<'GPX'
@@ -518,6 +519,7 @@ GPX);
     public function test_manual_fit_uploads_are_parsed_into_track_data(): void
     {
         Storage::fake('public');
+        config()->set('kayak.media_disk', 'public');
 
         $user = User::factory()->create();
         $fitFixture = file_get_contents(base_path('vendor/adriangibbons/php-fit-file-analysis/demo/fit_files/road-cycling.fit'));

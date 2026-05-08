@@ -165,6 +165,7 @@ class ProfileUpdateTest extends TestCase
     public function test_user_account_deletion_removes_owned_session_media()
     {
         Storage::fake('public');
+        config()->set('kayak.media_disk', 'public');
 
         $user = User::factory()->create();
         $profile = $user->resolveActiveProfile();
