@@ -35,6 +35,7 @@ class ProfileController extends Controller
 
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
+            'feedbackStatus' => $request->session()->get('feedback_status'),
             'requiresSetup' => $profile->requiresSetup(),
             'setupMode' => $profile->requiresSetup(),
             'security' => [
@@ -51,6 +52,8 @@ class ProfileController extends Controller
                 'reportUrl' => route('profile.report'),
                 'backupUrl' => route('profile.backup'),
                 'exportUrl' => route('profile.export'),
+                'feedbackUrl' => route('profile.feedback.store'),
+                'feedbackContext' => (string) Str::limit((string) $request->query('from', ''), 180, ''),
                 'settings' => [
                     'paddlerName' => (string) data_get($settings, 'paddler_name', ''),
                     'kayakClub' => (string) data_get($settings, 'kayak_club', ''),
@@ -242,6 +245,19 @@ class ProfileController extends Controller
                     'profile' => $membership->profile?->only(['id', 'name', 'slug']),
                     'role' => $membership->role,
                     'created_at' => $membership->created_at?->toIso8601String(),
+                ])
+                ->values(),
+            'feedback_reports' => $user->feedbackReports()
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn ($feedback) => [
+                    'kind' => $feedback->kind,
+                    'subject' => $feedback->subject,
+                    'page_context' => $feedback->page_context,
+                    'message' => $feedback->message,
+                    'submitted_from_path' => $feedback->submitted_from_path,
+                    'status' => $feedback->status,
+                    'created_at' => $feedback->created_at?->toIso8601String(),
                 ])
                 ->values(),
             'profiles' => $ownedProfiles

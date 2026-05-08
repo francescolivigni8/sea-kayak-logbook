@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { Download, FileText, ShieldCheck } from 'lucide-vue-next';
+import { Download, FileText, MessageSquareText, ShieldCheck } from 'lucide-vue-next';
 import { onUnmounted, ref, toRefs } from 'vue';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -25,6 +25,7 @@ import { update as updatePassword } from '@/routes/user-password';
 
 type Props = {
     status?: string;
+    feedbackStatus?: string;
     requiresSetup: boolean;
     setupMode: boolean;
     security: {
@@ -39,6 +40,8 @@ type Props = {
         reportUrl: string;
         backupUrl: string;
         exportUrl: string;
+        feedbackUrl: string;
+        feedbackContext: string;
         settings: {
             paddlerName: string;
             kayakClub: string;
@@ -60,7 +63,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const { profile, security, setupMode, status } = toRefs(props);
+const { profile, security, setupMode, status, feedbackStatus } = toRefs(props);
 
 defineOptions({
     layout: {
@@ -83,6 +86,7 @@ const temperatureUnit = ref(profile.value.settings.unitPreferences.temperature);
 const defaultMapLat = ref(profile.value.settings.defaultMapLat);
 const defaultMapLng = ref(profile.value.settings.defaultMapLng);
 const defaultMapZoom = ref(profile.value.settings.defaultMapZoom);
+const feedbackPageContext = ref(profile.value.feedbackContext);
 
 const distanceUnitOptions: Array<{ value: DistanceUnit; label: string }> = [
     { value: 'km', label: 'Kilometres (km)' },
@@ -725,6 +729,147 @@ function setDefaultMapPreset(lat: string, lng: string, zoom: string) {
                                 file.
                             </p>
                         </div>
+                    </section>
+
+                    <section
+                        id="feedback"
+                        class="journal-panel px-5 py-5 md:px-6"
+                    >
+                        <div class="space-y-2">
+                            <p class="journal-kicker">Support</p>
+                            <h2
+                                class="text-[1.65rem] leading-[0.98] text-[color:var(--journal-text)]"
+                            >
+                                Report an issue or send feedback
+                            </h2>
+                            <p class="journal-copy text-sm md:text-base">
+                                Send bugs, awkward UI moments, small ideas, or
+                                general tester notes from here. Keep it rough
+                                if you want, we just need enough context to
+                                understand what happened.
+                            </p>
+                        </div>
+
+                        <Form
+                            :action="profile.feedbackUrl"
+                            method="post"
+                            :options="{ preserveScroll: true }"
+                            class="mt-6 space-y-4"
+                            v-slot="{ errors, processing, recentlySuccessful }"
+                        >
+                            <article class="journal-soft-card">
+                                <Label class="journal-field-label" for="feedback_kind"
+                                    >Type</Label
+                                >
+                                <select
+                                    id="feedback_kind"
+                                    name="kind"
+                                    class="journal-input mt-3"
+                                    required
+                                >
+                                    <option value="issue">Issue / bug</option>
+                                    <option value="feedback">Feedback</option>
+                                    <option value="idea">Idea</option>
+                                    <option value="question">Question</option>
+                                </select>
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.kind"
+                                />
+                            </article>
+
+                            <article class="journal-soft-card">
+                                <Label class="journal-field-label" for="feedback_subject"
+                                    >Short title</Label
+                                >
+                                <input
+                                    id="feedback_subject"
+                                    class="journal-input"
+                                    name="subject"
+                                    required
+                                    maxlength="160"
+                                    placeholder="Planning weather looked off on mobile"
+                                />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.subject"
+                                />
+                            </article>
+
+                            <article class="journal-soft-card">
+                                <Label class="journal-field-label" for="feedback_page_context"
+                                    >Where did it happen?</Label
+                                >
+                                <input
+                                    id="feedback_page_context"
+                                    v-model="feedbackPageContext"
+                                    class="journal-input"
+                                    name="page_context"
+                                    maxlength="180"
+                                    placeholder="Planning map, Garmin import, session edit..."
+                                />
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    Optional, but helpful. If you arrived here
+                                    from another page, we prefill that path for
+                                    you.
+                                </p>
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.page_context"
+                                />
+                            </article>
+
+                            <article class="journal-soft-card">
+                                <Label class="journal-field-label" for="feedback_message"
+                                    >What happened?</Label
+                                >
+                                <textarea
+                                    id="feedback_message"
+                                    class="journal-textarea min-h-[160px]"
+                                    name="message"
+                                    required
+                                    maxlength="5000"
+                                    placeholder="Tell us what you expected, what actually happened, and anything else that helps recreate it."
+                                />
+                                <p
+                                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
+                                >
+                                    No need for a perfect bug report. A quick
+                                    tester note is enough.
+                                </p>
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.message"
+                                />
+                            </article>
+
+                            <div class="flex flex-wrap items-center gap-3">
+                                <button
+                                    type="submit"
+                                    :disabled="processing"
+                                    class="journal-primary-link disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    <MessageSquareText class="h-4 w-4" />
+                                    {{
+                                        processing
+                                            ? 'Sending...'
+                                            : 'Send feedback'
+                                    }}
+                                </button>
+
+                                <p
+                                    v-if="feedbackStatus || recentlySuccessful"
+                                    class="journal-banner journal-banner--soft"
+                                >
+                                    {{
+                                        feedbackStatus ||
+                                        'Thanks. Your note is in and ready for review.'
+                                    }}
+                                </p>
+                            </div>
+                        </Form>
                     </section>
 
                     <section

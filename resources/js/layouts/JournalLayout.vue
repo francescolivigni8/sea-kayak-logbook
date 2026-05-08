@@ -27,6 +27,12 @@ type IntegrationsShape = {
     };
 };
 
+type AuthShape = {
+    user?: {
+        id: number | string;
+    } | null;
+};
+
 type LegalShape = {
     productName?: string;
     copyrightOwner?: string;
@@ -49,6 +55,7 @@ const integrations = computed(
 const legal = computed(
     () => (page.props.legal as LegalShape | undefined) ?? null,
 );
+const auth = computed(() => (page.props.auth as AuthShape | undefined) ?? null);
 const heroTitle = 'Your kayaking journal';
 const footerYear = new Date().getFullYear();
 const footerProductName = computed(
@@ -60,6 +67,11 @@ const footerCopyrightOwner = computed(
 const footerCopyright = computed(
     () =>
         `© ${footerYear} ${footerCopyrightOwner.value}. ${footerProductName.value}. All rights reserved.`,
+);
+const feedbackHref = computed(() =>
+    auth.value?.user
+        ? `/settings/profile?from=${encodeURIComponent(currentPath.value)}#feedback`
+        : null,
 );
 const isSessionEditorPath = computed(() => {
     return (
@@ -373,6 +385,13 @@ watch(
                 </Link>
                 <Link class="underline underline-offset-4" href="/contact">
                     Contact
+                </Link>
+                <Link
+                    v-if="feedbackHref"
+                    class="underline underline-offset-4"
+                    :href="feedbackHref"
+                >
+                    Feedback
                 </Link>
             </div>
         </footer>

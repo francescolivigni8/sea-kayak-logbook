@@ -57,6 +57,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ProfileMembership::class);
     }
 
+    public function feedbackReports(): HasMany
+    {
+        return $this->hasMany(FeedbackReport::class);
+    }
+
     public function accessibleProfiles(): BelongsToMany
     {
         return $this->belongsToMany(Profile::class, 'profile_memberships')

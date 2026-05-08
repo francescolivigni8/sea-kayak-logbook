@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CourseApplicationController;
+use App\Http\Controllers\Settings\FeedbackController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,9 @@ Route::middleware(array_filter([
     Route::get('settings/profile/export', [ProfileController::class, 'export'])
         ->middleware('throttle:6,1')
         ->name('profile.export');
+    Route::post('settings/profile/feedback', [FeedbackController::class, 'store'])
+        ->middleware('throttle:8,1')
+        ->name('profile.feedback.store');
     Route::get('settings/profile/report', [CourseApplicationController::class, 'report'])
         ->name('profile.report');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

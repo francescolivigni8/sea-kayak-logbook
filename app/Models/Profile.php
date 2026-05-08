@@ -63,6 +63,11 @@ class Profile extends Model
         return $this->hasMany(SessionCategory::class);
     }
 
+    public function feedbackReports(): HasMany
+    {
+        return $this->hasMany(FeedbackReport::class);
+    }
+
     public function requiresSetup(): bool
     {
         $settings = $this->settings ?? [];
