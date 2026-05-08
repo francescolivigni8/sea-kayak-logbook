@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "postinstall": "node scripts/ensure-local-node.cjs",
-        "build": "node scripts/run-vite.cjs build",
+        "build": "node scripts/build-with-heartbeat.cjs",
         "build:ssr": "node scripts/run-vite.cjs build && node scripts/run-vite.cjs build --ssr",
         "dev": "node scripts/run-vite.cjs",
         "format": "prettier --write resources/",
@@ -12,8 +12,9 @@
         "lint": "eslint . --fix",
         "wayfinder:generate": "php artisan wayfinder:generate --with-form --ansi",
         "lint:check": "npm run wayfinder:generate && eslint .",
-        "types:check": "npm run wayfinder:generate && vue-tsc --noEmit",
-        "verify": "npm run wayfinder:generate && vue-tsc --noEmit && node scripts/run-vite.cjs build && php artisan test"
+        "test:check": "node scripts/test-with-heartbeat.cjs",
+        "types:check": "node scripts/types-check.cjs",
+        "verify": "node scripts/verify.cjs"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
