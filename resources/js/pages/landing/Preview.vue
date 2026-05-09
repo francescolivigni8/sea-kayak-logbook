@@ -194,10 +194,10 @@ const mapData = {
 };
 
 const featureChips = [
-    'Quick or extended session logging',
+    'Quick or detailed session logging',
     'Planning with weather and tide context',
-    'Reports for courses and assessments',
-    'Private-first journal with local backup export',
+    'Printable reports and exports',
+    'Private journal by default',
 ];
 </script>
 
@@ -250,12 +250,12 @@ const featureChips = [
 
                         <div class="space-y-3">
                             <h2 class="text-[1.35rem] font-semibold leading-tight text-[color:var(--journal-text)] sm:text-[1.7rem]">
-                                A first look at the journal, planning tools, and paddling stats.
+                                See what the journal looks like with real sessions in it.
                             </h2>
                             <p class="max-w-3xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                                Instead of landing on a blank sign-in wall, visitors can now see the shape
-                                of the app first: tracked sessions, monthly consistency, environmental
-                                exposure, mapped routes, and the kind of reporting the journal grows into.
+                                This is a sample account with logged paddles, a route map, and the kind of
+                                stats the dashboard builds up over time. It gives you a quick feel for the
+                                app before you decide to sign up.
                             </p>
                         </div>
 
@@ -276,11 +276,11 @@ const featureChips = [
                                 <Map class="h-5 w-5" />
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-[color:var(--journal-text)]">
-                                Real route context
+                                Routes and places
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                Route maps, launch areas, and logged distance that feel like a working sea
-                                kayaking journal, not a generic workout tracker.
+                                Route maps, launch areas, and logged distance that make the journal feel
+                                closer to sea kayaking than a generic workout app.
                             </p>
                         </article>
 
@@ -289,11 +289,11 @@ const featureChips = [
                                 <FileText class="h-5 w-5" />
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-[color:var(--journal-text)]">
-                                Reports that go somewhere
+                                Useful reports
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                Build a journal that can eventually support course applications, trip review,
-                                and a cleaner record of paddling progression.
+                                Turn your logbook into something you can actually use later for course
+                                applications, trip review, and keeping a clearer record of progress.
                             </p>
                         </article>
 
@@ -305,8 +305,8 @@ const featureChips = [
                                 Private by default
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                This preview uses sample data. Your own journal stays private-first, with
-                                account access, export tools, and more deliberate sharing when you choose it.
+                                This preview uses sample data. Your own journal stays private unless you
+                                choose to export or share something later.
                             </p>
                         </article>
                     </div>
@@ -314,8 +314,8 @@ const featureChips = [
             </section>
 
             <section class="rounded-[30px] border border-dashed border-[rgba(103,114,255,0.16)] bg-white/55 px-4 py-3 text-sm text-[color:var(--journal-muted)] shadow-[0_18px_42px_rgba(94,109,255,0.08)]">
-                Preview data shown below is a sample sea-kayak journal snapshot so first-time visitors can
-                understand the product before creating an account.
+                The dashboard below uses sample data so first-time visitors can understand the product before
+                creating an account.
             </section>
 
             <div class="space-y-5">
@@ -365,11 +365,11 @@ const featureChips = [
                     <div class="space-y-2">
                         <p class="journal-kicker">Ready to start</p>
                         <h2 class="text-[1.4rem] font-semibold leading-tight text-[color:var(--journal-text)] sm:text-[1.8rem]">
-                            Create your journal and start logging for real.
+                            Create an account and start logging for real.
                         </h2>
                         <p class="max-w-2xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                            Save private sessions, plan days out, import Garmin tracks, and build a journal
-                            that already looks useful from day one.
+                            Save your own sessions, plan days out, import Garmin history, and build the
+                            journal from there.
                         </p>
                     </div>
 

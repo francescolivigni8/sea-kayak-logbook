@@ -16,27 +16,29 @@
         :root {
             color-scheme: light;
             font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
-            --text: #252b52;
-            --muted: rgba(37, 43, 82, 0.68);
-            --line: rgba(103, 114, 255, 0.16);
+            --text: #232948;
+            --muted: #58627f;
+            --soft: #727b97;
+            --line: rgba(103, 114, 255, 0.22);
+            --panel: rgba(255,255,255,0.97);
         }
         body {
             margin: 0;
             min-height: 100vh;
             background:
                 linear-gradient(90deg, rgba(103, 114, 255, 0.14), rgba(255, 156, 107, 0.08) 24%, transparent 58%),
-                radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.14), transparent 26%),
-                linear-gradient(180deg, #f5f6ff 0%, #edf0ff 100%);
+                radial-gradient(circle at 12% 0%, rgba(122, 215, 208, 0.12), transparent 24%),
+                linear-gradient(180deg, #f6f7ff 0%, #eef1ff 100%);
             color: var(--text);
         }
         .wrap { max-width: 620px; margin: 0 auto; padding: 40px 20px 64px; }
         .card {
-            background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.88));
+            background: linear-gradient(180deg, var(--panel), rgba(255,255,255,.92));
             border: 1px solid var(--line);
             border-radius: 30px;
-            box-shadow: 0 24px 54px rgba(96, 112, 186, 0.14);
+            box-shadow: 0 24px 54px rgba(96, 112, 186, 0.12);
             padding: 30px;
-            backdrop-filter: blur(18px);
+            backdrop-filter: blur(14px);
         }
         .brand {
             display: flex;
@@ -82,8 +84,8 @@
             padding: 10px 14px;
             border-radius: 999px;
             border: 1px solid var(--line);
-            background: rgba(255,255,255,.82);
-            color: rgba(37, 43, 82, 0.72);
+            background: rgba(255,255,255,.92);
+            color: var(--text);
             font-family: "IBM Plex Mono", ui-monospace, monospace;
             font-size: 12px;
         }
@@ -92,7 +94,7 @@
         .hint {
             font-size: 13px;
             line-height: 1.55;
-            color: var(--muted);
+            color: var(--soft);
         }
         input {
             width: 100%;
@@ -102,7 +104,16 @@
             padding: 14px 16px;
             font-size: 16px;
             color: var(--text);
-            background: rgba(255,255,255,.84);
+            background: rgba(255,255,255,.98);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+        }
+        input::placeholder {
+            color: var(--soft);
+        }
+        input:focus {
+            outline: none;
+            border-color: rgba(103, 114, 255, 0.42);
+            box-shadow: 0 0 0 4px rgba(103,114,255,.12);
         }
         .button {
             width: 100%;
@@ -125,9 +136,9 @@
             gap: 12px;
             align-items: flex-start;
             padding: 14px 16px;
-            border: 1px solid rgba(103, 114, 255, 0.16);
+            border: 1px solid rgba(103, 114, 255, 0.2);
             border-radius: 20px;
-            background: rgba(255,255,255,.74);
+            background: rgba(255,255,255,.9);
         }
         .checkbox input {
             width: auto;
@@ -143,7 +154,7 @@
             margin-top: 22px;
             font-size: 12px;
             line-height: 1.6;
-            color: rgba(37, 43, 82, 0.56);
+            color: var(--soft);
         }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
         @media (max-width: 520px) {
@@ -158,15 +169,15 @@
             <div class="brand">
                 <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="92" height="92">
                 <div class="brand-copy">
-                    <div class="eyebrow">New workspace</div>
+                    <div class="eyebrow">Create account</div>
                     <h1>Create your kayak account</h1>
                 </div>
             </div>
-            <p>Create the account first, then go straight into your paddler profile setup before you start logging sessions.</p>
+            <p>Create the account first, then set up your paddler profile before you start logging sessions.</p>
 
             <div class="chips">
                 <div class="chip">Private journal</div>
-                <div class="chip">Profile-based</div>
+                <div class="chip">Profile setup first</div>
                 <div class="chip">Photos + GPX + FIT</div>
                 @if ($inviteOnly)
                     <div class="chip">Invite-only beta</div>
