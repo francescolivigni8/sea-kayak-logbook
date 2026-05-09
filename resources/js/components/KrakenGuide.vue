@@ -552,9 +552,9 @@ onBeforeUnmount(() => {
 
 <template>
     <div
-        class="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-end px-3 pb-3 sm:px-5 sm:pb-5"
+        class="fixed inset-x-0 bottom-0 z-50 flex justify-end px-3 pb-3 sm:px-5 sm:pb-5"
     >
-        <div class="pointer-events-auto flex flex-col items-end gap-3">
+        <div class="flex flex-col items-end gap-3">
             <transition
                 enter-active-class="transition duration-200 ease-out"
                 enter-from-class="translate-y-2 opacity-0"
@@ -583,7 +583,8 @@ onBeforeUnmount(() => {
             >
                 <section
                     v-if="isOpen"
-                    class="journal-card w-[min(20.5rem,calc(100vw-1rem))] overflow-hidden border border-[color:var(--journal-line)] bg-[color:var(--journal-panel-solid)] shadow-[0_24px_44px_rgba(37,43,82,0.16)]"
+                    class="journal-card z-[60] w-[min(20.5rem,calc(100vw-1rem))] overflow-hidden border border-[color:var(--journal-line)] bg-[color:var(--journal-panel-solid)] shadow-[0_24px_44px_rgba(37,43,82,0.16)]"
+                    @click.stop
                 >
                     <div class="border-b border-[color:var(--journal-line)] px-3.5 py-3.5 sm:px-4">
                         <div class="flex items-start justify-between gap-2.5">
@@ -636,10 +637,12 @@ onBeforeUnmount(() => {
                                     type="text"
                                     class="journal-input min-h-[42px] flex-1 bg-white text-sm"
                                     placeholder="Ask a quick question"
+                                    @keydown.enter.prevent="ask()"
                                 />
                                 <button
-                                    type="submit"
+                                    type="button"
                                     class="journal-primary-link min-h-[42px] shrink-0 px-3.5 text-[0.82rem]"
+                                    @click.stop="ask()"
                                 >
                                     Ask
                                 </button>
@@ -703,7 +706,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="group relative inline-flex h-[4.4rem] w-[4.4rem] items-center justify-center overflow-hidden rounded-[1.5rem] border border-[rgba(103,114,255,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,246,255,0.96))] shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
+                class="group relative z-50 inline-flex h-[4.4rem] w-[4.4rem] items-center justify-center overflow-hidden rounded-[1.5rem] border border-[rgba(103,114,255,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,246,255,0.96))] shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
                 :aria-expanded="isOpen"
                 aria-label="Open Kraken guide"
                 @click="toggleOpen"
