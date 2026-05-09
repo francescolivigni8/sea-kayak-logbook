@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { Mic, Square, Volume2 } from 'lucide-vue-next';
+import { useUnitPreferences } from '@/composables/useUnitPreferences';
+import {
+    formatDistanceKm,
+    formatSpeedKnots,
+    formatTemperatureC,
+} from '@/lib/units';
 
 type GuideLink = {
     label: string;
@@ -22,6 +29,57 @@ type GuideContext = {
     defaultReply: GuideReply;
 };
 
+type DashboardHeadline = {
+    sessionCount: number;
+    distanceKm: number;
+    durationHours: number;
+    averageSpeedKnots: number | null;
+    trackSessions: number;
+    paddledMonths: number;
+};
+
+type DashboardSeaState = {
+    averageBeaufort: number | null;
+    beaufortBands: Array<{ label: string; count: number }>;
+    rescueTotals: Array<{ label: string; count: number }>;
+    temperatureAverages: {
+        air: number | null;
+        sea: number | null;
+    };
+};
+
+type DashboardMonthlyDistance = {
+    label: string;
+    distanceKm: number;
+};
+
+type SpeechRecognitionAlternativeLike = {
+    transcript: string;
+};
+
+type SpeechRecognitionResultLike = {
+    0: SpeechRecognitionAlternativeLike;
+    length: number;
+};
+
+type SpeechRecognitionEventLike = {
+    results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type BrowserSpeechRecognition = {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    maxAlternatives: number;
+    onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+    onerror: ((event: { error?: string }) => void) | null;
+    onend: (() => void) | null;
+    start: () => void;
+    stop: () => void;
+};
+
+type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition;
+
 const props = withDefaults(
     defineProps<{
         currentPath: string;
@@ -32,10 +90,16 @@ const props = withDefaults(
     },
 );
 
+const page = usePage();
+const { unitPreferences } = useUnitPreferences();
 const isOpen = ref(false);
 const showHint = ref(false);
 const prompt = ref('');
 const reply = ref<GuideReply | null>(null);
+const isListening = ref(false);
+const isSpeaking = ref(false);
+const lastVoiceError = ref<string | null>(null);
+let recognition: BrowserSpeechRecognition | null = null;
 let hintTimer: number | null = null;
 const krakenGuideArt = '/brand/kraken-guide-chat.png';
 
@@ -175,6 +239,154 @@ function genericReply(): GuideReply {
             buildLink('Dashboard', '/dashboard'),
             buildLink('Library', '/sessions'),
             buildLink('Account', '/settings/profile'),
+        ],
+    };
+}
+
+const dashboardHeadline = computed(
+    () => (page.props.headline as DashboardHeadline | undefined) ?? null,
+);
+const dashboardSeaState = computed(
+    () => (page.props.seaState as DashboardSeaState | undefined) ?? null,
+);
+const dashboardMonthlyDistance = computed(
+    () =>
+        ((page.props.monthlyDistance as DashboardMonthlyDistance[] | undefined) ??
+            []) as DashboardMonthlyDistance[],
+);
+
+const speechRecognitionCtor = computed<BrowserSpeechRecognitionCtor | null>(() => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const candidate =
+        (window as Window & {
+            SpeechRecognition?: BrowserSpeechRecognitionCtor;
+            webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
+        }).SpeechRecognition ??
+        (window as Window & {
+            SpeechRecognition?: BrowserSpeechRecognitionCtor;
+            webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
+        }).webkitSpeechRecognition;
+
+    return candidate ?? null;
+});
+const canListen = computed(() => speechRecognitionCtor.value !== null);
+const canSpeak = computed(
+    () => typeof window !== 'undefined' && 'speechSynthesis' in window,
+);
+
+function topBeaufortBand() {
+    const bands = dashboardSeaState.value?.beaufortBands ?? [];
+    return [...bands].sort((left, right) => right.count - left.count)[0] ?? null;
+}
+
+function totalRescueEvents() {
+    return (dashboardSeaState.value?.rescueTotals ?? []).reduce(
+        (total, item) => total + item.count,
+        0,
+    );
+}
+
+function peakMonth() {
+    const rows = dashboardMonthlyDistance.value.filter((item) => item.distanceKm > 0);
+    return rows.sort((left, right) => right.distanceKm - left.distanceKm)[0] ?? null;
+}
+
+function dashboardCoachReply(): GuideReply {
+    const headline = dashboardHeadline.value;
+    const seaState = dashboardSeaState.value;
+
+    if (!headline || !seaState) {
+        return dashboardReply();
+    }
+
+    const distance = formatDistanceKm(headline.distanceKm, unitPreferences.value, 1);
+    const speed =
+        headline.averageSpeedKnots !== null
+            ? formatSpeedKnots(headline.averageSpeedKnots, unitPreferences.value, 1)
+            : 'no reliable speed average yet';
+    const airTemperature =
+        seaState.temperatureAverages.air !== null
+            ? formatTemperatureC(
+                  seaState.temperatureAverages.air,
+                  unitPreferences.value,
+                  0,
+              )
+            : 'no air temperature average yet';
+    const seaTemperature =
+        seaState.temperatureAverages.sea !== null
+            ? formatTemperatureC(
+                  seaState.temperatureAverages.sea,
+                  unitPreferences.value,
+                  0,
+              )
+            : 'no sea temperature average yet';
+    const topBand = topBeaufortBand();
+    const strongestPattern = topBand ? `${topBand.label} is the most common logged wind band` : 'wind exposure is still too patchy to call';
+    const rescueCount = totalRescueEvents();
+    const busiestMonth = peakMonth();
+
+    const suggestions: string[] = [];
+
+    if (headline.paddledMonths < 8) {
+        suggestions.push(
+            'Consistency first: add one shorter session in the quieter weeks so the log spreads across more months.',
+        );
+    } else {
+        suggestions.push(
+            'Consistency looks healthy. Keep one dependable weekly paddle in the diary so the momentum stays easy to maintain.',
+        );
+    }
+
+    if (headline.averageSpeedKnots !== null && headline.averageSpeedKnots < 3.4) {
+        suggestions.push(
+            'Cruising speed is still a development area. Add one technique or tempo paddle next week with deliberate forward-stroke work.',
+        );
+    } else if (headline.averageSpeedKnots !== null) {
+        suggestions.push(
+            'Your cruising speed looks solid. The next gain is probably efficiency under fatigue or rougher water, not just paddling harder.',
+        );
+    } else {
+        suggestions.push(
+            'You need a few more tracked sessions to make speed coaching trustworthy. Keep tracing or importing routes when you can.',
+        );
+    }
+
+    if ((seaState.averageBeaufort ?? 0) <= 2.5) {
+        suggestions.push(
+            'Most of the log still leans toward lighter conditions. Plan a coached F3 to low F4 skills day so your rougher-water judgment grows safely.',
+        );
+    } else {
+        suggestions.push(
+            'You already have some wind exposure logged. Keep mixing calmer technique paddles with one more committing conditions day, not just one type of outing.',
+        );
+    }
+
+    if (rescueCount < 3) {
+        suggestions.push(
+            'Rescue work barely shows in the log. A focused rescue and recovery session would give you one of the highest-signal improvements for the next paddles.',
+        );
+    }
+
+    if (
+        headline.trackSessions > 0 &&
+        headline.trackSessions / Math.max(headline.sessionCount, 1) < 0.55
+    ) {
+        suggestions.push(
+            'Route coverage is still thin. Upload or trace more sessions so the speed, map, and progression metrics become more believable.',
+        );
+    }
+
+    return {
+        title: 'Coach’s read on your log',
+        body: `You have ${headline.sessionCount} logged sessions covering ${distance}. Average speed is ${speed}. Air is averaging ${airTemperature}, sea ${seaTemperature}, and ${strongestPattern}. ${busiestMonth ? `${busiestMonth.label} is currently the busiest month in the log.` : ''}`.trim(),
+        steps: suggestions.slice(0, 4),
+        links: [
+            buildLink('Open dashboard', '/dashboard'),
+            buildLink('Plan next paddle', '/planning'),
+            buildLink('Log a session', '/sessions/create'),
         ],
     };
 }
@@ -353,9 +565,9 @@ function contextForPath(path: string): GuideContext {
         };
     }
 
-    return {
-        title: 'Dashboard',
-        summary: 'Need help finding the right page, rearranging cards, or starting the next log?',
+        return {
+            title: 'Dashboard',
+            summary: 'Need help finding the right page, rearranging cards, or starting the next log?',
         suggestions: [
             'How do I rearrange dashboard cards?',
             'Where do I add a session?',
@@ -367,15 +579,56 @@ function contextForPath(path: string): GuideContext {
             buildLink('Planning', '/planning'),
             buildLink('Library', '/sessions'),
         ],
-        defaultReply: dashboardReply(),
+        defaultReply:
+            path.startsWith('/dashboard') && dashboardHeadline.value
+                ? dashboardCoachReply()
+                : dashboardReply(),
     };
 }
 
 const context = computed(() => contextForPath(props.currentPath));
-const visibleSuggestions = computed(() => context.value.suggestions.slice(0, 2));
 const visibleQuickLinks = computed(() => context.value.quickLinks.slice(0, 2));
 const visibleReplySteps = computed(() => reply.value?.steps.slice(0, 2) ?? []);
 const visibleReplyLinks = computed(() => reply.value?.links.slice(0, 2) ?? []);
+
+function speakReply(target: GuideReply | null) {
+    if (!target || !canSpeak.value || typeof window === 'undefined') {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(
+        [target.title, target.body, ...target.steps].join('. '),
+    );
+    utterance.lang = 'en-GB';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onend = () => {
+        isSpeaking.value = false;
+    };
+    utterance.onerror = () => {
+        isSpeaking.value = false;
+    };
+
+    isSpeaking.value = true;
+    window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+    if (!canSpeak.value || typeof window === 'undefined') {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    isSpeaking.value = false;
+}
+
+function coachMe() {
+    const question = 'How am I doing and what should I work on in the next paddles?';
+    prompt.value = question;
+    ask(question, { speak: true });
+}
 
 function normalize(text: string) {
     return text
@@ -394,6 +647,25 @@ function resolveReply(question: string): GuideReply {
 
     if (!query) {
         return context.value.defaultReply;
+    }
+
+    if (
+        includesAny(query, [
+            'coach',
+            'metrics',
+            'metric',
+            'how am i doing',
+            'work on',
+            'next paddle',
+            'next paddles',
+            'analyse',
+            'analyze',
+            'summary',
+        ])
+    ) {
+        return props.currentPath.startsWith('/dashboard') && dashboardHeadline.value
+            ? dashboardCoachReply()
+            : genericReply();
     }
 
     if (
@@ -493,13 +765,18 @@ function resolveReply(question: string): GuideReply {
     return genericReply();
 }
 
-function ask(question = prompt.value) {
+function ask(question = prompt.value, options: { speak?: boolean } = {}) {
     reply.value = resolveReply(question);
     if (question.trim()) {
         prompt.value = question.trim();
     }
     isOpen.value = true;
     showHint.value = false;
+    lastVoiceError.value = null;
+
+    if (options.speak) {
+        speakReply(reply.value);
+    }
 }
 
 function toggleOpen() {
@@ -514,6 +791,51 @@ function toggleOpen() {
 
 function closeGuide() {
     isOpen.value = false;
+    if (isListening.value) {
+        recognition?.stop();
+    }
+    if (isSpeaking.value) {
+        stopSpeaking();
+    }
+}
+
+function startListening() {
+    if (!speechRecognitionCtor.value || isListening.value) {
+        return;
+    }
+
+    lastVoiceError.value = null;
+    recognition = new speechRecognitionCtor.value();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-GB';
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+        const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+
+        if (transcript) {
+            prompt.value = transcript;
+            ask(transcript, { speak: true });
+        }
+    };
+    recognition.onerror = (event) => {
+        isListening.value = false;
+        lastVoiceError.value =
+            event.error === 'not-allowed'
+                ? 'Microphone permission is blocked.'
+                : 'Voice input could not start.';
+    };
+    recognition.onend = () => {
+        isListening.value = false;
+    };
+
+    isListening.value = true;
+    recognition.start();
+}
+
+function stopListening() {
+    recognition?.stop();
+    isListening.value = false;
 }
 
 watch(
@@ -546,6 +868,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
     if (hintTimer !== null) {
         window.clearTimeout(hintTimer);
+    }
+
+    if (isListening.value) {
+        recognition?.stop();
+    }
+
+    if (isSpeaking.value) {
+        stopSpeaking();
     }
 });
 </script>
@@ -651,15 +981,48 @@ onBeforeUnmount(() => {
 
                         <div class="flex flex-wrap gap-1.5">
                             <button
-                                v-for="suggestion in visibleSuggestions"
-                                :key="suggestion"
                                 type="button"
-                                class="journal-chip px-2.5 py-1.5 text-left text-[0.7rem] leading-4"
-                                @click="ask(suggestion)"
+                                class="journal-utility-link min-h-[2rem] px-2.5 py-1.5 text-[0.72rem]"
+                                @click="coachMe"
                             >
-                                {{ suggestion }}
+                                Coach me
+                            </button>
+
+                            <button
+                                v-if="canListen"
+                                type="button"
+                                class="journal-utility-link min-h-[2rem] px-2.5 py-1.5 text-[0.72rem]"
+                                @click="isListening ? stopListening() : startListening()"
+                            >
+                                <component
+                                    :is="isListening ? Square : Mic"
+                                    class="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                {{ isListening ? 'Stop' : 'Listen' }}
+                            </button>
+
+                            <button
+                                v-if="canSpeak && reply"
+                                type="button"
+                                class="journal-utility-link min-h-[2rem] px-2.5 py-1.5 text-[0.72rem]"
+                                @click="isSpeaking ? stopSpeaking() : speakReply(reply)"
+                            >
+                                <component
+                                    :is="isSpeaking ? Square : Volume2"
+                                    class="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                {{ isSpeaking ? 'Stop audio' : 'Read aloud' }}
                             </button>
                         </div>
+
+                        <p
+                            v-if="lastVoiceError"
+                            class="text-[0.72rem] leading-4 text-[color:var(--journal-sand)]"
+                        >
+                            {{ lastVoiceError }}
+                        </p>
 
                         <div
                             v-if="reply"
