@@ -193,6 +193,103 @@ const mapData = {
     ],
 };
 
+const expeditionSummaryCards = [
+    {
+        label: 'Total expedition distance',
+        value: '52.3 km',
+        detail: '3 expedition-tagged sessions',
+    },
+    {
+        label: 'Total expedition days',
+        value: '9',
+        detail: 'Logged days out',
+    },
+    {
+        label: 'Total multiday trips',
+        value: '3',
+        detail: 'Expedition-tagged sessions',
+    },
+];
+
+const expeditionMapData = {
+    defaultView: {
+        lat: 30,
+        lng: -12,
+        zoom: 1,
+    },
+    routes: [
+        {
+            id: 'anglesey-loop',
+            label: 'Anglesey training block',
+            color: '#6772ff',
+            isExpedition: true,
+            points: [
+                { lat: 53.31, lng: -4.69 },
+                { lat: 53.33, lng: -4.6 },
+                { lat: 53.35, lng: -4.47 },
+                { lat: 53.39, lng: -4.39 },
+            ],
+        },
+        {
+            id: 'shetland-crossing',
+            label: 'Shetland day out',
+            color: '#ff9c6b',
+            isExpedition: true,
+            points: [
+                { lat: 60.15, lng: -1.15 },
+                { lat: 60.19, lng: -1.05 },
+                { lat: 60.24, lng: -0.94 },
+            ],
+        },
+        {
+            id: 'westfjords',
+            label: 'Westfjords multiday',
+            color: '#7ad7d0',
+            isExpedition: true,
+            points: [
+                { lat: 66.06, lng: -23.12 },
+                { lat: 66.08, lng: -22.98 },
+                { lat: 66.11, lng: -22.81 },
+            ],
+        },
+    ],
+    pins: [
+        {
+            id: 'anglesey',
+            label: 'Anglesey',
+            color: '#6772ff',
+            lat: 53.31,
+            lng: -4.63,
+            count: 1,
+            isExpedition: true,
+        },
+        {
+            id: 'shetland',
+            label: 'Shetland',
+            color: '#ff9c6b',
+            lat: 60.2,
+            lng: -1.03,
+            count: 1,
+            isExpedition: true,
+        },
+        {
+            id: 'westfjords',
+            label: 'Westfjords',
+            color: '#7ad7d0',
+            lat: 66.08,
+            lng: -22.94,
+            count: 1,
+            isExpedition: true,
+        },
+    ],
+};
+
+const expeditionSessionChips = [
+    'Anglesey 3-day block',
+    'Shetland day out',
+    'Westfjords multiday',
+];
+
 const featureChips = [
     'Quick or detailed session logging',
     'Planning with weather and tide context',
@@ -338,17 +435,18 @@ const featureChips = [
                         <div>
                             <p class="journal-kicker">Map</p>
                             <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">
-                                Route preview
+                                Route map
                             </h3>
                         </div>
-                        <span class="journal-chip">3 places tracked</span>
+                        <span class="journal-chip">{{ mapData.routes.length }} routes</span>
                     </div>
 
-                    <div class="mt-5">
+                    <div class="mt-6">
                         <RouteAtlasMap
                             :routes="mapData.routes"
                             :pins="mapData.pins"
                             :default-view="mapData.defaultView"
+                            storage-key="guest-preview-route-atlas"
                             :show-filters="false"
                             :show-legend="false"
                             :show-kind-filter="false"
@@ -356,6 +454,92 @@ const featureChips = [
                             :allow-pin-view="false"
                             height-class="h-[280px] sm:h-[360px] lg:h-[460px]"
                         />
+                    </div>
+                </section>
+
+                <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="journal-kicker">Expeditions</p>
+                            <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">
+                                Expeditions and multiday
+                            </h3>
+                        </div>
+                        <span class="journal-chip">Checklist tagged</span>
+                    </div>
+
+                    <div
+                        class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
+                    >
+                        <p class="text-base font-semibold text-[color:var(--journal-text)]">
+                            Longer journeys, kept separate and still counted in the full logbook totals.
+                        </p>
+                        <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                            Tag a session as expedition and optionally log the days out in the checklist.
+                            The footprint map below marks expedition-tagged paddles around the world.
+                        </p>
+                    </div>
+
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 lg:grid-cols-3">
+                        <article
+                            v-for="card in expeditionSummaryCards"
+                            :key="card.label"
+                            class="journal-surface-shell rounded-[24px] px-4 py-4"
+                        >
+                            <p class="journal-kicker">{{ card.label }}</p>
+                            <p class="mt-3 text-3xl font-semibold text-[color:var(--journal-text)]">
+                                {{ card.value }}
+                            </p>
+                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                                {{ card.detail }}
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="mt-6">
+                        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <p class="journal-kicker">Expeditions</p>
+                                <h4
+                                    class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
+                                >
+                                    I paddled here
+                                </h4>
+                            </div>
+                            <span class="text-sm font-medium text-[color:var(--journal-muted)]">
+                                {{ expeditionMapData.pins.length }} places
+                            </span>
+                        </div>
+
+                        <RouteAtlasMap
+                            :routes="expeditionMapData.routes"
+                            :pins="expeditionMapData.pins"
+                            :default-view="expeditionMapData.defaultView"
+                            storage-key="guest-preview-expedition-atlas"
+                            pin-presentation="expedition"
+                            :auto-fit-to-geometry="false"
+                            :show-legend="false"
+                            :show-filters="false"
+                            :show-kind-filter="false"
+                            :show-geometry-filter="false"
+                            empty-message="No paddled locations logged yet."
+                            height-class="h-[280px] sm:h-[360px] lg:h-[440px]"
+                        />
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                v-for="session in expeditionSessionChips"
+                                :key="session"
+                                class="journal-chip"
+                            >
+                                {{ session }}
+                            </span>
+                        </div>
+                        <p class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
+                            Expedition cards in the real dashboard jump straight into expedition-tagged sessions.
+                        </p>
                     </div>
                 </section>
             </div>
