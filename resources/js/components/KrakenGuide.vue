@@ -922,9 +922,9 @@ onBeforeUnmount(() => {
                                 <img
                                     :src="krakenGuideArt"
                                     alt=""
-                                    class="h-12 w-12 shrink-0 rounded-[1rem] border border-[rgba(103,114,255,0.16)] bg-[rgba(246,248,255,0.96)] object-contain p-1 shadow-[0_8px_18px_rgba(37,43,82,0.1)]"
-                                    width="48"
-                                    height="48"
+                                    class="h-16 w-16 shrink-0 object-contain drop-shadow-[0_10px_18px_rgba(37,43,82,0.14)]"
+                                    width="64"
+                                    height="64"
                                 />
                                 <div class="min-w-0 space-y-0.5">
                                     <p class="text-[0.92rem] font-semibold text-[color:var(--journal-text)]">
@@ -1069,20 +1069,17 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="group relative z-50 inline-flex h-[4.4rem] w-[4.4rem] items-center justify-center overflow-hidden rounded-[1.5rem] border border-[rgba(103,114,255,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,246,255,0.96))] shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
+                class="group relative z-50 inline-flex h-[5.6rem] w-[5.6rem] items-center justify-center transition hover:-translate-y-0.5"
                 :aria-expanded="isOpen"
                 aria-label="Open Kraken guide"
                 @click="toggleOpen"
             >
-                <span
-                    class="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(122,215,208,0.18),transparent_52%),radial-gradient(circle_at_75%_18%,rgba(255,211,92,0.16),transparent_34%)]"
-                ></span>
                 <img
                     :src="krakenGuideArt"
                     alt=""
-                    class="relative h-[3.9rem] w-[3.9rem] rounded-[1.15rem] object-contain p-0.5"
-                    width="62"
-                    height="62"
+                    class="relative h-[5.6rem] w-[5.6rem] object-contain drop-shadow-[0_18px_28px_rgba(37,43,82,0.2)]"
+                    width="90"
+                    height="90"
                 />
             </button>
         </div>
