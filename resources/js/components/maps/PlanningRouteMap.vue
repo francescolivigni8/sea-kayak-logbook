@@ -500,15 +500,13 @@ onBeforeUnmount(() => {
             class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
         >
             <div class="space-y-2">
-                <p class="journal-kicker">Course map</p>
                 <h4
                     class="text-[1.2rem] leading-none text-[color:var(--journal-text)] sm:text-[1.35rem]"
                 >
                     Draw the day out
                 </h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Click the map to add points in order. Drag any marker to
-                    refine the line; click point 1 again to close the loop.
+                    Click to add points. Drag markers to refine the line. Click point 1 again to close the loop.
                 </p>
             </div>
 
@@ -537,16 +535,15 @@ onBeforeUnmount(() => {
                     class="pointer-events-auto rounded-[22px] border border-white/78 bg-white/90 p-3 shadow-[0_18px_42px_rgba(34,40,78,0.18)] backdrop-blur"
                 >
                     <div
-                        class="flex items-center justify-between gap-4 border-b border-[color:var(--journal-line)] pb-2"
-                    >
-                        <div>
-                            <p class="journal-kicker">Course estimate</p>
-                            <p
-                                class="mt-1 text-[1.35rem] leading-none font-semibold text-[color:var(--journal-text)]"
-                            >
-                                {{ totalDistanceKm.toFixed(1) }} km
-                            </p>
-                        </div>
+                    class="flex items-center justify-between gap-4 border-b border-[color:var(--journal-line)] pb-2"
+                >
+                    <div>
+                        <p
+                            class="text-[1.35rem] leading-none font-semibold text-[color:var(--journal-text)]"
+                        >
+                            {{ totalDistanceKm.toFixed(1) }} km
+                        </p>
+                    </div>
                         <span class="journal-chip"
                             >{{ routeLegs.length }} legs</span
                         >

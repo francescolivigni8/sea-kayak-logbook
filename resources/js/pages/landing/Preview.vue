@@ -310,13 +310,13 @@ const expeditionSessionChips = [
                 <div class="flex flex-wrap items-center gap-2 sm:justify-end">
                     <a
                         href="/login"
-                        class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                        class="journal-utility-link bg-white/88 text-[color:var(--journal-text)]"
                     >
                         Log in
                     </a>
                     <a
                         href="/register"
-                        class="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_28px_rgba(103,114,255,0.22)] transition hover:-translate-y-0.5"
+                        class="journal-primary-link"
                     >
                         Create account
                         <ArrowRight class="h-4 w-4" />
@@ -445,13 +445,13 @@ const expeditionSessionChips = [
                     <div class="flex flex-wrap items-center gap-2">
                         <a
                             href="/login"
-                            class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
+                            class="journal-utility-link bg-white/88 text-[color:var(--journal-text)]"
                         >
                             Log in
                         </a>
                         <a
                             href="/register"
-                            class="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_28px_rgba(103,114,255,0.22)] transition hover:-translate-y-0.5"
+                            class="journal-primary-link"
                         >
                             Create account
                             <ArrowRight class="h-4 w-4" />

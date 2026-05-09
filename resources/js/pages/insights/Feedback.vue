@@ -66,19 +66,11 @@ function kindChipClass(kind: string) {
     <div class="flex flex-col gap-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Internal</p>
+                <div>
                     <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
                         Tester feedback inbox
                     </h2>
-                    <p class="journal-copy max-w-3xl text-sm md:text-base">
-                        Read the issues, questions, and rough tester notes sent
-                        from the in-app feedback form without leaving the
-                        journal.
-                    </p>
                 </div>
-
-                <span class="journal-chip">Owner only</span>
             </div>
         </section>
 
@@ -113,14 +105,11 @@ function kindChipClass(kind: string) {
             class="grid gap-4 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
         >
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Breakdown</p>
-                    <h3
-                        class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Report types
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Report types
+                </h3>
 
                 <div class="mt-6 grid gap-3">
                     <article
@@ -159,14 +148,11 @@ function kindChipClass(kind: string) {
             </article>
 
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Inbox</p>
-                    <h3
-                        class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Latest reports
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Latest reports
+                </h3>
 
                 <div v-if="reports.length" class="mt-6 grid gap-3">
                     <article

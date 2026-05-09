@@ -389,16 +389,13 @@ defineExpose({
             class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
         >
             <div class="space-y-2">
-                <p class="journal-kicker">Geolocation</p>
                 <h4
                     class="text-[1.2rem] leading-none text-[color:var(--journal-text)] sm:text-[1.35rem]"
                 >
                     Place the session
                 </h4>
                 <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Click the map to place the route. The first point becomes
-                    launch, the last point becomes landing, and the traced line
-                    drives the saved distance automatically.
+                    Click to add the route. Distance is calculated from the trace.
                 </p>
             </div>
 
@@ -427,15 +424,8 @@ defineExpose({
             <div ref="mapElement" class="h-[240px] sm:h-[340px]" />
         </div>
 
-        <div
-            class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-[color:var(--journal-muted)]"
-        >
-            <span class="journal-chip shrink-0">First point = launch</span>
-            <span class="journal-chip shrink-0">Last point = landing</span>
-            <span class="journal-chip shrink-0">Drag points to refine</span>
-            <span class="journal-chip shrink-0"
-                >Double-click a point to remove it</span
-            >
-        </div>
+        <p class="mt-4 text-xs leading-6 text-[color:var(--journal-muted)]">
+            First point = launch. Last point = landing. Drag points to refine. Double-click a point to remove it.
+        </p>
     </section>
 </template>

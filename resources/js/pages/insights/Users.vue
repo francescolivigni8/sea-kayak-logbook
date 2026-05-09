@@ -62,19 +62,11 @@ defineProps<{
     <div class="flex flex-col gap-5">
         <section class="journal-panel px-5 py-5 md:px-6 md:py-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Internal</p>
+                <div>
                     <h2 class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]">
                         Users and product insights
                     </h2>
-                    <p class="journal-copy max-w-3xl text-sm md:text-base">
-                        A private owner view of who joined, who finished setup,
-                        who is logging paddles, and where people are dropping
-                        out before the journal becomes useful.
-                    </p>
                 </div>
-
-                <span class="journal-chip">Owner only</span>
             </div>
         </section>
 
@@ -109,14 +101,11 @@ defineProps<{
             class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]"
         >
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Funnel</p>
-                    <h3
-                        class="text-[1.7rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Product adoption
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Product adoption
+                </h3>
 
                 <div class="mt-6 grid gap-4">
                     <article
@@ -168,14 +157,11 @@ defineProps<{
             </article>
 
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Growth</p>
-                    <h3
-                        class="text-[1.7rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        New paddlers by month
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.7rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    New paddlers by month
+                </h3>
 
                 <div class="mt-6 grid gap-4">
                     <article
@@ -214,14 +200,11 @@ defineProps<{
             class="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,1fr)]"
         >
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Segments</p>
-                    <h3
-                        class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Session tiers
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Session tiers
+                </h3>
 
                 <div class="mt-6 grid gap-3">
                     <article
@@ -258,14 +241,11 @@ defineProps<{
             </article>
 
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Needs attention</p>
-                    <h3
-                        class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Follow-up candidates
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Follow-up candidates
+                </h3>
 
                 <div v-if="attentionUsers.length" class="mt-6 grid gap-3">
                     <article
@@ -315,14 +295,11 @@ defineProps<{
             </article>
 
             <article class="journal-card px-5 py-5 md:px-6">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Signals</p>
-                    <h3
-                        class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
-                    >
-                        Activity health
-                    </h3>
-                </div>
+                <h3
+                    class="text-[1.55rem] leading-none text-[color:var(--journal-text)]"
+                >
+                    Activity health
+                </h3>
 
                 <div class="mt-6 grid gap-3 sm:grid-cols-2">
                     <article
@@ -348,17 +325,12 @@ defineProps<{
 
         <section class="journal-panel px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="space-y-2">
-                    <p class="journal-kicker">Users</p>
+                <div>
                     <h3
                         class="text-[1.8rem] leading-none text-[color:var(--journal-text)]"
                     >
                         All paddlers
                     </h3>
-                    <p class="journal-copy max-w-3xl text-sm md:text-base">
-                        Full account-level visibility, with setup, session,
-                        observation, and import signals on each paddler.
-                    </p>
                 </div>
                 <span class="journal-chip">{{ users.length }} accounts</span>
             </div>

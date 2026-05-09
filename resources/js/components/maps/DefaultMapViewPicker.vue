@@ -310,8 +310,9 @@ onBeforeUnmount(() => {
             >
                 Map view saved.
             </span>
-            <span class="journal-chip">Click or drag the pin</span>
-            <span class="journal-chip">Zoom is saved too</span>
+            <span class="text-sm text-[color:var(--journal-muted)]">
+                Pin and zoom are both saved.
+            </span>
         </div>
     </div>
 </template>
