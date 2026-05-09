@@ -567,27 +567,10 @@ onBeforeUnmount(() => {
         <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="journal-kicker">Expeditions</p>
                     <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">
                         Expeditions and multiday
                     </h3>
                 </div>
-                <span class="journal-chip">Checklist tagged</span>
-            </div>
-
-            <div
-                class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
-            >
-                <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                    Longer journeys, kept separate and still counted in the full
-                    logbook totals.
-                </p>
-                <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Tag a session as expedition and optionally log the days out in
-                    the checklist. The footprint map below now marks every paddled
-                    location with a saved track or coordinate, grouping repeats into
-                    one pin.
-                </p>
             </div>
 
             <div
@@ -688,7 +671,6 @@ onBeforeUnmount(() => {
 
                 <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="journal-kicker">Expeditions</p>
                         <h4
                             class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
                         >
@@ -746,10 +728,6 @@ onBeforeUnmount(() => {
                         {{ session.label }}
                     </Link>
                 </div>
-                <p class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
-                    Expedition chips below jump straight into sessions tagged in
-                    the expedition checklist.
-                </p>
             </div>
         </section>
     </div>

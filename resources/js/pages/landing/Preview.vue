@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Compass,
-    FileText,
-    Map,
-    ShieldCheck,
-} from 'lucide-vue-next';
+import { ArrowRight } from 'lucide-vue-next';
 import HeadlineMetricCards from '@/components/dashboard/HeadlineMetricCards.vue';
 import SeaStatePanels from '@/components/dashboard/SeaStatePanels.vue';
 import RouteAtlasMap from '@/components/maps/RouteAtlasMap.vue';
@@ -290,12 +284,6 @@ const expeditionSessionChips = [
     'Westfjords multiday',
 ];
 
-const featureChips = [
-    'Quick or detailed session logging',
-    'Planning with weather and tide context',
-    'Printable reports and exports',
-    'Private journal by default',
-];
 </script>
 
 <template>
@@ -313,10 +301,12 @@ const featureChips = [
                         height="80"
                     />
                     <div class="space-y-2">
-                        <p class="journal-kicker">Sea kayak logbook</p>
                         <h1 class="text-[1.9rem] font-semibold leading-[0.94] text-[color:var(--journal-text)] sm:text-[2.7rem]">
                             See the dashboard before you sign up.
                         </h1>
+                        <p class="text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
+                            Sample data, real layout.
+                        </p>
                     </div>
                 </div>
 
@@ -338,81 +328,9 @@ const featureChips = [
             </header>
 
             <section class="journal-panel journal-panel--hero overflow-hidden px-5 py-5 sm:px-6 sm:py-6">
-                <div class="grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.8fr)] lg:items-start">
-                    <div class="space-y-4">
-                        <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(103,114,255,0.12)] bg-white/78 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.26em] text-[color:var(--journal-primary)]">
-                            <Compass class="h-3.5 w-3.5" />
-                            Sample dashboard preview
-                        </div>
-
-                        <div class="space-y-3">
-                            <h2 class="text-[1.35rem] font-semibold leading-tight text-[color:var(--journal-text)] sm:text-[1.7rem]">
-                                See what the journal looks like with real sessions in it.
-                            </h2>
-                            <p class="max-w-3xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                                This is a sample account with logged paddles, a route map, and the kind of
-                                stats the dashboard builds up over time. It gives you a quick feel for the
-                                app before you decide to sign up.
-                            </p>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2">
-                            <span
-                                v-for="chip in featureChips"
-                                :key="chip"
-                                class="journal-chip"
-                            >
-                                {{ chip }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <article class="journal-surface-shell rounded-[24px] px-4 py-4">
-                            <div class="inline-flex size-10 items-center justify-center rounded-2xl bg-[rgba(103,114,255,0.12)] text-[color:var(--journal-primary)]">
-                                <Map class="h-5 w-5" />
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-[color:var(--journal-text)]">
-                                Routes and places
-                            </h3>
-                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                Route maps, launch areas, and logged distance that make the journal feel
-                                closer to sea kayaking than a generic workout app.
-                            </p>
-                        </article>
-
-                        <article class="journal-surface-shell rounded-[24px] px-4 py-4">
-                            <div class="inline-flex size-10 items-center justify-center rounded-2xl bg-[rgba(122,215,208,0.16)] text-[#2f6a66]">
-                                <FileText class="h-5 w-5" />
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-[color:var(--journal-text)]">
-                                Useful reports
-                            </h3>
-                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                Turn your logbook into something you can actually use later for course
-                                applications, trip review, and keeping a clearer record of progress.
-                            </p>
-                        </article>
-
-                        <article class="journal-surface-shell rounded-[24px] px-4 py-4 sm:col-span-2">
-                            <div class="inline-flex size-10 items-center justify-center rounded-2xl bg-[rgba(255,156,107,0.16)] text-[#9f5d34]">
-                                <ShieldCheck class="h-5 w-5" />
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-[color:var(--journal-text)]">
-                                Private by default
-                            </h3>
-                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                                This preview uses sample data. Your own journal stays private unless you
-                                choose to export or share something later.
-                            </p>
-                        </article>
-                    </div>
-                </div>
-            </section>
-
-            <section class="rounded-[30px] border border-dashed border-[rgba(103,114,255,0.16)] bg-white/55 px-4 py-3 text-sm text-[color:var(--journal-muted)] shadow-[0_18px_42px_rgba(94,109,255,0.08)]">
-                The dashboard below uses sample data so first-time visitors can understand the product before
-                creating an account.
+                <p class="max-w-3xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
+                    This is a sample account so you can see the dashboard before creating your own.
+                </p>
             </section>
 
             <div class="space-y-5">
@@ -433,7 +351,6 @@ const featureChips = [
                 <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p class="journal-kicker">Map</p>
                             <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">
                                 Route map
                             </h3>
@@ -460,24 +377,10 @@ const featureChips = [
                 <section class="journal-panel px-4 py-4 sm:px-5 sm:py-5 md:px-6">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p class="journal-kicker">Expeditions</p>
                             <h3 class="mt-2 text-[1.55rem] leading-none sm:text-[1.8rem]">
                                 Expeditions and multiday
                             </h3>
                         </div>
-                        <span class="journal-chip">Checklist tagged</span>
-                    </div>
-
-                    <div
-                        class="journal-surface-shell mt-5 rounded-[24px] px-4 py-4 sm:mt-6 sm:px-5 sm:py-5"
-                    >
-                        <p class="text-base font-semibold text-[color:var(--journal-text)]">
-                            Longer journeys, kept separate and still counted in the full logbook totals.
-                        </p>
-                        <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
-                            Tag a session as expedition and optionally log the days out in the checklist.
-                            The footprint map below marks expedition-tagged paddles around the world.
-                        </p>
                     </div>
 
                     <div class="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 lg:grid-cols-3">
@@ -499,7 +402,6 @@ const featureChips = [
                     <div class="mt-6">
                         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                             <div>
-                                <p class="journal-kicker">Expeditions</p>
                                 <h4
                                     class="mt-2 text-[1.3rem] leading-none text-[color:var(--journal-text)] sm:text-[1.45rem]"
                                 >
@@ -537,24 +439,16 @@ const featureChips = [
                                 {{ session }}
                             </span>
                         </div>
-                        <p class="mt-3 text-sm leading-6 text-[color:var(--journal-muted)]">
-                            Expedition cards in the real dashboard jump straight into expedition-tagged sessions.
-                        </p>
                     </div>
                 </section>
             </div>
 
             <section class="journal-panel px-5 py-5 sm:px-6 sm:py-6">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="space-y-2">
-                        <p class="journal-kicker">Ready to start</p>
+                    <div>
                         <h2 class="text-[1.4rem] font-semibold leading-tight text-[color:var(--journal-text)] sm:text-[1.8rem]">
-                            Create an account and start logging for real.
+                            Create an account to start your own logbook.
                         </h2>
-                        <p class="max-w-2xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                            Save your own sessions, plan days out, import Garmin history, and build the
-                            journal from there.
-                        </p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">

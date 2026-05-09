@@ -71,24 +71,6 @@
             letter-spacing: -.04em;
         }
         p { color: var(--muted); line-height: 1.7; }
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            border: 1px solid var(--line);
-            background: rgba(255,255,255,.92);
-            color: var(--text);
-            font-family: "IBM Plex Mono", ui-monospace, monospace;
-            font-size: 12px;
-        }
         .field { margin-top: 18px; display: grid; gap: 8px; }
         label { font-size: 14px; font-weight: 600; color: var(--text); }
         .hint {
@@ -169,19 +151,8 @@
             <div class="brand">
                 <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="92" height="92">
                 <div class="brand-copy">
-                    <div class="eyebrow">Create account</div>
-                    <h1>Create your kayak account</h1>
+                    <h1>Create account</h1>
                 </div>
-            </div>
-            <p>Create the account first, then set up your paddler profile before you start logging sessions.</p>
-
-            <div class="chips">
-                <div class="chip">Private journal</div>
-                <div class="chip">Profile setup first</div>
-                <div class="chip">Photos + GPX + FIT</div>
-                @if ($inviteOnly)
-                    <div class="chip">Invite-only beta</div>
-                @endif
             </div>
 
             @if ($inviteOnly)

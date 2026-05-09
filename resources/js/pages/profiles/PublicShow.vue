@@ -178,28 +178,18 @@ const expeditionMapWarning = computed(() => {
             <div
                 class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
             >
-                <div class="space-y-3">
-                    <p class="journal-kicker">Public profile</p>
-                    <div class="space-y-2">
-                        <h1
-                            class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94]"
-                        >
-                            {{ profile.name }}’s Sea Kayak Logbook
-                        </h1>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            A shareable sea-kayak journal showing only public
-                            paddles, mapped routes, expedition places, and
-                            logged exposure.
-                        </p>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                        <span class="journal-chip journal-chip--primary">{{
-                            profile.homeWater
-                        }}</span>
-                        <span class="journal-chip">{{ profile.timezone }}</span>
-                        <span class="journal-chip">Public logbook</span>
-                    </div>
+                <div class="space-y-2">
+                    <h1
+                        class="text-[clamp(2.1rem,4vw,3.35rem)] leading-[0.94]"
+                    >
+                        {{ profile.name }}’s Sea Kayak Logbook
+                    </h1>
+                    <p
+                        v-if="profile.homeWater"
+                        class="text-sm leading-6 text-[color:var(--journal-muted)]"
+                    >
+                        {{ profile.homeWater }}
+                    </p>
                 </div>
 
                 <div class="flex flex-wrap gap-2">
@@ -208,11 +198,6 @@ const expeditionMapWarning = computed(() => {
                     </Link>
                 </div>
             </div>
-        </section>
-
-        <section class="journal-banner journal-banner--soft">
-            This public view stays lighter on purpose: only shared sessions,
-            public expedition places, and public route stories.
         </section>
 
         <HeadlineMetricCards
@@ -232,7 +217,6 @@ const expeditionMapWarning = computed(() => {
         <section class="journal-panel px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="journal-kicker">Map</p>
                     <h3 class="mt-2 text-[1.8rem] leading-none">
                         Public route map
                     </h3>
@@ -258,29 +242,10 @@ const expeditionMapWarning = computed(() => {
         <section class="journal-panel px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p class="journal-kicker">Expeditions</p>
                     <h3 class="mt-2 text-[1.8rem] leading-none">
                         Expeditions and multiday
                     </h3>
                 </div>
-                <span class="journal-chip">Public expedition places</span>
-            </div>
-
-            <div
-                class="mt-6 rounded-[24px] border border-[color:var(--journal-line)] bg-white/78 px-5 py-5"
-            >
-                <p
-                    class="text-base font-semibold text-[color:var(--journal-text)]"
-                >
-                    Longer journeys, kept separate and still counted in the
-                    public logbook totals.
-                </p>
-                <p
-                    class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]"
-                >
-                    Public expedition routes stay on the main map while each
-                    public expedition session drops its own world pin here.
-                </p>
             </div>
 
             <div class="mt-6 grid gap-4 md:grid-cols-3">
@@ -315,7 +280,6 @@ const expeditionMapWarning = computed(() => {
                     class="mb-4 flex flex-wrap items-start justify-between gap-3"
                 >
                     <div>
-                        <p class="journal-kicker">Expeditions</p>
                         <h4
                             class="mt-2 text-[1.45rem] leading-none text-[color:var(--journal-text)]"
                         >

@@ -71,24 +71,6 @@
             letter-spacing: -.04em;
         }
         p { color: var(--muted); line-height: 1.7; }
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            border: 1px solid var(--line);
-            background: rgba(255,255,255,.92);
-            color: var(--text);
-            font-family: "IBM Plex Mono", ui-monospace, monospace;
-            font-size: 12px;
-        }
         .field { margin-top: 18px; display: grid; gap: 8px; }
         label { font-size: 14px; font-weight: 600; color: var(--text); }
         input {
@@ -155,19 +137,8 @@
             <div class="brand">
                 <img class="brand-logo" src="/brand/ykj-logo-clean.png" alt="Your Kayaking Journal logo" width="92" height="92">
                 <div class="brand-copy">
-                    <div class="eyebrow">Private access</div>
-                    <h1>Open your kayak dashboard</h1>
+                    <h1>Log in</h1>
                 </div>
-            </div>
-            <p>Log in to your journal and pick up where you left off.</p>
-
-            <div class="chips">
-                <div class="chip">Email + password</div>
-                <div class="chip">Private workspace</div>
-                <div class="chip">Profile setup first</div>
-                @if ($inviteOnly)
-                    <div class="chip">Invite-only beta</div>
-                @endif
             </div>
 
             @if ($status)

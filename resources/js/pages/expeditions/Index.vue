@@ -98,35 +98,20 @@ const expeditionMapWarning = computed(() => {
             <div
                 class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
             >
-                <div class="space-y-3">
-                    <p class="journal-kicker">Expeditions</p>
-                    <div class="space-y-2">
-                        <h2
-                            class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]"
-                        >
-                            Expeditions and multiday
-                        </h2>
-                        <p class="journal-copy max-w-3xl text-sm md:text-base">
-                            Longer journeys, kept separate and still counted in
-                            the full logbook totals.
-                        </p>
-                    </div>
+                <div>
+                    <h2
+                        class="text-[clamp(1.9rem,3vw,2.6rem)] leading-[0.96]"
+                    >
+                        Expeditions and multiday
+                    </h2>
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <span class="journal-chip journal-chip--primary"
-                        >Checklist tagged</span
-                    >
                     <Link href="/sessions/create" class="journal-primary-link"
                         >Add expedition session</Link
                     >
                 </div>
             </div>
-        </section>
-
-        <section class="journal-banner journal-banner--soft">
-            Tag a session as expedition in the checklist and optionally log the
-            days out to build this area automatically.
         </section>
 
         <section class="grid gap-4 md:grid-cols-3">
@@ -160,7 +145,6 @@ const expeditionMapWarning = computed(() => {
         <section class="journal-card px-5 py-5 md:px-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p class="journal-kicker">I paddled here</p>
                     <h2
                         class="mt-2 text-[1.7rem] leading-none text-[color:var(--journal-text)]"
                         >
@@ -196,14 +180,6 @@ const expeditionMapWarning = computed(() => {
             >
                 {{ expeditionMapWarning }}
             </section>
-
-            <p
-                v-if="expeditionPlaces.length"
-                class="mt-4 text-sm leading-6 text-[color:var(--journal-muted)]"
-            >
-                The map groups all logged paddled locations into one pin per
-                place. The cards below remain expedition-tagged places.
-            </p>
         </section>
 
         <section class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">

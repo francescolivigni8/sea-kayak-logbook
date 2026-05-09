@@ -179,12 +179,6 @@ const mainNavItems: NavItem[] = [
                 </div>
 
                 <div class="ml-auto flex items-center gap-3">
-                    <div
-                        class="hidden rounded-full border border-sidebar-border/80 bg-sidebar-accent/50 px-3 py-1 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase lg:block"
-                    >
-                        Private workspace
-                    </div>
-
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">
                             <Button
