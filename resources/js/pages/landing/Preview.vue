@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
     ArrowRight,
     Compass,
@@ -224,19 +224,19 @@ const featureChips = [
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <Link
+                    <a
                         href="/login"
                         class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
                     >
                         Log in
-                    </Link>
-                    <Link
+                    </a>
+                    <a
                         href="/register"
                         class="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_28px_rgba(103,114,255,0.22)] transition hover:-translate-y-0.5"
                     >
                         Create account
                         <ArrowRight class="h-4 w-4" />
-                    </Link>
+                    </a>
                 </div>
             </header>
 
@@ -374,19 +374,19 @@ const featureChips = [
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <Link
+                        <a
                             href="/login"
                             class="journal-chip transition hover:border-[color:var(--journal-line-strong)] hover:text-[color:var(--journal-text)]"
                         >
                             Log in
-                        </Link>
-                        <Link
+                        </a>
+                        <a
                             href="/register"
                             class="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--journal-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_28px_rgba(103,114,255,0.22)] transition hover:-translate-y-0.5"
                         >
                             Create account
                             <ArrowRight class="h-4 w-4" />
-                        </Link>
+                        </a>
                     </div>
                 </div>
             </section>
@@ -394,9 +394,9 @@ const featureChips = [
             <footer class="px-1 pb-2 text-center text-[0.75rem] leading-6 text-[color:var(--journal-faint)]">
                 <p>© {{ new Date().getFullYear() }} Francesco Li Vigni. Your Kayaking Journal. All rights reserved.</p>
                 <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
-                    <Link class="underline underline-offset-4" href="/privacy">Privacy</Link>
-                    <Link class="underline underline-offset-4" href="/terms">Terms</Link>
-                    <Link class="underline underline-offset-4" href="/contact">Contact</Link>
+                    <a class="underline underline-offset-4" href="/privacy">Privacy</a>
+                    <a class="underline underline-offset-4" href="/terms">Terms</a>
+                    <a class="underline underline-offset-4" href="/contact">Contact</a>
                 </div>
             </footer>
         </div>
