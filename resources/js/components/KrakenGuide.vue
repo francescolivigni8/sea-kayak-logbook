@@ -371,6 +371,10 @@ function contextForPath(path: string): GuideContext {
 }
 
 const context = computed(() => contextForPath(props.currentPath));
+const visibleSuggestions = computed(() => context.value.suggestions.slice(0, 2));
+const visibleQuickLinks = computed(() => context.value.quickLinks.slice(0, 2));
+const visibleReplySteps = computed(() => reply.value?.steps.slice(0, 2) ?? []);
+const visibleReplyLinks = computed(() => reply.value?.links.slice(0, 2) ?? []);
 
 function normalize(text: string) {
     return text
@@ -561,7 +565,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="showHint && !isOpen"
                     type="button"
-                    class="journal-chip bg-white/92 text-[0.78rem] text-[color:var(--journal-text)] shadow-[0_16px_30px_rgba(37,43,82,0.12)]"
+                    class="journal-chip bg-white/92 px-3 py-2 text-[0.74rem] text-[color:var(--journal-text)] shadow-[0_14px_24px_rgba(37,43,82,0.1)]"
                     @click="toggleOpen"
                 >
                     Ask Kraken
@@ -578,31 +582,31 @@ onBeforeUnmount(() => {
             >
                 <section
                     v-if="isOpen"
-                    class="journal-card w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden border border-[color:var(--journal-line)] bg-[color:var(--journal-panel-solid)] shadow-[0_28px_60px_rgba(37,43,82,0.18)]"
+                    class="journal-card w-[min(20.5rem,calc(100vw-1rem))] overflow-hidden border border-[color:var(--journal-line)] bg-[color:var(--journal-panel-solid)] shadow-[0_24px_44px_rgba(37,43,82,0.16)]"
                 >
-                    <div class="border-b border-[color:var(--journal-line)] px-4 py-4 sm:px-5">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex min-w-0 items-start gap-3">
+                    <div class="border-b border-[color:var(--journal-line)] px-3.5 py-3.5 sm:px-4">
+                        <div class="flex items-start justify-between gap-2.5">
+                            <div class="flex min-w-0 items-start gap-2.5">
                                 <img
                                     src="/brand/ykj-logo-192.png"
                                     alt=""
-                                    class="size-12 shrink-0 rounded-[1rem] border border-[rgba(103,114,255,0.16)] bg-white object-cover shadow-[0_10px_24px_rgba(37,43,82,0.12)]"
-                                    width="48"
-                                    height="48"
+                                    class="size-10 shrink-0 rounded-[0.9rem] border border-[rgba(103,114,255,0.16)] bg-white object-cover shadow-[0_8px_18px_rgba(37,43,82,0.1)]"
+                                    width="40"
+                                    height="40"
                                 />
-                                <div class="min-w-0 space-y-1">
-                                    <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                                <div class="min-w-0 space-y-0.5">
+                                    <p class="text-[0.92rem] font-semibold text-[color:var(--journal-text)]">
                                         Ask Kraken
                                     </p>
-                                    <p class="text-sm leading-6 text-[color:var(--journal-muted)]">
-                                        {{ context.summary }}
+                                    <p class="text-[0.78rem] leading-5 text-[color:var(--journal-muted)]">
+                                        {{ context.title }} help
                                     </p>
                                 </div>
                             </div>
 
                             <button
                                 type="button"
-                                class="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/86 text-[1.1rem] leading-none text-[color:var(--journal-muted)] transition hover:text-[color:var(--journal-text)]"
+                                class="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/86 text-[1rem] leading-none text-[color:var(--journal-muted)] transition hover:text-[color:var(--journal-text)]"
                                 aria-label="Close guide"
                                 @click="closeGuide"
                             >
@@ -610,49 +614,43 @@ onBeforeUnmount(() => {
                             </button>
                         </div>
 
-                        <div class="mt-3 flex flex-wrap gap-2">
+                        <div class="mt-2 flex flex-wrap gap-1.5">
                             <Link
-                                v-for="link in context.quickLinks"
+                                v-for="link in visibleQuickLinks"
                                 :key="link.href"
                                 :href="link.href"
-                                class="journal-utility-link px-3 py-2 text-[0.78rem]"
+                                class="journal-utility-link min-h-[2rem] px-2.5 py-1.5 text-[0.72rem]"
                             >
                                 {{ link.label }}
                             </Link>
                         </div>
                     </div>
 
-                    <div class="space-y-4 px-4 py-4 sm:px-5">
-                        <form class="space-y-3" @submit.prevent="ask()">
-                            <label
-                                for="kraken-guide-prompt"
-                                class="block text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--journal-faint)]"
-                            >
-                                What are you trying to do?
-                            </label>
-                            <div class="flex flex-col gap-2 sm:flex-row">
+                    <div class="space-y-3 px-3.5 py-3.5 sm:px-4">
+                        <form class="space-y-2" @submit.prevent="ask()">
+                            <div class="flex gap-2">
                                 <input
                                     id="kraken-guide-prompt"
                                     v-model="prompt"
                                     type="text"
-                                    class="journal-input min-h-[44px] flex-1 bg-white"
-                                    placeholder="Try “How do I import Garmin?”"
+                                    class="journal-input min-h-[42px] flex-1 bg-white text-sm"
+                                    placeholder="Ask a quick question"
                                 />
                                 <button
                                     type="submit"
-                                    class="journal-primary-link min-h-[44px] px-4 text-sm"
+                                    class="journal-primary-link min-h-[42px] shrink-0 px-3.5 text-[0.82rem]"
                                 >
                                     Ask
                                 </button>
                             </div>
                         </form>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex flex-wrap gap-1.5">
                             <button
-                                v-for="suggestion in context.suggestions"
+                                v-for="suggestion in visibleSuggestions"
                                 :key="suggestion"
                                 type="button"
-                                class="journal-chip text-left text-[0.76rem] leading-5"
+                                class="journal-chip px-2.5 py-1.5 text-left text-[0.7rem] leading-4"
                                 @click="ask(suggestion)"
                             >
                                 {{ suggestion }}
@@ -661,37 +659,37 @@ onBeforeUnmount(() => {
 
                         <div
                             v-if="reply"
-                            class="rounded-[1.4rem] border border-[color:var(--journal-line)] bg-[rgba(248,249,255,0.86)] p-4"
+                            class="rounded-[1.2rem] border border-[color:var(--journal-line)] bg-[rgba(248,249,255,0.86)] p-3"
                         >
-                            <p class="text-sm font-semibold text-[color:var(--journal-text)]">
+                            <p class="text-[0.9rem] font-semibold leading-5 text-[color:var(--journal-text)]">
                                 {{ reply.title }}
                             </p>
-                            <p class="mt-2 text-sm leading-6 text-[color:var(--journal-muted)]">
+                            <p class="mt-1.5 text-[0.8rem] leading-5 text-[color:var(--journal-muted)]">
                                 {{ reply.body }}
                             </p>
 
-                            <ol class="mt-3 space-y-2 text-sm leading-6 text-[color:var(--journal-text)]">
+                            <ol class="mt-2.5 space-y-1.5 text-[0.8rem] leading-5 text-[color:var(--journal-text)]">
                                 <li
-                                    v-for="(step, index) in reply.steps"
+                                    v-for="(step, index) in visibleReplySteps"
                                     :key="`${reply.title}-${index}`"
                                     class="flex gap-2"
                                 >
-                                    <span class="mt-[0.1rem] font-semibold text-[color:var(--journal-sand)]">
+                                    <span class="mt-[0.05rem] font-semibold text-[color:var(--journal-sand)]">
                                         {{ index + 1 }}.
                                     </span>
                                     <span>{{ step }}</span>
                                 </li>
                             </ol>
 
-                            <div class="mt-4 flex flex-wrap gap-2">
+                            <div class="mt-3 flex flex-wrap gap-1.5">
                                 <Link
-                                    v-for="(link, index) in reply.links"
+                                    v-for="(link, index) in visibleReplyLinks"
                                     :key="`${reply.title}-${link.href}`"
                                     :href="link.href"
                                     :class="
                                         index === 0
-                                            ? 'journal-primary-link px-4 py-2 text-sm'
-                                            : 'journal-utility-link px-3 py-2 text-[0.78rem]'
+                                            ? 'journal-primary-link px-3.5 py-2 text-[0.78rem]'
+                                            : 'journal-utility-link px-2.5 py-2 text-[0.72rem]'
                                     "
                                 >
                                     {{ link.label }}
@@ -704,7 +702,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="group relative inline-flex size-[4.1rem] items-center justify-center overflow-hidden rounded-full border border-[rgba(103,114,255,0.24)] bg-white shadow-[0_24px_40px_rgba(37,43,82,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_46px_rgba(37,43,82,0.2)]"
+                class="group relative inline-flex size-[3.6rem] items-center justify-center overflow-hidden rounded-full border border-[rgba(103,114,255,0.24)] bg-white shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
                 :aria-expanded="isOpen"
                 aria-label="Open Kraken guide"
                 @click="toggleOpen"
@@ -715,9 +713,9 @@ onBeforeUnmount(() => {
                 <img
                     src="/brand/ykj-logo-192.png"
                     alt=""
-                    class="relative size-[3.25rem] rounded-full object-cover"
-                    width="52"
-                    height="52"
+                    class="relative size-[2.8rem] rounded-full object-cover"
+                    width="45"
+                    height="45"
                 />
             </button>
         </div>
