@@ -37,6 +37,7 @@ const showHint = ref(false);
 const prompt = ref('');
 const reply = ref<GuideReply | null>(null);
 let hintTimer: number | null = null;
+const krakenGuideArt = '/brand/kraken-guide-chat.png';
 
 function buildLink(label: string, href: string): GuideLink {
     return { label, href };
@@ -588,11 +589,11 @@ onBeforeUnmount(() => {
                         <div class="flex items-start justify-between gap-2.5">
                             <div class="flex min-w-0 items-start gap-2.5">
                                 <img
-                                    src="/brand/ykj-logo-192.png"
+                                    :src="krakenGuideArt"
                                     alt=""
-                                    class="size-10 shrink-0 rounded-[0.9rem] border border-[rgba(103,114,255,0.16)] bg-white object-cover shadow-[0_8px_18px_rgba(37,43,82,0.1)]"
-                                    width="40"
-                                    height="40"
+                                    class="h-12 w-12 shrink-0 rounded-[1rem] border border-[rgba(103,114,255,0.16)] bg-[rgba(246,248,255,0.96)] object-contain p-1 shadow-[0_8px_18px_rgba(37,43,82,0.1)]"
+                                    width="48"
+                                    height="48"
                                 />
                                 <div class="min-w-0 space-y-0.5">
                                     <p class="text-[0.92rem] font-semibold text-[color:var(--journal-text)]">
@@ -702,20 +703,20 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="group relative inline-flex size-[3.6rem] items-center justify-center overflow-hidden rounded-full border border-[rgba(103,114,255,0.24)] bg-white shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
+                class="group relative inline-flex h-[4.4rem] w-[4.4rem] items-center justify-center overflow-hidden rounded-[1.5rem] border border-[rgba(103,114,255,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,246,255,0.96))] shadow-[0_18px_30px_rgba(37,43,82,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_36px_rgba(37,43,82,0.18)]"
                 :aria-expanded="isOpen"
                 aria-label="Open Kraken guide"
                 @click="toggleOpen"
             >
                 <span
-                    class="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(122,215,208,0.26),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,246,255,0.96))]"
+                    class="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(122,215,208,0.18),transparent_52%),radial-gradient(circle_at_75%_18%,rgba(255,211,92,0.16),transparent_34%)]"
                 ></span>
                 <img
-                    src="/brand/ykj-logo-192.png"
+                    :src="krakenGuideArt"
                     alt=""
-                    class="relative size-[2.8rem] rounded-full object-cover"
-                    width="45"
-                    height="45"
+                    class="relative h-[3.9rem] w-[3.9rem] rounded-[1.15rem] object-contain p-0.5"
+                    width="62"
+                    height="62"
                 />
             </button>
         </div>
