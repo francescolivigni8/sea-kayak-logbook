@@ -304,9 +304,6 @@ const expeditionSessionChips = [
                         <h1 class="text-[1.9rem] font-semibold leading-[0.94] text-[color:var(--journal-text)] sm:text-[2.7rem]">
                             See the dashboard before you sign up.
                         </h1>
-                        <p class="text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                            Sample data, real layout.
-                        </p>
                     </div>
                 </div>
 
@@ -326,12 +323,6 @@ const expeditionSessionChips = [
                     </a>
                 </div>
             </header>
-
-            <section class="journal-panel journal-panel--hero overflow-hidden px-5 py-5 sm:px-6 sm:py-6">
-                <p class="max-w-3xl text-sm leading-7 text-[color:var(--journal-muted)] sm:text-[1rem]">
-                    This is a sample account so you can see the dashboard before creating your own.
-                </p>
-            </section>
 
             <div class="space-y-5">
                 <HeadlineMetricCards
@@ -447,7 +438,7 @@ const expeditionSessionChips = [
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="text-[1.4rem] font-semibold leading-tight text-[color:var(--journal-text)] sm:text-[1.8rem]">
-                            Create an account to start your own logbook.
+                            Want your own logbook?
                         </h2>
                     </div>
 

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
         rel="stylesheet"
     >
     <link rel="icon" href="/brand/ykj-logo-192.png" type="image/png">
@@ -17,9 +17,9 @@
             color-scheme: light;
             font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
             --text: #232948;
-            --muted: #58627f;
-            --soft: #727b97;
-            --line: rgba(103, 114, 255, 0.22);
+            --muted: #4f5874;
+            --soft: #626c89;
+            --line: rgba(103, 114, 255, 0.28);
             --panel: rgba(255,255,255,0.97);
         }
         body {
@@ -55,16 +55,8 @@
             box-shadow: 0 18px 34px rgba(37, 43, 82, 0.14);
         }
         .brand-copy { min-width: 0; }
-        .eyebrow {
-            font-family: "IBM Plex Mono", ui-monospace, monospace;
-            font-size: 12px;
-            font-weight: 500;
-            letter-spacing: .22em;
-            text-transform: uppercase;
-            color: #ff9c6b;
-        }
         h1 {
-            margin: 12px 0 0;
+            margin: 0;
             font-family: "Sora", "Manrope", ui-sans-serif, system-ui, sans-serif;
             font-size: clamp(34px, 5vw, 48px);
             line-height: .98;
@@ -85,7 +77,7 @@
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
         }
         input::placeholder {
-            color: var(--soft);
+            color: var(--muted);
         }
         input:focus {
             outline: none;
@@ -108,12 +100,12 @@
         }
         .muted { font-size: 14px; color: var(--muted); }
         .link { color: var(--text); font-weight: 700; text-decoration: none; }
-        .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 13px; }
+        .legal { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; font-size: 14px; }
         .footer-note {
             margin-top: 22px;
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1.6;
-            color: var(--soft);
+            color: var(--muted);
         }
         .error { margin-top: 8px; color: #dc2626; font-size: 14px; }
         .status {
