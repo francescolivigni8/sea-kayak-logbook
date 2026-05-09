@@ -11,6 +11,7 @@ import {
     Users,
 } from 'lucide-vue-next';
 import { computed, onMounted, watch, type Component } from 'vue';
+import KrakenGuide from '@/components/KrakenGuide.vue';
 import { usePageHeaderActions } from '@/composables/usePageHeaderActions';
 import {
     Tooltip,
@@ -481,6 +482,11 @@ watch(
         </header>
 
         <slot />
+
+        <KrakenGuide
+            :current-path="currentPath"
+            :feedback-href="feedbackHref"
+        />
 
         <footer
             class="px-1 pb-2 text-center text-[0.75rem] leading-6 text-[color:var(--journal-faint)]"
