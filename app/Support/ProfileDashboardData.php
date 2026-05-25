@@ -453,10 +453,36 @@ class ProfileDashboardData
             ->map(fn ($value) => (float) $value);
         $airTemps = $sessions->pluck('air_temp_c')->filter(fn ($value) => $value !== null)->map(fn ($value) => (float) $value);
         $seaTemps = $sessions->pluck('sea_temp_c')->filter(fn ($value) => $value !== null)->map(fn ($value) => (float) $value);
+        $swellHeights = $sessions->pluck('swell_height_m')->filter(fn ($value) => $value !== null)->map(fn ($value) => (float) $value);
+        $swellBands = [
+            [
+                'label' => '<0.5 m',
+                'count' => (int) $swellHeights->filter(fn (float $value) => $value < 0.5)->count(),
+            ],
+            [
+                'label' => '0.5-0.9',
+                'count' => (int) $swellHeights->filter(fn (float $value) => $value >= 0.5 && $value < 1.0)->count(),
+            ],
+            [
+                'label' => '1.0-1.4',
+                'count' => (int) $swellHeights->filter(fn (float $value) => $value >= 1.0 && $value < 1.5)->count(),
+            ],
+            [
+                'label' => '1.5-1.9',
+                'count' => (int) $swellHeights->filter(fn (float $value) => $value >= 1.5 && $value < 2.0)->count(),
+            ],
+            [
+                'label' => '2.0 m+',
+                'count' => (int) $swellHeights->filter(fn (float $value) => $value >= 2.0)->count(),
+            ],
+        ];
 
         return [
             'beaufortBands' => $beaufortBase->values()->all(),
             'averageBeaufort' => $beaufortValues->count() ? round((float) $beaufortValues->avg(), 1) : null,
+            'swellBands' => $swellBands,
+            'averageSwellHeightM' => $swellHeights->count() ? round((float) $swellHeights->avg(), 1) : null,
+            'swellSessionCount' => $swellHeights->count(),
             'tideStates' => $tideStates,
             'conditionMatrix' => $conditionMatrix,
             'rescueTotals' => [

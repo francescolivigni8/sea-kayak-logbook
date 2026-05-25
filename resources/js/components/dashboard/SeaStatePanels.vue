@@ -45,6 +45,9 @@ interface MonthlyDistanceRow {
 interface SeaStateSummary {
     beaufortBands: ForceBand[];
     averageBeaufort: number | null;
+    swellBands: ForceBand[];
+    averageSwellHeightM: number | null;
+    swellSessionCount: number;
     tideStates: TideState[];
     conditionMatrix: ConditionRow[];
     rescueTotals: RescueTotal[];
@@ -109,7 +112,7 @@ const cardCatalog: SeaStateCardMeta[] = [
     },
     {
         id: 'sea-wind-counts',
-        label: 'Wind counts',
+        label: 'Swell height',
         region: 'top',
     },
     {
@@ -254,6 +257,18 @@ const displayedForceBands = computed(() => {
 
 const forceBarMax = computed(() =>
     Math.max(...displayedForceBands.value.map((item) => item.count), 1),
+);
+
+const displayedSwellBands = computed(() => props.seaState.swellBands);
+
+const swellBarMax = computed(() =>
+    Math.max(...displayedSwellBands.value.map((item) => item.count), 1),
+);
+
+const averageSwellLabel = computed(() =>
+    props.seaState.averageSwellHeightM !== null
+        ? `${props.seaState.averageSwellHeightM.toFixed(1)} m`
+        : '—',
 );
 
 const forceBreakdown = computed(() => {
@@ -611,19 +626,36 @@ function cardShellClasses(cardId: SeaStateCardId) {
                 <template v-else-if="card.id === 'sea-wind-counts'">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p class="journal-kicker">Wind counts</p>
+                            <p class="journal-kicker">Swell height</p>
                             <h3 class="mt-2 text-[1.3rem] leading-none sm:text-[1.45rem]">
-                                F2-F6
+                                Distribution
                             </h3>
                         </div>
-                        <span class="journal-chip">Counts</span>
+                        <span class="journal-chip">
+                            {{
+                                seaState.swellSessionCount > 0
+                                    ? `${seaState.swellSessionCount} logged`
+                                    : 'No swell logged'
+                            }}
+                        </span>
+                    </div>
+
+                    <div class="mt-4 flex items-end justify-between gap-3">
+                        <div>
+                            <p class="text-[11px] font-semibold tracking-[0.16em] text-[color:var(--journal-faint)] uppercase">
+                                Average swell
+                            </p>
+                            <p class="mt-1 text-[1.35rem] leading-none font-semibold text-[color:var(--journal-text)] sm:text-[1.5rem]">
+                                {{ averageSwellLabel }}
+                            </p>
+                        </div>
                     </div>
 
                     <div class="mt-5 grid gap-2.5">
                         <div
-                            v-for="band in displayedForceBands"
+                            v-for="band in displayedSwellBands"
                             :key="band.label"
-                            class="grid grid-cols-[36px_minmax(0,1fr)_22px] items-center gap-2"
+                            class="grid grid-cols-[52px_minmax(0,1fr)_22px] items-center gap-2"
                         >
                             <span class="text-[13px] font-medium text-[color:var(--journal-muted)]">
                                 {{ band.label }}
@@ -632,8 +664,12 @@ function cardShellClasses(cardId: SeaStateCardId) {
                                 <div
                                     class="h-full rounded-full"
                                     :style="{
-                                        width: `${Math.max((band.count / forceBarMax) * 100, band.count > 0 ? 10 : 0)}%`,
-                                        background: 'linear-gradient(90deg, #6772ff, #9c80ff 52%, #ff9c6b)',
+                                        width: `${Math.max((band.count / swellBarMax) * 100, band.count > 0 ? 10 : 0)}%`,
+                                        background: band.label === '2.0 m+'
+                                            ? 'linear-gradient(90deg, #ff8a80, #ff9c6b)'
+                                            : band.label === '1.5-1.9'
+                                              ? 'linear-gradient(90deg, #ff9c6b, #f0c35c)'
+                                              : 'linear-gradient(90deg, #7ad7d0, #7aa2ff)',
                                     }"
                                 />
                             </div>

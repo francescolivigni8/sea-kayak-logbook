@@ -41,6 +41,15 @@ const seaState = {
         { label: 'F6+', count: 0 },
     ],
     averageBeaufort: 4,
+    swellBands: [
+        { label: '<0.5 m', count: 6 },
+        { label: '0.5-0.9', count: 12 },
+        { label: '1.0-1.4', count: 9 },
+        { label: '1.5-1.9', count: 3 },
+        { label: '2.0 m+', count: 0 },
+    ],
+    averageSwellHeightM: 0.9,
+    swellSessionCount: 30,
     tideStates: [
         { label: 'Low', count: 3 },
         { label: 'Flood', count: 8 },

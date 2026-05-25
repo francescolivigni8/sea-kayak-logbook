@@ -45,6 +45,9 @@ interface MonthlyDistanceRow {
 interface SeaState {
     beaufortBands: Array<{ label: string; count: number }>;
     averageBeaufort: number | null;
+    swellBands: Array<{ label: string; count: number }>;
+    averageSwellHeightM: number | null;
+    swellSessionCount: number;
     tideStates: Array<{ label: string; count: number }>;
     conditionMatrix: Array<{
         label: string;
