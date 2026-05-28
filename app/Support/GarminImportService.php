@@ -224,7 +224,8 @@ class GarminImportService
         $minTemp = $this->parseNumber($this->field($row, 'min_temp', 'temperatura_min', 'temperatura_minima'));
         $maxTemp = $this->parseNumber($this->field($row, 'max_temp', 'temperatura_max', 'temperatura_massima'));
         $sourceTitle = $this->field($row, 'title', 'activity_name', 'name', 'titolo', 'nome');
-        $location = $this->inferLocation($sourceTitle);
+        $sourceLocation = $this->field($row, 'location', 'place', 'course', 'route', 'percorso', 'luogo');
+        $location = $this->inferLocation($sourceLocation, $sourceTitle);
         $title = $this->inferTitle($sourceTitle, $location['area_name'], $distanceKm, $movingMinutes);
         $category = $this->inferCategory($distanceKm, $movingMinutes);
 
@@ -296,7 +297,8 @@ class GarminImportService
         $distanceKm = $this->parseNumber($this->field($summaryRow, 'distance', 'distanza', 'distancia', 'distanz'));
         $movingMinutes = (int) round($this->parseDurationMinutes($this->field($summaryRow, 'moving_time', 'tempo_in_movimento', 'tempo_movimento')));
         $elapsedMinutes = (int) round($this->parseDurationMinutes($this->field($summaryRow, 'time', 'elapsed_time', 'tempo_trascorso', 'durata')));
-        $title = $this->inferSingleActivityTitle($distanceKm, $movingMinutes);
+        $location = $this->inferLocation($trackSummary['trackName'] ?? null);
+        $title = $this->inferSingleActivityTitle($distanceKm, $movingMinutes, $trackSummary['trackName'] ?? null);
 
         $session = PaddleSession::updateOrCreate(
             [
@@ -308,6 +310,9 @@ class GarminImportService
                 'start_at' => $startAt?->toDateTimeString(),
                 'timezone' => $profile->timezone,
                 'title' => $title,
+                'area_name' => $location['area_name'],
+                'launch_name' => $location['launch_name'],
+                'landing_name' => $location['landing_name'],
                 'route_category' => $this->inferCategory($distanceKm, $movingMinutes),
                 'body_of_water' => 'sea',
                 'distance_km' => $distanceKm > 0 ? $distanceKm : ($trackSummary['distanceKm'] ?? 0.0),
@@ -593,30 +598,48 @@ class GarminImportService
         return null;
     }
 
-    private function inferLocation(string $title): array
+    private function inferLocation(?string ...$candidates): array
     {
-        $lower = strtolower($title);
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string) $candidate);
 
-        if (str_contains($lower, 'reykjanes')) {
-            return [
-                'area_name' => 'Reykjanes',
-                'launch_name' => 'Reykjanesbaer',
-                'landing_name' => 'Reykjanesbaer',
-            ];
-        }
+            if ($candidate === '') {
+                continue;
+            }
 
-        if (str_contains($lower, 'reykjavik')) {
-            return [
-                'area_name' => 'Faxafloi',
-                'launch_name' => 'Reykjavik',
-                'landing_name' => 'Reykjavik',
-            ];
+            $lower = strtolower($candidate);
+
+            if (str_contains($lower, 'reykjanes')) {
+                return [
+                    'area_name' => 'Reykjanes',
+                    'launch_name' => 'Reykjanesbaer',
+                    'landing_name' => 'Reykjanesbaer',
+                ];
+            }
+
+            if (str_contains($lower, 'reykjavik')) {
+                return [
+                    'area_name' => 'Reykjavik',
+                    'launch_name' => 'Reykjavik',
+                    'landing_name' => 'Reykjavik',
+                ];
+            }
+
+            $normalized = $this->normalizeLocationLabel($candidate);
+
+            if ($normalized !== null) {
+                return [
+                    'area_name' => $normalized,
+                    'launch_name' => $normalized,
+                    'landing_name' => $normalized,
+                ];
+            }
         }
 
         return [
-            'area_name' => 'Faxafloi',
-            'launch_name' => 'Reykjavik',
-            'landing_name' => 'Reykjavik',
+            'area_name' => null,
+            'launch_name' => null,
+            'landing_name' => null,
         ];
     }
 
@@ -637,7 +660,7 @@ class GarminImportService
         return 'training';
     }
 
-    private function inferTitle(string $sourceTitle, string $areaName, float $distanceKm, int $movingMinutes): string
+    private function inferTitle(string $sourceTitle, ?string $areaName, float $distanceKm, int $movingMinutes): string
     {
         $raw = trim($sourceTitle);
 
@@ -645,18 +668,20 @@ class GarminImportService
             return $raw;
         }
 
+        $areaLabel = $areaName ?: 'Imported';
+
         if ($distanceKm <= 0 || $movingMinutes <= 0) {
-            return "{$areaName} technical session";
+            return "{$areaLabel} technical session";
         }
 
         if ($distanceKm >= 15) {
-            return "{$areaName} longer paddle";
+            return "{$areaLabel} longer paddle";
         }
 
-        return "{$areaName} paddle";
+        return "{$areaLabel} paddle";
     }
 
-    private function inferTags(string $areaName, string $dateText, float $distanceKm): array
+    private function inferTags(?string $areaName, string $dateText, float $distanceKm): array
     {
         $month = (int) Carbon::parse($dateText)->month;
         $season = match (true) {
@@ -666,7 +691,12 @@ class GarminImportService
             default => 'autumn',
         };
 
-        $location = $areaName === 'Reykjanes' ? 'reykjanes' : 'faxafloi';
+        $location = match (strtolower((string) $areaName)) {
+            'reykjanes' => 'reykjanes',
+            'reykjavik' => 'reykjavik',
+            '', '0' => 'unknown-area',
+            default => str($areaName)->lower()->slug('-')->toString() ?: 'unknown-area',
+        };
         $size = $distanceKm >= 15 ? 'longer-day' : ($distanceKm >= 8 ? 'mid-distance' : 'short-day');
 
         return ['garmin-import', $season, $location, $size];
@@ -763,8 +793,14 @@ class GarminImportService
         return $average > 0 ? $average : null;
     }
 
-    private function inferSingleActivityTitle(float $distanceKm, int $movingMinutes): string
+    private function inferSingleActivityTitle(float $distanceKm, int $movingMinutes, ?string $trackName = null): string
     {
+        $normalizedTrackName = $this->normalizeLocationLabel((string) $trackName);
+
+        if ($normalizedTrackName !== null) {
+            return $normalizedTrackName;
+        }
+
         if ($distanceKm >= 15 || $movingMinutes >= 160) {
             return 'Imported longer paddle';
         }
@@ -902,6 +938,22 @@ class GarminImportService
         if ($session->air_temp_c === null && ($summary['averageTemperatureC'] ?? null) !== null) {
             $session->air_temp_c = $summary['averageTemperatureC'];
         }
+
+        if (! empty($summary['trackName'])) {
+            $location = $this->inferLocation($summary['trackName']);
+
+            if ($this->shouldReplaceImportedArea($session->area_name) && filled($location['area_name'])) {
+                $session->area_name = $location['area_name'];
+            }
+
+            if ($this->shouldReplaceImportedArea($session->launch_name) && filled($location['launch_name'])) {
+                $session->launch_name = $location['launch_name'];
+            }
+
+            if ($this->shouldReplaceImportedArea($session->landing_name) && filled($location['landing_name'])) {
+                $session->landing_name = $location['landing_name'];
+            }
+        }
     }
 
     private function hasTrackData(PaddleSession $session): bool
@@ -909,5 +961,34 @@ class GarminImportService
         return filled($session->gpx_path)
             || filled($session->fit_path)
             || (is_array($session->route_profile) && count($session->route_profile) > 1);
+    }
+
+    private function normalizeLocationLabel(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = preg_replace('/\b(kayaking|kayak|paddle|paddling|imported|activity|session|route|loop)\b/i', '', $value) ?? $value;
+        $normalized = preg_replace('/[\-_\/]+/', ' ', $normalized) ?? $normalized;
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+        $normalized = trim($normalized, " \t\n\r\0\x0B-,:");
+
+        if ($normalized === '' || strlen($normalized) < 3) {
+            return null;
+        }
+
+        return str($normalized)->headline()->toString();
+    }
+
+    private function shouldReplaceImportedArea(?string $value): bool
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return $normalized === ''
+            || $normalized === 'faxafloi'
+            || $normalized === 'reykjavik';
     }
 }

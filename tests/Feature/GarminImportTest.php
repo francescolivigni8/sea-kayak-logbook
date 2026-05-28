@@ -40,12 +40,44 @@ class GarminImportTest extends TestCase
             ->assertRedirect(route('sessions.index'));
 
         $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Reykjavik Kayaking')
+            ->firstOrFail();
 
         $this->assertDatabaseHas(PaddleSession::class, [
             'profile_id' => $profile->id,
             'title' => 'Reykjavik Kayaking',
             'distance_km' => 8.4,
         ]);
+        $this->assertSame('Reykjavik', $session->area_name);
+        $this->assertSame('Reykjavik', $session->launch_name);
+    }
+
+    public function test_garmin_import_does_not_default_unknown_areas_to_faxafloi(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,Kayaking,Kayaking,8.4,01:20:00,01:25:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->where('title', 'Imported paddle')
+            ->firstOrFail();
+
+        $this->assertNull($session->area_name);
+        $this->assertNull($session->launch_name);
+        $this->assertNull($session->landing_name);
     }
 
     public function test_garmin_import_handles_decimal_comma_exports(): void

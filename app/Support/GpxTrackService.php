@@ -20,6 +20,7 @@ class GpxTrackService
     public function parseXml(string $text): ?array
     {
         $metadataTime = $this->parseMetadataTime($text);
+        $trackName = $this->parseTrackName($text);
         $track = $this->parseTrackPoints($text);
 
         if (count($track) < 2) {
@@ -28,8 +29,20 @@ class GpxTrackService
 
         $summary = $this->summarizeTrack($track);
         $summary['metadataTime'] = $metadataTime;
+        $summary['trackName'] = $trackName;
 
         return $summary;
+    }
+
+    private function parseTrackName(string $text): ?string
+    {
+        if (preg_match('/<trk>\s*.*?<name>([^<]+)<\/name>/s', $text, $matches)) {
+            $value = trim(html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1));
+
+            return $value !== '' ? $value : null;
+        }
+
+        return null;
     }
 
     private function parseMetadataTime(string $text): ?string
