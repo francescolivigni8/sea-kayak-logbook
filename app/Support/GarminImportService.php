@@ -10,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 
 class GarminImportService
 {
+    private const GENERATED_IMPORT_SEASONS = ['winter', 'spring', 'summer', 'autumn'];
+
+    private const GENERATED_IMPORT_SIZES = ['short-day', 'mid-distance', 'longer-day'];
+
     public function __construct(
         private readonly GpxTrackService $gpxTrackService,
         private readonly FitTrackService $fitTrackService,
@@ -170,6 +174,45 @@ class GarminImportService
             'weatherSkipped' => $weatherSummary['skipped'],
             'weatherFailed' => $weatherSummary['failed'],
         ];
+    }
+
+    public function legacyLocationRepairPayload(PaddleSession $session): array
+    {
+        if (! str_starts_with((string) $session->external_ref, 'garmin:')) {
+            return [];
+        }
+
+        $trackSummary = $this->storedGpxSummary($session);
+        $titleCandidate = $this->shouldUseTitleForLocation((string) $session->title)
+            ? (string) $session->title
+            : null;
+        $location = $this->inferLocation($trackSummary['trackName'] ?? null, $titleCandidate);
+
+        if (! filled($location['area_name'])) {
+            return [];
+        }
+
+        $updates = [];
+
+        foreach ([
+            'area_name' => 'area_name',
+            'launch_name' => 'launch_name',
+            'landing_name' => 'landing_name',
+        ] as $field => $locationKey) {
+            $incoming = $location[$locationKey] ?? null;
+
+            if (filled($incoming) && $this->shouldReplaceImportedArea($session->{$field}) && $session->{$field} !== $incoming) {
+                $updates[$field] = $incoming;
+            }
+        }
+
+        $repairedTags = $this->repairGarminAreaTags($session, (string) $location['area_name']);
+
+        if ($repairedTags !== ($session->route_tags ?? [])) {
+            $updates['route_tags'] = $repairedTags;
+        }
+
+        return $updates;
     }
 
     private function parseCsvFile(string $csvPath): array
@@ -963,6 +1006,23 @@ class GarminImportService
             || (is_array($session->route_profile) && count($session->route_profile) > 1);
     }
 
+    private function storedGpxSummary(PaddleSession $session): ?array
+    {
+        if (! filled($session->gpx_path)) {
+            return null;
+        }
+
+        try {
+            $contents = $this->media->disk()->get((string) $session->gpx_path);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_string($contents) && $contents !== ''
+            ? $this->gpxTrackService->parseXml($contents)
+            : null;
+    }
+
     private function normalizeLocationLabel(?string $value): ?string
     {
         $value = trim((string) $value);
@@ -981,6 +1041,83 @@ class GarminImportService
         }
 
         return str($normalized)->headline()->toString();
+    }
+
+    private function shouldUseTitleForLocation(string $title): bool
+    {
+        $normalized = strtolower(trim($title));
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        if (preg_match('/^(faxafloi|imported)\s+(technical session|paddle|longer paddle|kayaking session|garmin session)$/', $normalized)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function repairGarminAreaTags(PaddleSession $session, string $areaName): array
+    {
+        $tags = is_array($session->route_tags) ? $session->route_tags : [];
+
+        if (! in_array('garmin-import', $tags, true)) {
+            return $tags;
+        }
+
+        $season = collect($tags)
+            ->first(fn (string $tag) => in_array($tag, self::GENERATED_IMPORT_SEASONS, true))
+            ?? match (true) {
+                (int) $session->session_date?->month === 12 || (int) $session->session_date?->month <= 2 => 'winter',
+                (int) $session->session_date?->month <= 5 => 'spring',
+                (int) $session->session_date?->month <= 8 => 'summer',
+                default => 'autumn',
+            };
+
+        $size = collect($tags)
+            ->first(fn (string $tag) => in_array($tag, self::GENERATED_IMPORT_SIZES, true))
+            ?? ((float) $session->distance_km >= 15
+                ? 'longer-day'
+                : ((float) $session->distance_km >= 8 ? 'mid-distance' : 'short-day'));
+
+        $removable = collect([
+            'garmin-import',
+            ...self::GENERATED_IMPORT_SEASONS,
+            ...self::GENERATED_IMPORT_SIZES,
+            'faxafloi',
+            'reykjavik',
+            'reykjanes',
+            'unknown-area',
+            str((string) $session->area_name)->lower()->slug('-')->toString(),
+            str((string) $session->launch_name)->lower()->slug('-')->toString(),
+            str((string) $session->landing_name)->lower()->slug('-')->toString(),
+        ])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $extras = collect($tags)
+            ->reject(fn (string $tag) => in_array($tag, $removable, true))
+            ->values()
+            ->all();
+
+        return collect([
+            'garmin-import',
+            $season,
+            match (strtolower(trim($areaName))) {
+                'reykjanes' => 'reykjanes',
+                'reykjavik' => 'reykjavik',
+                default => str($areaName)->lower()->slug('-')->toString() ?: 'unknown-area',
+            },
+            $size,
+            ...$extras,
+        ])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function shouldReplaceImportedArea(?string $value): bool
