@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
 import InputError from '@/components/InputError.vue';
@@ -22,15 +22,34 @@ const props = defineProps<{
 }>();
 const { unitPreferences } = useUnitPreferences();
 
+type PreviewActivity = {
+    row: number;
+    date: string;
+    title: string;
+    activityType: string;
+    distance: string;
+    duration: string;
+};
+
 const form = useForm({
     csv_file: null as File | null,
     gpx_files: [] as File[],
     fit_files: [] as File[],
+    selected_rows: [] as number[],
+    use_selected_rows: false,
     autofill_weather: false,
 });
 
+const previewActivities = ref<PreviewActivity[]>([]);
+const previewError = ref('');
 const selectedGpxCount = computed(() => form.gpx_files.length);
 const selectedFitCount = computed(() => form.fit_files.length);
+const selectedActivityCount = computed(() => form.selected_rows.length);
+const allPreviewSelected = computed(
+    () =>
+        previewActivities.value.length > 0 &&
+        selectedActivityCount.value === previewActivities.value.length,
+);
 const metaPills = computed(() => [
     props.profile.homeWater,
     props.profile.timezone,
@@ -38,9 +57,46 @@ const metaPills = computed(() => [
     'GPX / FIT can repair tracks',
 ]);
 
-function assignCsv(event: Event) {
+const submitLabel = computed(() => {
+    if (form.processing) {
+        return 'Working...';
+    }
+
+    if (!form.csv_file) {
+        return 'Attach tracks';
+    }
+
+    if (previewActivities.value.length === 0) {
+        return 'Import history';
+    }
+
+    return selectedActivityCount.value === 1
+        ? 'Import 1 selected activity'
+        : `Import ${selectedActivityCount.value} selected activities`;
+});
+
+async function assignCsv(event: Event) {
     const target = event.target as HTMLInputElement;
     form.csv_file = target.files?.[0] ?? null;
+    previewActivities.value = [];
+    previewError.value = '';
+    form.selected_rows = [];
+    form.use_selected_rows = form.csv_file !== null;
+
+    if (!form.csv_file) {
+        return;
+    }
+
+    try {
+        previewActivities.value = parseActivitiesCsv(await form.csv_file.text());
+        form.selected_rows = previewActivities.value.map((activity) => activity.row);
+
+        if (previewActivities.value.length === 0) {
+            previewError.value = 'No kayaking activities were found in this CSV.';
+        }
+    } catch {
+        previewError.value = 'This CSV could not be previewed.';
+    }
 }
 
 function assignGpx(event: Event) {
@@ -58,6 +114,120 @@ function submit() {
         forceFormData: true,
         preserveScroll: true,
     });
+}
+
+function toggleAllActivities() {
+    form.selected_rows = allPreviewSelected.value
+        ? []
+        : previewActivities.value.map((activity) => activity.row);
+}
+
+function parseActivitiesCsv(contents: string): PreviewActivity[] {
+    const lines = contents
+        .replace(/^\uFEFF/, '')
+        .split(/\r?\n/)
+        .filter((line) => line.trim() !== '');
+
+    if (lines.length < 2) {
+        return [];
+    }
+
+    const delimiter = detectDelimiter(lines[0]);
+    const header = parseCsvLine(lines[0], delimiter).map(normalizeHeader);
+
+    return lines
+        .slice(1)
+        .map((line, index) => ({
+            fields: parseCsvLine(line, delimiter),
+            row: index + 2,
+        }))
+        .map(({ fields, row }) => {
+            const value = (...names: string[]) => {
+                const headerIndex = header.findIndex((name) =>
+                    names.includes(name),
+                );
+
+                return headerIndex >= 0 ? (fields[headerIndex] ?? '') : '';
+            };
+
+            return {
+                row,
+                date: value('date', 'activity_date', 'data', 'datum', 'fecha'),
+                title:
+                    value('title', 'activity_name', 'name', 'titolo', 'nome') ||
+                    'Kayaking',
+                activityType: value(
+                    'activity_type',
+                    'type',
+                    'tipo_attivita',
+                    'tipo_de_actividad',
+                    'type_d_activite',
+                ),
+                distance: value('distance', 'distanza', 'distancia', 'distanz'),
+                duration: value(
+                    'elapsed_time',
+                    'time',
+                    'tempo_trascorso',
+                    'durata',
+                ),
+            };
+        })
+        .filter(
+            (activity) =>
+                activity.date !== '' &&
+                activity.activityType.toLowerCase().includes('kayak'),
+        );
+}
+
+function detectDelimiter(line: string) {
+    return [',', ';', '\t'].sort(
+        (left, right) =>
+            parseCsvLine(line, right).length - parseCsvLine(line, left).length,
+    )[0];
+}
+
+function parseCsvLine(line: string, delimiter: string) {
+    const fields: string[] = [];
+    let field = '';
+    let quoted = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        const next = line[index + 1];
+
+        if (character === '"' && quoted && next === '"') {
+            field += '"';
+            index += 1;
+            continue;
+        }
+
+        if (character === '"') {
+            quoted = !quoted;
+            continue;
+        }
+
+        if (character === delimiter && !quoted) {
+            fields.push(field.trim());
+            field = '';
+            continue;
+        }
+
+        field += character;
+    }
+
+    fields.push(field.trim());
+
+    return fields;
+}
+
+function normalizeHeader(value: string) {
+    return value
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
 }
 </script>
 
@@ -177,6 +347,112 @@ function submit() {
                             <InputError :message="form.errors.csv_file" />
                         </article>
 
+                        <article
+                            v-if="form.csv_file"
+                            class="journal-soft-card grid gap-4"
+                        >
+                            <div
+                                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <div>
+                                    <p class="journal-field-label">
+                                        Activities to import
+                                    </p>
+                                    <p
+                                        class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                                    >
+                                        {{
+                                            selectedActivityCount
+                                        }}
+                                        of
+                                        {{ previewActivities.length }}
+                                        selected
+                                    </p>
+                                </div>
+                                <button
+                                    class="journal-utility-link self-start"
+                                    type="button"
+                                    @click="toggleAllActivities"
+                                >
+                                    {{
+                                        allPreviewSelected
+                                            ? 'Clear all'
+                                            : 'Select all'
+                                    }}
+                                </button>
+                            </div>
+
+                            <p
+                                v-if="previewError"
+                                class="journal-banner journal-banner--soft text-sm"
+                            >
+                                {{ previewError }}
+                            </p>
+
+                            <div
+                                v-else
+                                class="max-h-[420px] overflow-auto rounded-[18px] border border-[color:var(--journal-line)] bg-white"
+                            >
+                                <table class="min-w-full text-left text-sm">
+                                    <thead
+                                        class="sticky top-0 bg-[color:var(--journal-soft)] text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        <tr>
+                                            <th class="w-12 px-3 py-3">
+                                                <span class="sr-only"
+                                                    >Select</span
+                                                >
+                                            </th>
+                                            <th class="px-3 py-3">Date</th>
+                                            <th class="px-3 py-3">Activity</th>
+                                            <th class="px-3 py-3">Distance</th>
+                                            <th class="px-3 py-3">Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr
+                                            v-for="activity in previewActivities"
+                                            :key="activity.row"
+                                            class="border-t border-[color:var(--journal-line)]"
+                                        >
+                                            <td class="px-3 py-3 align-top">
+                                                <input
+                                                    v-model="form.selected_rows"
+                                                    class="size-4 rounded border-[color:var(--journal-line)]"
+                                                    type="checkbox"
+                                                    :value="activity.row"
+                                                />
+                                            </td>
+                                            <td
+                                                class="whitespace-nowrap px-3 py-3 align-top font-medium text-[color:var(--journal-text)]"
+                                            >
+                                                {{ activity.date }}
+                                            </td>
+                                            <td
+                                                class="min-w-[220px] px-3 py-3 align-top text-[color:var(--journal-text)]"
+                                            >
+                                                {{ activity.title }}
+                                            </td>
+                                            <td
+                                                class="whitespace-nowrap px-3 py-3 align-top text-[color:var(--journal-muted)]"
+                                            >
+                                                {{ activity.distance }}
+                                            </td>
+                                            <td
+                                                class="whitespace-nowrap px-3 py-3 align-top text-[color:var(--journal-muted)]"
+                                            >
+                                                {{ activity.duration }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <InputError :message="form.errors.selected_rows" />
+                            <InputError
+                                :message="form.errors['selected_rows.0']"
+                            />
+                        </article>
+
                         <div class="grid gap-4 xl:grid-cols-2">
                             <article class="journal-soft-card grid gap-2">
                                 <label
@@ -290,7 +566,7 @@ function submit() {
                             <p
                                 class="text-xs font-semibold tracking-[0.24em] text-[color:var(--journal-faint)] uppercase"
                             >
-                                CSV selected
+                                CSV activity selection
                             </p>
                             <p
                                 class="mt-2 text-sm font-semibold text-[color:var(--journal-text)]"
@@ -299,6 +575,12 @@ function submit() {
                                     form.csv_file?.name ??
                                     'Not selected - attach mode'
                                 }}
+                            </p>
+                            <p
+                                v-if="form.csv_file"
+                                class="mt-2 text-sm text-[color:var(--journal-muted)]"
+                            >
+                                {{ selectedActivityCount }} selected for import
                             </p>
                         </article>
                         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -374,16 +656,15 @@ function submit() {
                     <button
                         class="journal-primary-link mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70"
                         type="submit"
-                        :disabled="form.processing"
+                        :disabled="
+                            form.processing ||
+                            (Boolean(form.csv_file) &&
+                                previewActivities.length > 0 &&
+                                selectedActivityCount === 0)
+                        "
                     >
                         <Spinner v-if="form.processing" class="mr-2 h-4 w-4" />
-                        {{
-                            form.processing
-                                ? 'Working...'
-                                : form.csv_file
-                                  ? 'Import history'
-                                  : 'Attach tracks'
-                        }}
+                        {{ submitLabel }}
                     </button>
                 </aside>
             </section>

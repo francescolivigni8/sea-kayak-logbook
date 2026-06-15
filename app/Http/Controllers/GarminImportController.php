@@ -48,6 +48,10 @@ class GarminImportController extends Controller
 
         try {
             $csvFile = $request->file('csv_file');
+            $selectedRows = $request->boolean('use_selected_rows')
+                ? ($request->input('selected_rows', []) ?: [-1])
+                : [];
+
             if ($csvFile) {
                 $csvPath = $csvFile->storeAs($baseDirectory, $csvFile->getClientOriginalName(), 'local');
             }
@@ -71,6 +75,7 @@ class GarminImportController extends Controller
                     $gpxDirectory ? $disk->path($gpxDirectory) : null,
                     $fitDirectory ? $disk->path($fitDirectory) : null,
                     $request->boolean('autofill_weather'),
+                    $selectedRows,
                 )
                 : $importService->attachTracksToExisting(
                     $profile,

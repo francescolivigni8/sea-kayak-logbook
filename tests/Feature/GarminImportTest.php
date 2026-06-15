@@ -134,6 +134,41 @@ class GarminImportTest extends TestCase
         $this->assertSame(14.5, (float) $session->air_temp_c);
     }
 
+    public function test_garmin_import_can_import_only_selected_csv_rows(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,First paddle,Kayaking,8.4,01:20:00,01:25:00,5,8',
+            '2026-04-02 18:15:00,Skipped paddle,Kayaking,6.2,01:00:00,01:08:00,5,8',
+            '2026-04-03 18:15:00,Third paddle,Kayaking,9.1,01:30:00,01:40:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+                'use_selected_rows' => true,
+                'selected_rows' => [2, 4],
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+
+        $this->assertDatabaseHas(PaddleSession::class, [
+            'profile_id' => $profile->id,
+            'title' => 'First paddle',
+        ]);
+        $this->assertDatabaseHas(PaddleSession::class, [
+            'profile_id' => $profile->id,
+            'title' => 'Third paddle',
+        ]);
+        $this->assertDatabaseMissing(PaddleSession::class, [
+            'profile_id' => $profile->id,
+            'title' => 'Skipped paddle',
+        ]);
+    }
+
     public function test_garmin_import_reuses_existing_session_when_external_ref_shifts(): void
     {
         $user = User::factory()->create();

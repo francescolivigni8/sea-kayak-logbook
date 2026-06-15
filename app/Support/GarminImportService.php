@@ -21,7 +21,14 @@ class GarminImportService
         private readonly StormglassWeatherService $stormglassWeather,
     ) {}
 
-    public function import(Profile $profile, string $csvPath, ?string $gpxDirectory = null, ?string $fitDirectory = null, bool $autofillWeather = false): array
+    public function import(
+        Profile $profile,
+        string $csvPath,
+        ?string $gpxDirectory = null,
+        ?string $fitDirectory = null,
+        bool $autofillWeather = false,
+        array $selectedRows = [],
+    ): array
     {
         $parsedCsv = $this->parseCsvFile($csvPath);
 
@@ -35,9 +42,21 @@ class GarminImportService
             );
         }
 
+        $selectedRows = collect($selectedRows)
+            ->map(fn (mixed $row): int => (int) $row)
+            ->filter(fn (int $row): bool => $row > 0)
+            ->unique()
+            ->values();
+
         $rows = collect($parsedCsv['rows'])
             ->filter(fn (array $row) => $this->isKayakingRow($row))
             ->filter(fn (array $row) => $this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha') !== '')
+            ->when(
+                $selectedRows->isNotEmpty(),
+                fn (Collection $rows): Collection => $rows->filter(
+                    fn (array $row): bool => $selectedRows->contains((int) ($row['__csv_row'] ?? 0)),
+                ),
+            )
             ->sortBy(fn (array $row) => strtotime($this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha')) ?: 0)
             ->values();
 
@@ -223,8 +242,11 @@ class GarminImportService
         $delimiter = $this->detectDelimiter((string) $firstLine);
         $header = null;
         $rows = [];
+        $csvRow = 0;
 
         while (($record = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $csvRow += 1;
+
             if ($header === null) {
                 $header = $record;
                 if ($header && isset($header[0])) {
@@ -238,7 +260,9 @@ class GarminImportService
                 continue;
             }
 
-            $rows[] = array_combine($header, array_pad($record, count($header), ''));
+            $row = array_combine($header, array_pad($record, count($header), ''));
+            $row['__csv_row'] = $csvRow;
+            $rows[] = $row;
         }
 
         fclose($handle);

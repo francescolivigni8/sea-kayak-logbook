@@ -10,6 +10,7 @@ class ImportGarminHistoryRequest extends FormRequest
     {
         $this->merge([
             'autofill_weather' => $this->boolean('autofill_weather'),
+            'use_selected_rows' => $this->boolean('use_selected_rows'),
         ]);
     }
 
@@ -26,6 +27,9 @@ class ImportGarminHistoryRequest extends FormRequest
             'gpx_files.*' => ['file', 'mimes:gpx,xml', 'max:20480'],
             'fit_files' => ['nullable', 'array'],
             'fit_files.*' => ['file', 'extensions:fit', 'max:20480'],
+            'selected_rows' => ['nullable', 'array'],
+            'selected_rows.*' => ['integer', 'min:1'],
+            'use_selected_rows' => ['sometimes', 'boolean'],
             'autofill_weather' => ['sometimes', 'boolean'],
         ];
     }
