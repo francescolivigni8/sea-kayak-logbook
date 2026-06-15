@@ -134,6 +134,42 @@ class GarminImportTest extends TestCase
         $this->assertSame(14.5, (float) $session->air_temp_c);
     }
 
+    public function test_garmin_import_reuses_existing_session_when_external_ref_shifts(): void
+    {
+        $user = User::factory()->create();
+
+        $firstCsv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,Reykjavik Kayaking,Kayaking,8.4,01:20:00,01:25:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $firstCsv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $secondCsv = UploadedFile::fake()->createWithContent('activities-overlap.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:30,Reykjavik Kayaking duplicate,Kayaking,8.4,01:20:00,01:25:00,6,9',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $secondCsv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->sole();
+
+        $this->assertSame('Reykjavik Kayaking duplicate', $session->title);
+        $this->assertSame('garmin:2026-04-01 18:15:30', $session->external_ref);
+        $this->assertSame(8.4, (float) $session->distance_km);
+    }
+
     public function test_single_activity_garmin_csv_can_import_when_uploaded_with_gpx(): void
     {
         $user = User::factory()->create();

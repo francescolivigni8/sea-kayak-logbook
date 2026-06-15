@@ -53,13 +53,7 @@ class GarminImportService
         foreach ($rows as $row) {
             $record = $this->mapRowToRecord($row, $profile->timezone, $externalRefs);
 
-            $session = PaddleSession::updateOrCreate(
-                [
-                    'profile_id' => $profile->id,
-                    'external_ref' => $record['external_ref'],
-                ],
-                $record
-            );
+            $session = $this->upsertImportedSession($profile, $record);
 
             $sessions->push($session->fresh());
         }
@@ -343,38 +337,33 @@ class GarminImportService
         $location = $this->inferLocation($trackSummary['trackName'] ?? null);
         $title = $this->inferSingleActivityTitle($distanceKm, $movingMinutes, $trackSummary['trackName'] ?? null);
 
-        $session = PaddleSession::updateOrCreate(
-            [
-                'profile_id' => $profile->id,
-                'external_ref' => 'garmin:single:'.($startAt?->format('Y-m-d H:i:s') ?? $dateText),
-            ],
-            [
-                'session_date' => $dateText,
-                'start_at' => $startAt?->toDateTimeString(),
-                'timezone' => $profile->timezone,
-                'title' => $title,
-                'area_name' => $location['area_name'],
-                'launch_name' => $location['launch_name'],
-                'landing_name' => $location['landing_name'],
-                'route_category' => $this->inferCategory($distanceKm, $movingMinutes),
-                'body_of_water' => 'sea',
-                'distance_km' => $distanceKm > 0 ? $distanceKm : ($trackSummary['distanceKm'] ?? 0.0),
-                'duration_minutes' => $elapsedMinutes > 0 ? $elapsedMinutes : (int) ($trackSummary['durationMinutes'] ?? 0),
-                'moving_minutes' => $movingMinutes > 0 ? $movingMinutes : (($trackSummary['movingMinutes'] ?? 0) ?: null),
-                'air_temp_c' => $this->parseAverageTemperature($summaryRow),
-                'visibility_code' => 'good',
-                'route_tags' => $this->genericImportTags($dateText),
-                'route_summary' => 'Imported from a Garmin single-activity export. Review the title and notes after import.',
-                'notes_private' => 'Imported from Garmin activity CSV.',
-                'is_public' => false,
-                'conditions_logged' => false,
-                'development_logged' => false,
-                'successful_rolls_count' => 0,
-                'wet_exits_count' => 0,
-                'tow_rescues_count' => 0,
-                'is_expedition' => false,
-            ],
-        );
+        $session = $this->upsertImportedSession($profile, [
+            'external_ref' => 'garmin:single:'.($startAt?->format('Y-m-d H:i:s') ?? $dateText),
+            'session_date' => $dateText,
+            'start_at' => $startAt?->toDateTimeString(),
+            'timezone' => $profile->timezone,
+            'title' => $title,
+            'area_name' => $location['area_name'],
+            'launch_name' => $location['launch_name'],
+            'landing_name' => $location['landing_name'],
+            'route_category' => $this->inferCategory($distanceKm, $movingMinutes),
+            'body_of_water' => 'sea',
+            'distance_km' => $distanceKm > 0 ? $distanceKm : ($trackSummary['distanceKm'] ?? 0.0),
+            'duration_minutes' => $elapsedMinutes > 0 ? $elapsedMinutes : (int) ($trackSummary['durationMinutes'] ?? 0),
+            'moving_minutes' => $movingMinutes > 0 ? $movingMinutes : (($trackSummary['movingMinutes'] ?? 0) ?: null),
+            'air_temp_c' => $this->parseAverageTemperature($summaryRow),
+            'visibility_code' => 'good',
+            'route_tags' => $this->genericImportTags($dateText),
+            'route_summary' => 'Imported from a Garmin single-activity export. Review the title and notes after import.',
+            'notes_private' => 'Imported from Garmin activity CSV.',
+            'is_public' => false,
+            'conditions_logged' => false,
+            'development_logged' => false,
+            'successful_rolls_count' => 0,
+            'wet_exits_count' => 0,
+            'tow_rescues_count' => 0,
+            'is_expedition' => false,
+        ]);
 
         $sessions = collect([$session->fresh()]);
 
@@ -478,6 +467,73 @@ class GarminImportService
             'unmatched' => $unmatched,
             'matchedIds' => $matchedIds,
         ];
+    }
+
+    private function upsertImportedSession(Profile $profile, array $record): PaddleSession
+    {
+        $session = $this->findExistingImportedSession($profile, $record) ?? new PaddleSession([
+            'profile_id' => $profile->id,
+        ]);
+
+        $session->fill($record);
+        $session->profile_id = $profile->id;
+        $session->save();
+
+        return $session;
+    }
+
+    private function findExistingImportedSession(Profile $profile, array $record): ?PaddleSession
+    {
+        $externalRef = (string) ($record['external_ref'] ?? '');
+
+        if ($externalRef !== '') {
+            $matchedByRef = $profile->sessions()
+                ->where('external_ref', $externalRef)
+                ->first();
+
+            if ($matchedByRef) {
+                return $matchedByRef;
+            }
+        }
+
+        $sessionDate = (string) ($record['session_date'] ?? '');
+
+        if ($sessionDate === '') {
+            return null;
+        }
+
+        $incomingStart = $this->normalizeDateTimeForMatch($record['start_at'] ?? null);
+        $incomingDistance = round((float) ($record['distance_km'] ?? 0), 2);
+        $incomingDuration = (int) ($record['duration_minutes'] ?? 0);
+
+        return $profile->sessions()
+            ->whereDate('session_date', $sessionDate)
+            ->get()
+            ->first(function (PaddleSession $session) use ($incomingStart, $incomingDistance, $incomingDuration): bool {
+                if (! $this->sameMinute($session->start_at?->toDateTimeString(), $incomingStart)) {
+                    return false;
+                }
+
+                $sameDistance = abs(round((float) $session->distance_km, 2) - $incomingDistance) <= 0.05;
+                $sameDuration = abs((int) $session->duration_minutes - $incomingDuration) <= 2;
+
+                return $sameDistance && $sameDuration;
+            });
+    }
+
+    private function normalizeDateTimeForMatch(mixed $value): ?string
+    {
+        if ($value instanceof Carbon) {
+            return $value->toDateTimeString();
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value)->toDateTimeString();
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : null;
     }
 
     private function attachFitFiles(Profile $profile, Collection $sessions, string $fitDirectory): array
