@@ -68,6 +68,11 @@ class Profile extends Model
         return $this->hasMany(FeedbackReport::class);
     }
 
+    public function importBatches(): HasMany
+    {
+        return $this->hasMany(ImportBatch::class);
+    }
+
     public function requiresSetup(): bool
     {
         $settings = $this->settings ?? [];

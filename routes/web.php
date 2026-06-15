@@ -6,6 +6,7 @@ use App\Http\Controllers\ExpeditionPlaceController;
 use App\Http\Controllers\FeedbackInsightsController;
 use App\Http\Controllers\GarminImportController;
 use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\ImportBatchController;
 use App\Http\Controllers\JournalNotesController;
 use App\Http\Controllers\LegalAcceptanceController;
 use App\Http\Controllers\PaddleSessionController;
@@ -58,6 +59,24 @@ Route::middleware(array_filter([
     Route::get('observations', [JournalNotesController::class, 'observations'])->name('observations');
     Route::get('expedition-notes', [JournalNotesController::class, 'expeditionNotes'])->name('expedition-notes');
     Route::get('imports/garmin', [GarminImportController::class, 'create'])->name('imports.garmin.create');
+    Route::get('imports/history', [ImportBatchController::class, 'index'])->name('imports.history');
+    Route::post('imports/history/{batch}/undo', [ImportBatchController::class, 'undo'])
+        ->middleware('throttle:6,1')
+        ->name('imports.history.undo');
+    Route::post('imports/maintenance/merge-duplicates', [ImportBatchController::class, 'mergeDuplicates'])
+        ->middleware('throttle:6,1')
+        ->name('imports.maintenance.merge-duplicates');
+    Route::post('imports/maintenance/delete-csv-only', [ImportBatchController::class, 'deleteCsvOnly'])
+        ->middleware('throttle:6,1')
+        ->name('imports.maintenance.delete-csv-only');
+    Route::get('imports/export', [ImportBatchController::class, 'export'])
+        ->name('imports.export');
+    Route::post('imports/garmin/preview', [GarminImportController::class, 'preview'])
+        ->middleware('throttle:12,1')
+        ->name('imports.garmin.preview');
+    Route::post('imports/garmin/tracks-preview', [GarminImportController::class, 'previewTracks'])
+        ->middleware('throttle:12,1')
+        ->name('imports.garmin.tracks-preview');
     Route::post('imports/garmin', [GarminImportController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('imports.garmin.store');

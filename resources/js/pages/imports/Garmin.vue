@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useUnitPreferences } from '@/composables/useUnitPreferences';
 import { formatDistanceKm } from '@/lib/units';
@@ -26,9 +26,35 @@ type PreviewActivity = {
     row: number;
     date: string;
     title: string;
-    activityType: string;
-    distance: string;
-    duration: string;
+    distanceKm: number;
+    durationMinutes: number;
+    status: 'new' | 'update';
+    match: null | {
+        id: number;
+        title: string;
+        date: string | null;
+        distanceKm: number;
+        durationMinutes: number;
+        hasGpx: boolean;
+        hasFit: boolean;
+        hasRoute: boolean;
+    };
+};
+
+type TrackPreview = {
+    type: 'gpx' | 'fit';
+    fileName: string;
+    status: 'matched' | 'unmatched' | 'unreadable';
+    startAt: string | null;
+    distanceKm: number | null;
+    durationMinutes: number | null;
+    match: null | {
+        id: number;
+        title: string;
+        date: string | null;
+        distanceKm: number;
+        durationMinutes: number;
+    };
 };
 
 const form = useForm({
@@ -42,6 +68,10 @@ const form = useForm({
 
 const previewActivities = ref<PreviewActivity[]>([]);
 const previewError = ref('');
+const previewLoading = ref(false);
+const trackPreviews = ref<TrackPreview[]>([]);
+const trackPreviewError = ref('');
+const trackPreviewLoading = ref(false);
 const selectedGpxCount = computed(() => form.gpx_files.length);
 const selectedFitCount = computed(() => form.fit_files.length);
 const selectedActivityCount = computed(() => form.selected_rows.length);
@@ -87,8 +117,10 @@ async function assignCsv(event: Event) {
         return;
     }
 
+    previewLoading.value = true;
+
     try {
-        previewActivities.value = parseActivitiesCsv(await form.csv_file.text());
+        previewActivities.value = await previewCsv(form.csv_file);
         form.selected_rows = previewActivities.value.map((activity) => activity.row);
 
         if (previewActivities.value.length === 0) {
@@ -96,17 +128,21 @@ async function assignCsv(event: Event) {
         }
     } catch {
         previewError.value = 'This CSV could not be previewed.';
+    } finally {
+        previewLoading.value = false;
     }
 }
 
 function assignGpx(event: Event) {
     const target = event.target as HTMLInputElement;
     form.gpx_files = Array.from(target.files ?? []);
+    refreshTrackPreview();
 }
 
 function assignFit(event: Event) {
     const target = event.target as HTMLInputElement;
     form.fit_files = Array.from(target.files ?? []);
+    refreshTrackPreview();
 }
 
 function submit() {
@@ -122,112 +158,75 @@ function toggleAllActivities() {
         : previewActivities.value.map((activity) => activity.row);
 }
 
-function parseActivitiesCsv(contents: string): PreviewActivity[] {
-    const lines = contents
-        .replace(/^\uFEFF/, '')
-        .split(/\r?\n/)
-        .filter((line) => line.trim() !== '');
+async function previewCsv(file: File): Promise<PreviewActivity[]> {
+    const data = new FormData();
+    data.append('csv_file', file);
 
-    if (lines.length < 2) {
-        return [];
+    const response = await fetch('/imports/garmin/preview', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN':
+                document
+                    .querySelector('meta[name="csrf-token"]')
+                    ?.getAttribute('content') ?? '',
+        },
+        body: data,
+    });
+
+    if (!response.ok) {
+        throw new Error('Preview failed');
     }
 
-    const delimiter = detectDelimiter(lines[0]);
-    const header = parseCsvLine(lines[0], delimiter).map(normalizeHeader);
+    const payload = (await response.json()) as {
+        activities?: PreviewActivity[];
+    };
 
-    return lines
-        .slice(1)
-        .map((line, index) => ({
-            fields: parseCsvLine(line, delimiter),
-            row: index + 2,
-        }))
-        .map(({ fields, row }) => {
-            const value = (...names: string[]) => {
-                const headerIndex = header.findIndex((name) =>
-                    names.includes(name),
-                );
-
-                return headerIndex >= 0 ? (fields[headerIndex] ?? '') : '';
-            };
-
-            return {
-                row,
-                date: value('date', 'activity_date', 'data', 'datum', 'fecha'),
-                title:
-                    value('title', 'activity_name', 'name', 'titolo', 'nome') ||
-                    'Kayaking',
-                activityType: value(
-                    'activity_type',
-                    'type',
-                    'tipo_attivita',
-                    'tipo_de_actividad',
-                    'type_d_activite',
-                ),
-                distance: value('distance', 'distanza', 'distancia', 'distanz'),
-                duration: value(
-                    'elapsed_time',
-                    'time',
-                    'tempo_trascorso',
-                    'durata',
-                ),
-            };
-        })
-        .filter(
-            (activity) =>
-                activity.date !== '' &&
-                activity.activityType.toLowerCase().includes('kayak'),
-        );
+    return payload.activities ?? [];
 }
 
-function detectDelimiter(line: string) {
-    return [',', ';', '\t'].sort(
-        (left, right) =>
-            parseCsvLine(line, right).length - parseCsvLine(line, left).length,
-    )[0];
-}
+async function refreshTrackPreview() {
+    trackPreviews.value = [];
+    trackPreviewError.value = '';
 
-function parseCsvLine(line: string, delimiter: string) {
-    const fields: string[] = [];
-    let field = '';
-    let quoted = false;
-
-    for (let index = 0; index < line.length; index += 1) {
-        const character = line[index];
-        const next = line[index + 1];
-
-        if (character === '"' && quoted && next === '"') {
-            field += '"';
-            index += 1;
-            continue;
-        }
-
-        if (character === '"') {
-            quoted = !quoted;
-            continue;
-        }
-
-        if (character === delimiter && !quoted) {
-            fields.push(field.trim());
-            field = '';
-            continue;
-        }
-
-        field += character;
+    if (form.gpx_files.length === 0 && form.fit_files.length === 0) {
+        return;
     }
 
-    fields.push(field.trim());
+    trackPreviewLoading.value = true;
 
-    return fields;
-}
+    try {
+        const data = new FormData();
+        form.gpx_files.forEach((file) => data.append('gpx_files[]', file));
+        form.fit_files.forEach((file) => data.append('fit_files[]', file));
 
-function normalizeHeader(value: string) {
-    return value
-        .trim()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '');
+        const response = await fetch('/imports/garmin/tracks-preview', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') ?? '',
+            },
+            body: data,
+        });
+
+        if (!response.ok) {
+            throw new Error('Track preview failed');
+        }
+
+        const payload = (await response.json()) as {
+            tracks?: TrackPreview[];
+        };
+        trackPreviews.value = payload.tracks ?? [];
+    } catch {
+        trackPreviewError.value = 'Route files could not be previewed.';
+    } finally {
+        trackPreviewLoading.value = false;
+    }
 }
 </script>
 
@@ -256,6 +255,9 @@ function normalizeHeader(value: string) {
                 </div>
 
                 <div class="flex flex-wrap gap-2">
+                    <Link href="/imports/history" class="journal-utility-link">
+                        Import history
+                    </Link>
                     <span
                         v-for="pill in metaPills"
                         :key="pill"
@@ -389,6 +391,13 @@ function normalizeHeader(value: string) {
                                 {{ previewError }}
                             </p>
 
+                            <p
+                                v-else-if="previewLoading"
+                                class="journal-banner journal-banner--soft text-sm"
+                            >
+                                Reading CSV and checking existing sessions...
+                            </p>
+
                             <div
                                 v-else
                                 class="max-h-[420px] overflow-auto rounded-[18px] border border-[color:var(--journal-line)] bg-white"
@@ -405,6 +414,7 @@ function normalizeHeader(value: string) {
                                             </th>
                                             <th class="px-3 py-3">Date</th>
                                             <th class="px-3 py-3">Activity</th>
+                                            <th class="px-3 py-3">Status</th>
                                             <th class="px-3 py-3">Distance</th>
                                             <th class="px-3 py-3">Duration</th>
                                         </tr>
@@ -433,15 +443,58 @@ function normalizeHeader(value: string) {
                                             >
                                                 {{ activity.title }}
                                             </td>
-                                            <td
-                                                class="whitespace-nowrap px-3 py-3 align-top text-[color:var(--journal-muted)]"
-                                            >
-                                                {{ activity.distance }}
+                                            <td class="px-3 py-3 align-top">
+                                                <span
+                                                    class="journal-chip"
+                                                    :class="
+                                                        activity.status ===
+                                                        'update'
+                                                            ? 'journal-chip--primary'
+                                                            : ''
+                                                    "
+                                                >
+                                                    {{
+                                                        activity.status ===
+                                                        'update'
+                                                            ? activity.match
+                                                                  ?.hasRoute
+                                                                ? 'Updates route session'
+                                                                : 'Updates existing'
+                                                            : 'New'
+                                                    }}
+                                                </span>
+                                                <p
+                                                    v-if="activity.match"
+                                                    class="mt-1 max-w-[240px] text-xs leading-5 text-[color:var(--journal-muted)]"
+                                                >
+                                                    {{ activity.match.title }}
+                                                    <template
+                                                        v-if="
+                                                            activity.match
+                                                                .hasGpx
+                                                        "
+                                                    >
+                                                        · GPX kept</template
+                                                    >
+                                                    <template
+                                                        v-if="
+                                                            activity.match
+                                                                .hasFit
+                                                        "
+                                                    >
+                                                        · FIT kept</template
+                                                    >
+                                                </p>
                                             </td>
                                             <td
                                                 class="whitespace-nowrap px-3 py-3 align-top text-[color:var(--journal-muted)]"
                                             >
-                                                {{ activity.duration }}
+                                                {{ activity.distanceKm }} km
+                                            </td>
+                                            <td
+                                                class="whitespace-nowrap px-3 py-3 align-top text-[color:var(--journal-muted)]"
+                                            >
+                                                {{ activity.durationMinutes }}m
                                             </td>
                                         </tr>
                                     </tbody>
@@ -506,6 +559,109 @@ function normalizeHeader(value: string) {
                                 />
                             </article>
                         </div>
+
+                        <article
+                            v-if="
+                                trackPreviewLoading ||
+                                trackPreviewError ||
+                                trackPreviews.length > 0
+                            "
+                            class="journal-soft-card grid gap-4"
+                        >
+                            <div>
+                                <p class="journal-field-label">
+                                    GPX / FIT match preview
+                                </p>
+                                <p
+                                    class="mt-1 text-sm text-[color:var(--journal-muted)]"
+                                >
+                                    Check which existing sessions the route
+                                    files will attach to before submitting.
+                                </p>
+                            </div>
+
+                            <p
+                                v-if="trackPreviewLoading"
+                                class="journal-banner journal-banner--soft text-sm"
+                            >
+                                Reading route files and checking session
+                                matches...
+                            </p>
+                            <p
+                                v-else-if="trackPreviewError"
+                                class="journal-banner journal-banner--soft text-sm"
+                            >
+                                {{ trackPreviewError }}
+                            </p>
+                            <div
+                                v-else
+                                class="overflow-auto rounded-[18px] border border-[color:var(--journal-line)] bg-white"
+                            >
+                                <table class="min-w-full text-left text-sm">
+                                    <thead
+                                        class="bg-[color:var(--journal-soft)] text-xs font-semibold tracking-[0.14em] text-[color:var(--journal-faint)] uppercase"
+                                    >
+                                        <tr>
+                                            <th class="px-3 py-3">File</th>
+                                            <th class="px-3 py-3">Status</th>
+                                            <th class="px-3 py-3">Track</th>
+                                            <th class="px-3 py-3">Session</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr
+                                            v-for="track in trackPreviews"
+                                            :key="`${track.type}-${track.fileName}`"
+                                            class="border-t border-[color:var(--journal-line)]"
+                                        >
+                                            <td class="min-w-[220px] px-3 py-3">
+                                                {{ track.fileName }}
+                                            </td>
+                                            <td class="px-3 py-3">
+                                                <span
+                                                    class="journal-chip"
+                                                    :class="
+                                                        track.status ===
+                                                        'matched'
+                                                            ? 'journal-chip--primary'
+                                                            : ''
+                                                    "
+                                                >
+                                                    {{ track.status }}
+                                                </span>
+                                            </td>
+                                            <td
+                                                class="whitespace-nowrap px-3 py-3 text-[color:var(--journal-muted)]"
+                                            >
+                                                {{
+                                                    track.distanceKm === null
+                                                        ? '-'
+                                                        : `${track.distanceKm} km`
+                                                }}
+                                                ·
+                                                {{
+                                                    track.durationMinutes ===
+                                                    null
+                                                        ? '-'
+                                                        : `${track.durationMinutes}m`
+                                                }}
+                                            </td>
+                                            <td
+                                                class="min-w-[220px] px-3 py-3 text-[color:var(--journal-muted)]"
+                                            >
+                                                <template v-if="track.match">
+                                                    {{ track.match.date }} ·
+                                                    {{ track.match.title }}
+                                                </template>
+                                                <template v-else>
+                                                    No confident match
+                                                </template>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
                     </div>
                 </div>
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ImportBatch;
 use App\Models\PaddleSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -167,6 +168,75 @@ class GarminImportTest extends TestCase
             'profile_id' => $profile->id,
             'title' => 'Skipped paddle',
         ]);
+    }
+
+    public function test_garmin_import_preview_flags_existing_sessions(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        PaddleSession::query()->create([
+            'profile_id' => $profile->id,
+            'session_date' => '2026-04-01',
+            'start_at' => '2026-04-01 18:00:00',
+            'title' => 'Existing route session',
+            'distance_km' => 8.4,
+            'duration_minutes' => 70,
+            'route_category' => 'training',
+            'route_points' => '[{"lat":64.1,"lng":-21.9}]',
+            'route_profile' => [['distance' => 0, 'elevation' => 0]],
+            'garmin_gpx_name' => 'existing.gpx',
+            'gpx_path' => 'gpx/imported/existing.gpx',
+        ]);
+
+        $csv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,Existing update,Kayaking,8.4,01:20:00,01:25:00,5,8',
+            '2026-04-02 18:15:00,Brand new,Kayaking,6.2,01:00:00,01:08:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.preview'), [
+                'csv_file' => $csv,
+            ])
+            ->assertOk()
+            ->assertJsonPath('activities.0.status', 'update')
+            ->assertJsonPath('activities.0.match.hasGpx', true)
+            ->assertJsonPath('activities.1.status', 'new');
+    }
+
+    public function test_garmin_import_records_history_and_can_be_undone(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = UploadedFile::fake()->createWithContent('activities.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:00,First paddle,Kayaking,8.4,01:20:00,01:25:00,5,8',
+            '2026-04-02 18:15:00,Second paddle,Kayaking,6.2,01:00:00,01:08:00,5,8',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+                'use_selected_rows' => true,
+                'selected_rows' => [2, 3],
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $profile = $user->resolveActiveProfile();
+        $batch = ImportBatch::query()->with('items')->sole();
+
+        $this->assertSame($profile->id, $batch->profile_id);
+        $this->assertSame(2, $batch->created_count);
+        $this->assertSame(2, $batch->items->count());
+        $this->assertSame(2, PaddleSession::query()->where('profile_id', $profile->id)->count());
+
+        $this->actingAs($user)
+            ->post(route('imports.history.undo', $batch))
+            ->assertRedirect();
+
+        $this->assertSame(0, PaddleSession::query()->where('profile_id', $profile->id)->count());
+        $this->assertNotNull($batch->fresh()->undone_at);
     }
 
     public function test_garmin_import_reuses_existing_session_when_external_ref_shifts(): void

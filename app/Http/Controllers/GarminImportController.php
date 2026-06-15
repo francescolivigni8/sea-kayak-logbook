@@ -7,6 +7,7 @@ use App\Support\GarminImportService;
 use App\Support\ProfileViewData;
 use App\Support\StormglassWeatherService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -76,6 +77,8 @@ class GarminImportController extends Controller
                     $fitDirectory ? $disk->path($fitDirectory) : null,
                     $request->boolean('autofill_weather'),
                     $selectedRows,
+                    $request->user(),
+                    $csvFile?->getClientOriginalName(),
                 )
                 : $importService->attachTracksToExisting(
                     $profile,
@@ -111,5 +114,65 @@ class GarminImportController extends Controller
         return redirect()
             ->route('sessions.index')
             ->with('success', $message);
+    }
+
+    public function preview(Request $request, GarminImportService $importService): JsonResponse
+    {
+        $validated = $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:20480'],
+        ]);
+
+        $profile = $request->user()->resolveActiveProfile();
+        $disk = Storage::disk('local');
+        $baseDirectory = 'imports/'.$profile->slug.'/preview-'.Str::uuid();
+        $csvFile = $validated['csv_file'];
+
+        try {
+            $csvPath = $csvFile->storeAs($baseDirectory, $csvFile->getClientOriginalName(), 'local');
+
+            return response()->json(
+                $importService->previewActivities($profile, $disk->path($csvPath)),
+            );
+        } finally {
+            $disk->deleteDirectory($baseDirectory);
+        }
+    }
+
+    public function previewTracks(Request $request, GarminImportService $importService): JsonResponse
+    {
+        $validated = $request->validate([
+            'gpx_files' => ['nullable', 'array'],
+            'gpx_files.*' => ['file', 'mimes:gpx,xml', 'max:20480'],
+            'fit_files' => ['nullable', 'array'],
+            'fit_files.*' => ['file', 'extensions:fit', 'max:20480'],
+        ]);
+
+        $profile = $request->user()->resolveActiveProfile();
+        $disk = Storage::disk('local');
+        $baseDirectory = 'imports/'.$profile->slug.'/track-preview-'.Str::uuid();
+
+        try {
+            $gpxDirectory = null;
+            foreach ($request->file('gpx_files', []) as $file) {
+                $gpxDirectory ??= $baseDirectory.'/gpx';
+                $file->storeAs($gpxDirectory, $file->getClientOriginalName(), 'local');
+            }
+
+            $fitDirectory = null;
+            foreach ($request->file('fit_files', []) as $file) {
+                $fitDirectory ??= $baseDirectory.'/fit';
+                $file->storeAs($fitDirectory, $file->getClientOriginalName(), 'local');
+            }
+
+            return response()->json(
+                $importService->previewTracks(
+                    $profile,
+                    $gpxDirectory ? $disk->path($gpxDirectory) : null,
+                    $fitDirectory ? $disk->path($fitDirectory) : null,
+                ),
+            );
+        } finally {
+            $disk->deleteDirectory($baseDirectory);
+        }
     }
 }

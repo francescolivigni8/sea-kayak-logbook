@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PaddleSession extends Model
 {
@@ -14,6 +15,7 @@ class PaddleSession extends Model
     protected $fillable = [
         'profile_id',
         'recorded_by_user_id',
+        'import_batch_id',
         'external_ref',
         'session_date',
         'start_at',
@@ -119,6 +121,16 @@ class PaddleSession extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_user_id');
+    }
+
+    public function importBatch(): BelongsTo
+    {
+        return $this->belongsTo(ImportBatch::class);
+    }
+
+    public function importBatchItems(): HasMany
+    {
+        return $this->hasMany(ImportBatchItem::class);
     }
 
     public function categories(): BelongsToMany

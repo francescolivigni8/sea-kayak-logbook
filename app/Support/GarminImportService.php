@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\ImportBatch;
 use App\Models\PaddleSession;
 use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +30,8 @@ class GarminImportService
         ?string $fitDirectory = null,
         bool $autofillWeather = false,
         array $selectedRows = [],
+        ?User $user = null,
+        ?string $fileName = null,
     ): array
     {
         $parsedCsv = $this->parseCsvFile($csvPath);
@@ -66,13 +70,23 @@ class GarminImportService
             ]);
         }
 
+        $batch = ImportBatch::query()->create([
+            'profile_id' => $profile->id,
+            'user_id' => $user?->id,
+            'kind' => 'garmin_csv',
+            'file_name' => $fileName,
+            'rows_count' => count($parsedCsv['rows']),
+            'selected_count' => $rows->count(),
+            'status' => 'running',
+        ]);
+
         $externalRefs = [];
         $sessions = collect();
 
         foreach ($rows as $row) {
             $record = $this->mapRowToRecord($row, $profile->timezone, $externalRefs);
 
-            $session = $this->upsertImportedSession($profile, $record);
+            $session = $this->upsertImportedSession($profile, $record, $batch, (int) ($row['__csv_row'] ?? 0));
 
             $sessions->push($session->fresh());
         }
@@ -112,8 +126,26 @@ class GarminImportService
             $weatherSummary = $this->stormglassWeather->enrichSessions($sessions);
         }
 
+        $batch->forceFill([
+            'status' => 'finished',
+            'created_count' => $batch->items()->where('action', 'created')->count(),
+            'updated_count' => $batch->items()->where('action', 'updated')->count(),
+            'skipped_count' => 0,
+            'summary' => [
+                'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
+                'gpxMatched' => $gpxSummary['matched'],
+                'gpxUnmatched' => $gpxSummary['unmatched'],
+                'fitMatched' => $fitSummary['matched'],
+                'fitUnmatched' => $fitSummary['unmatched'],
+                'weatherFilled' => $weatherSummary['filled'],
+                'weatherSkipped' => $weatherSummary['skipped'],
+                'weatherFailed' => $weatherSummary['failed'],
+            ],
+        ])->save();
+
         return [
             'imported' => $sessions->count(),
+            'batchId' => $batch->id,
             'distanceKm' => round((float) $sessions->sum('distance_km'), 1),
             'profile' => $profile->name,
             'gpxMatched' => $gpxSummary['matched'],
@@ -186,6 +218,112 @@ class GarminImportService
             'weatherFilled' => $weatherSummary['filled'],
             'weatherSkipped' => $weatherSummary['skipped'],
             'weatherFailed' => $weatherSummary['failed'],
+        ];
+    }
+
+    public function previewActivities(Profile $profile, string $csvPath): array
+    {
+        $parsedCsv = $this->parseCsvFile($csvPath);
+
+        if ($parsedCsv['shape'] === 'single_activity_summary') {
+            return [
+                'shape' => 'single_activity_summary',
+                'activities' => [],
+            ];
+        }
+
+        $externalRefs = [];
+
+        $activities = collect($parsedCsv['rows'])
+            ->filter(fn (array $row) => $this->isKayakingRow($row))
+            ->filter(fn (array $row) => $this->field($row, 'date', 'activity_date', 'data', 'datum', 'fecha') !== '')
+            ->map(function (array $row) use ($profile, &$externalRefs): array {
+                $record = $this->mapRowToRecord($row, $profile->timezone, $externalRefs);
+                $match = $this->findExistingImportedSession($profile, $record);
+
+                return [
+                    'row' => (int) ($row['__csv_row'] ?? 0),
+                    'date' => (string) $record['session_date'],
+                    'startAt' => $record['start_at']?->toDateTimeString(),
+                    'title' => (string) $record['title'],
+                    'distanceKm' => round((float) $record['distance_km'], 2),
+                    'durationMinutes' => (int) $record['duration_minutes'],
+                    'externalRef' => (string) $record['external_ref'],
+                    'status' => $match ? 'update' : 'new',
+                    'match' => $match ? [
+                        'id' => $match->id,
+                        'title' => $match->title,
+                        'date' => $match->session_date?->toDateString(),
+                        'distanceKm' => round((float) $match->distance_km, 2),
+                        'durationMinutes' => (int) $match->duration_minutes,
+                        'hasGpx' => filled($match->garmin_gpx_name) || filled($match->gpx_path),
+                        'hasFit' => filled($match->garmin_fit_name) || filled($match->fit_path),
+                        'hasRoute' => filled($match->route_points) || (is_array($match->route_profile) && count($match->route_profile) > 1),
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        return [
+            'shape' => 'activities_export',
+            'activities' => $activities->all(),
+        ];
+    }
+
+    public function previewTracks(Profile $profile, ?string $gpxDirectory = null, ?string $fitDirectory = null): array
+    {
+        $sessions = $profile->sessions()
+            ->orderBy('session_date')
+            ->orderBy('start_at')
+            ->get();
+
+        $tracks = collect();
+
+        if ($gpxDirectory && is_dir($gpxDirectory)) {
+            collect(scandir($gpxDirectory) ?: [])
+                ->filter(fn (string $file): bool => str_ends_with(strtolower($file), '.gpx'))
+                ->each(function (string $file) use ($gpxDirectory, $sessions, $tracks): void {
+                    $path = rtrim($gpxDirectory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$file;
+                    $summary = $this->gpxTrackService->parseFile($path);
+                    $match = $summary ? $this->matchSession($sessions, $summary, $summary['metadataTime'] ?? null) : null;
+
+                    $tracks->push($this->previewTrackRow('gpx', $file, $summary, $match));
+                });
+        }
+
+        if ($fitDirectory && is_dir($fitDirectory)) {
+            collect(scandir($fitDirectory) ?: [])
+                ->filter(fn (string $file): bool => str_ends_with(strtolower($file), '.fit'))
+                ->each(function (string $file) use ($fitDirectory, $sessions, $tracks): void {
+                    $path = rtrim($fitDirectory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$file;
+                    $summary = $this->fitTrackService->parseFile($path);
+                    $match = $summary ? $this->matchSession($sessions, $summary, null) : null;
+
+                    $tracks->push($this->previewTrackRow('fit', $file, $summary, $match));
+                });
+        }
+
+        return [
+            'tracks' => $tracks->values()->all(),
+        ];
+    }
+
+    private function previewTrackRow(string $type, string $file, ?array $summary, ?PaddleSession $match): array
+    {
+        return [
+            'type' => $type,
+            'fileName' => $file,
+            'status' => $summary ? ($match ? 'matched' : 'unmatched') : 'unreadable',
+            'startAt' => $summary['startAt'] ?? null,
+            'distanceKm' => isset($summary['distanceKm']) ? round((float) $summary['distanceKm'], 2) : null,
+            'durationMinutes' => isset($summary['durationMinutes']) ? (int) $summary['durationMinutes'] : null,
+            'match' => $match ? [
+                'id' => $match->id,
+                'title' => $match->title,
+                'date' => $match->session_date?->toDateString(),
+                'distanceKm' => round((float) $match->distance_km, 2),
+                'durationMinutes' => (int) $match->duration_minutes,
+            ] : null,
         ];
     }
 
@@ -493,17 +631,43 @@ class GarminImportService
         ];
     }
 
-    private function upsertImportedSession(Profile $profile, array $record): PaddleSession
+    private function upsertImportedSession(Profile $profile, array $record, ?ImportBatch $batch = null, ?int $csvRow = null): PaddleSession
     {
-        $session = $this->findExistingImportedSession($profile, $record) ?? new PaddleSession([
+        $matchedSession = $this->findExistingImportedSession($profile, $record);
+        $beforeSnapshot = $matchedSession ? $this->snapshotSession($matchedSession) : null;
+
+        $session = $matchedSession ?? new PaddleSession([
             'profile_id' => $profile->id,
         ]);
 
         $session->fill($record);
         $session->profile_id = $profile->id;
+        $session->import_batch_id = $batch?->id ?? $session->import_batch_id;
         $session->save();
 
+        if ($batch) {
+            $batch->items()->create([
+                'paddle_session_id' => $session->id,
+                'csv_row' => $csvRow,
+                'action' => $matchedSession ? 'updated' : 'created',
+                'external_ref' => $session->external_ref,
+                'session_date' => $session->session_date,
+                'title' => $session->title,
+                'distance_km' => $session->distance_km,
+                'duration_minutes' => $session->duration_minutes,
+                'before_snapshot' => $beforeSnapshot,
+                'after_snapshot' => $this->snapshotSession($session),
+            ]);
+        }
+
         return $session;
+    }
+
+    private function snapshotSession(PaddleSession $session): array
+    {
+        return collect($session->getAttributes())
+            ->except(['created_at', 'updated_at'])
+            ->all();
     }
 
     private function findExistingImportedSession(Profile $profile, array $record): ?PaddleSession
