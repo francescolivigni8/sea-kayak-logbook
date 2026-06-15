@@ -509,15 +509,12 @@ class GarminImportService
         $matches = $profile->sessions()
             ->whereDate('session_date', $sessionDate)
             ->get()
-            ->filter(function (PaddleSession $session) use ($incomingDistance, $incomingDuration): bool {
-                if ($incomingDistance <= 0 || $incomingDuration <= 0) {
+            ->filter(function (PaddleSession $session) use ($incomingDistance): bool {
+                if ($incomingDistance <= 0) {
                     return false;
                 }
 
-                $sameDistance = abs(round((float) $session->distance_km, 2) - $incomingDistance) <= 0.05;
-                $sameDuration = abs((int) $session->duration_minutes - $incomingDuration) <= 2;
-
-                return $sameDistance && $sameDuration;
+                return abs(round((float) $session->distance_km, 2) - $incomingDistance) <= 0.15;
             })
             ->values();
 
@@ -538,13 +535,16 @@ class GarminImportService
         }
 
         return $matches
-            ->sortByDesc(fn (PaddleSession $session): int => $this->sessionImportMatchScore($session))
+            ->sortByDesc(
+                fn (PaddleSession $session): int => $this->sessionImportMatchScore($session, $incomingDuration),
+            )
             ->first();
     }
 
-    private function sessionImportMatchScore(PaddleSession $session): int
+    private function sessionImportMatchScore(PaddleSession $session, int $incomingDuration = 0): int
     {
         return 0
+            + ($incomingDuration > 0 && abs((int) $session->duration_minutes - $incomingDuration) <= 2 ? 200 : 0)
             + (filled($session->route_points) ? 100 : 0)
             + (filled($session->garmin_gpx_name) ? 50 : 0)
             + (filled($session->route_profile) && $session->route_profile !== [] ? 25 : 0)
