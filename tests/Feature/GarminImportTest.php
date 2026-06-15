@@ -170,6 +170,48 @@ class GarminImportTest extends TestCase
         $this->assertSame(8.4, (float) $session->distance_km);
     }
 
+    public function test_garmin_import_reuses_route_rich_session_when_start_time_differs(): void
+    {
+        $user = User::factory()->create();
+        $profile = $user->resolveActiveProfile();
+
+        PaddleSession::query()->create([
+            'profile_id' => $profile->id,
+            'external_ref' => 'static-backup:2026-04-01',
+            'session_date' => '2026-04-01',
+            'start_at' => '2026-04-01 17:15:00',
+            'title' => 'Recovered GPX paddle',
+            'distance_km' => 8.4,
+            'duration_minutes' => 85,
+            'moving_minutes' => 80,
+            'route_category' => 'training',
+            'route_points' => '[{"lat":64.1,"lng":-21.9}]',
+            'route_profile' => [['distance' => 0, 'elevation' => 0]],
+            'garmin_gpx_name' => 'recovered-route.gpx',
+            'gpx_path' => 'gpx/imported/recovered-route.gpx',
+        ]);
+
+        $csv = UploadedFile::fake()->createWithContent('activities-overlap.csv', implode("\n", [
+            'Date,Title,Activity Type,Distance,Moving Time,Elapsed Time,Min Temp,Max Temp',
+            '2026-04-01 18:15:30,Reykjavik Kayaking duplicate,Kayaking,8.4,01:20:00,01:25:00,6,9',
+        ]));
+
+        $this->actingAs($user)
+            ->post(route('imports.garmin.store'), [
+                'csv_file' => $csv,
+            ])
+            ->assertRedirect(route('sessions.index'));
+
+        $session = PaddleSession::query()
+            ->where('profile_id', $profile->id)
+            ->sole();
+
+        $this->assertSame('Reykjavik Kayaking duplicate', $session->title);
+        $this->assertSame('garmin:2026-04-01 18:15:30', $session->external_ref);
+        $this->assertSame('recovered-route.gpx', $session->garmin_gpx_name);
+        $this->assertSame('gpx/imported/recovered-route.gpx', $session->gpx_path);
+    }
+
     public function test_single_activity_garmin_csv_can_import_when_uploaded_with_gpx(): void
     {
         $user = User::factory()->create();

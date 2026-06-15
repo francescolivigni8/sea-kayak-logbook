@@ -506,11 +506,11 @@ class GarminImportService
         $incomingDistance = round((float) ($record['distance_km'] ?? 0), 2);
         $incomingDuration = (int) ($record['duration_minutes'] ?? 0);
 
-        return $profile->sessions()
+        $matches = $profile->sessions()
             ->whereDate('session_date', $sessionDate)
             ->get()
-            ->first(function (PaddleSession $session) use ($incomingStart, $incomingDistance, $incomingDuration): bool {
-                if (! $this->sameMinute($session->start_at?->toDateTimeString(), $incomingStart)) {
+            ->filter(function (PaddleSession $session) use ($incomingDistance, $incomingDuration): bool {
+                if ($incomingDistance <= 0 || $incomingDuration <= 0) {
                     return false;
                 }
 
@@ -518,7 +518,39 @@ class GarminImportService
                 $sameDuration = abs((int) $session->duration_minutes - $incomingDuration) <= 2;
 
                 return $sameDistance && $sameDuration;
-            });
+            })
+            ->values();
+
+        if ($matches->isEmpty()) {
+            return null;
+        }
+
+        $sameMinute = $matches->first(
+            fn (PaddleSession $session): bool => $this->sameMinute($session->start_at?->toDateTimeString(), $incomingStart),
+        );
+
+        if ($sameMinute) {
+            return $sameMinute;
+        }
+
+        if ($matches->count() === 1) {
+            return $matches->first();
+        }
+
+        return $matches
+            ->sortByDesc(fn (PaddleSession $session): int => $this->sessionImportMatchScore($session))
+            ->first();
+    }
+
+    private function sessionImportMatchScore(PaddleSession $session): int
+    {
+        return 0
+            + (filled($session->route_points) ? 100 : 0)
+            + (filled($session->garmin_gpx_name) ? 50 : 0)
+            + (filled($session->route_profile) && $session->route_profile !== [] ? 25 : 0)
+            + (filled($session->notes_private) ? 5 : 0)
+            + (filled($session->notes_public) ? 5 : 0)
+            + (filled($session->external_ref) ? 1 : 0);
     }
 
     private function normalizeDateTimeForMatch(mixed $value): ?string
