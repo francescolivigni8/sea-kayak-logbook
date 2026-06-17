@@ -113,6 +113,7 @@ let currentBaseLayer: L.TileLayer | null = null;
 let pinFeedbackTimeout: number | null = null;
 let initialViewportApplied = false;
 let mapResizeObserver: ResizeObserver | null = null;
+let previousBodyOverflow: string | null = null;
 
 const styleOptions = computed(() => mapTileStyles.value);
 
@@ -567,29 +568,41 @@ function refreshMapSize() {
 }
 
 async function toggleFullscreen() {
-    if (
-        !props.allowFullscreen ||
-        !mapShell.value ||
-        typeof document === 'undefined'
-    ) {
+    if (!props.allowFullscreen || typeof document === 'undefined') {
         return;
     }
 
-    if (document.fullscreenElement === mapShell.value) {
-        await document.exitFullscreen?.();
+    isFullscreen.value = !isFullscreen.value;
 
-        return;
+    if (isFullscreen.value) {
+        previousBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = previousBodyOverflow ?? '';
+        previousBodyOverflow = null;
     }
 
-    await mapShell.value.requestFullscreen?.();
     await nextTick();
     refreshMapSize();
 }
 
-async function handleFullscreenChange() {
-    isFullscreen.value = document.fullscreenElement === mapShell.value;
+async function exitFullscreenMap() {
+    if (!isFullscreen.value || typeof document === 'undefined') {
+        return;
+    }
+
+    isFullscreen.value = false;
+    document.body.style.overflow = previousBodyOverflow ?? '';
+    previousBodyOverflow = null;
+
     await nextTick();
     refreshMapSize();
+}
+
+function handleFullscreenKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+        exitFullscreenMap();
+    }
 }
 
 function openPath(path?: string | null) {
@@ -675,7 +688,7 @@ watch(
 
 onMounted(() => {
     initializeMap();
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('keydown', handleFullscreenKeydown);
 
     if (typeof ResizeObserver !== 'undefined' && mapShell.value) {
         mapResizeObserver = new ResizeObserver(() => refreshMapSize());
@@ -688,7 +701,10 @@ onBeforeUnmount(() => {
         window.clearTimeout(pinFeedbackTimeout);
     }
 
-    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.removeEventListener('keydown', handleFullscreenKeydown);
+    if (isFullscreen.value && typeof document !== 'undefined') {
+        document.body.style.overflow = previousBodyOverflow ?? '';
+    }
     mapResizeObserver?.disconnect();
     mapResizeObserver = null;
     map?.remove();
@@ -793,7 +809,7 @@ onBeforeUnmount(() => {
             class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
             :class="
                 isFullscreen
-                    ? 'h-screen w-screen rounded-none border-0 bg-white'
+                    ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 bg-white shadow-none'
                     : ''
             "
         >
