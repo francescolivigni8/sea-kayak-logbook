@@ -239,6 +239,17 @@ const hasGeometry = computed(
 );
 
 const legendRoutes = computed(() => filteredRoutes.value.slice(0, 10));
+const mapShellStyle = computed(() =>
+    isFullscreen.value
+        ? {
+              position: 'fixed',
+              inset: '0',
+              zIndex: '99999',
+              width: '100vw',
+              height: '100dvh',
+          }
+        : undefined,
+);
 
 function createTileLayer(style: MapStyle) {
     const config = styleOptions.value[style];
@@ -807,12 +818,13 @@ onBeforeUnmount(() => {
         <Teleport to="body" :disabled="!isFullscreen">
             <div
                 ref="mapShell"
-                class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
+                class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
                 :class="
                     isFullscreen
-                        ? 'fixed inset-0 z-[99999] h-[100dvh] w-screen rounded-none border-0 bg-white shadow-none'
-                        : ''
+                        ? 'rounded-none border-0 bg-white shadow-none'
+                        : 'relative'
                 "
+                :style="mapShellStyle"
             >
                 <div
                     ref="mapElement"
