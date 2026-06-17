@@ -330,14 +330,20 @@ function readPersistedState() {
 function switchStyle(style: MapStyle) {
     selectedStyle.value = style;
 
-    if (map && currentBaseLayer) {
-        map.removeLayer(currentBaseLayer);
+    if (map) {
+        if (currentBaseLayer) {
+            map.removeLayer(currentBaseLayer);
+        }
+
         currentBaseLayer = createTileLayer(style);
         currentBaseLayer.addTo(map);
     }
 
-    if (fullscreenMap && fullscreenBaseLayer) {
-        fullscreenMap.removeLayer(fullscreenBaseLayer);
+    if (fullscreenMap) {
+        if (fullscreenBaseLayer) {
+            fullscreenMap.removeLayer(fullscreenBaseLayer);
+        }
+
         fullscreenBaseLayer = createTileLayer(style);
         fullscreenBaseLayer.addTo(fullscreenMap);
     }
