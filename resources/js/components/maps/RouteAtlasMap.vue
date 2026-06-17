@@ -97,6 +97,7 @@ const props = withDefaults(
 
 const mapShell = ref<HTMLElement | null>(null);
 const mapElement = ref<HTMLElement | null>(null);
+const fullscreenMapElement = ref<HTMLElement | null>(null);
 const selectedStyle = ref<MapStyle>('chart');
 const selectedYear = ref<string>('all');
 const selectedKind = ref<SessionKind>('all');
@@ -110,6 +111,10 @@ let map: L.Map | null = null;
 let routeLayerGroup: L.LayerGroup | null = null;
 let pinLayerGroup: L.LayerGroup | null = null;
 let currentBaseLayer: L.TileLayer | null = null;
+let fullscreenMap: L.Map | null = null;
+let fullscreenRouteLayerGroup: L.LayerGroup | null = null;
+let fullscreenPinLayerGroup: L.LayerGroup | null = null;
+let fullscreenBaseLayer: L.TileLayer | null = null;
 let pinFeedbackTimeout: number | null = null;
 let initialViewportApplied = false;
 let mapResizeObserver: ResizeObserver | null = null;
@@ -239,15 +244,6 @@ const hasGeometry = computed(
 );
 
 const legendRoutes = computed(() => filteredRoutes.value.slice(0, 10));
-const mapShellStyle = computed(() =>
-    isFullscreen.value
-        ? {
-              width: '100vw',
-              height: '100dvh',
-              backgroundColor: '#ffffff',
-          }
-        : undefined,
-);
 
 function createTileLayer(style: MapStyle) {
     const config = styleOptions.value[style];
@@ -334,21 +330,25 @@ function readPersistedState() {
 function switchStyle(style: MapStyle) {
     selectedStyle.value = style;
 
-    if (!map) {
-        return;
-    }
-
-    if (currentBaseLayer) {
+    if (map && currentBaseLayer) {
         map.removeLayer(currentBaseLayer);
+        currentBaseLayer = createTileLayer(style);
+        currentBaseLayer.addTo(map);
     }
 
-    currentBaseLayer = createTileLayer(style);
-    currentBaseLayer.addTo(map);
+    if (fullscreenMap && fullscreenBaseLayer) {
+        fullscreenMap.removeLayer(fullscreenBaseLayer);
+        fullscreenBaseLayer = createTileLayer(style);
+        fullscreenBaseLayer.addTo(fullscreenMap);
+    }
 }
 
-function resetGeometry() {
-    routeLayerGroup?.clearLayers();
-    pinLayerGroup?.clearLayers();
+function resetGeometry(
+    targetRouteLayerGroup = routeLayerGroup,
+    targetPinLayerGroup = pinLayerGroup,
+) {
+    targetRouteLayerGroup?.clearLayers();
+    targetPinLayerGroup?.clearLayers();
 }
 
 function applyFallbackView() {
@@ -405,15 +405,20 @@ function fitMapToGeometry() {
     applyFallbackView();
 }
 
-function renderGeometry() {
-    if (!map || !routeLayerGroup || !pinLayerGroup) {
+function renderGeometry(
+    targetMap = map,
+    targetRouteLayerGroup = routeLayerGroup,
+    targetPinLayerGroup = pinLayerGroup,
+    shouldFitMap = true,
+) {
+    if (!targetMap || !targetRouteLayerGroup || !targetPinLayerGroup) {
         return;
     }
 
-    const routeLayers = routeLayerGroup;
-    const pinLayers = pinLayerGroup;
+    const routeLayers = targetRouteLayerGroup;
+    const pinLayers = targetPinLayerGroup;
 
-    resetGeometry();
+    resetGeometry(routeLayers, pinLayers);
 
     filteredRoutes.value.forEach((route) => {
         if (!route.points.length) {
@@ -524,7 +529,9 @@ function renderGeometry() {
         }
     });
 
-    fitMapToGeometry();
+    if (shouldFitMap) {
+        fitMapToGeometry();
+    }
 }
 
 function pinCurrentView() {
@@ -574,6 +581,61 @@ function refreshMapSize() {
     window.setTimeout(() => map?.invalidateSize(), 80);
     window.setTimeout(() => map?.invalidateSize(), 280);
     window.setTimeout(() => map?.invalidateSize(), 600);
+    window.setTimeout(() => fullscreenMap?.invalidateSize(), 80);
+    window.setTimeout(() => fullscreenMap?.invalidateSize(), 280);
+    window.setTimeout(() => fullscreenMap?.invalidateSize(), 600);
+}
+
+function syncFullscreenView() {
+    if (!fullscreenMap) {
+        return;
+    }
+
+    if (map) {
+        const center = map.getCenter();
+        fullscreenMap.setView(center, map.getZoom(), { animate: false });
+        return;
+    }
+
+    fullscreenMap.setView(
+        [props.defaultView.lat, props.defaultView.lng],
+        props.defaultView.zoom,
+        { animate: false },
+    );
+}
+
+async function initializeFullscreenMap() {
+    await nextTick();
+
+    if (!fullscreenMapElement.value || fullscreenMap) {
+        return;
+    }
+
+    fullscreenMap = L.map(fullscreenMapElement.value, {
+        zoomControl: true,
+        scrollWheelZoom: true,
+    });
+    fullscreenRouteLayerGroup = L.layerGroup().addTo(fullscreenMap);
+    fullscreenPinLayerGroup = L.layerGroup().addTo(fullscreenMap);
+    fullscreenBaseLayer = createTileLayer(selectedStyle.value);
+    fullscreenBaseLayer.addTo(fullscreenMap);
+
+    syncFullscreenView();
+    renderGeometry(
+        fullscreenMap,
+        fullscreenRouteLayerGroup,
+        fullscreenPinLayerGroup,
+        false,
+    );
+    refreshMapSize();
+}
+
+function destroyFullscreenMap() {
+    fullscreenMap?.remove();
+    fullscreenMap = null;
+    fullscreenRouteLayerGroup = null;
+    fullscreenPinLayerGroup = null;
+    fullscreenBaseLayer = null;
 }
 
 async function toggleFullscreen() {
@@ -581,53 +643,35 @@ async function toggleFullscreen() {
         return;
     }
 
-    if (document.fullscreenElement === mapShell.value) {
-        await document.exitFullscreen();
+    if (isFullscreen.value) {
+        await exitFullscreenMap();
         return;
     }
 
-    if (!mapShell.value?.requestFullscreen) {
-        return;
-    }
-
-    await mapShell.value.requestFullscreen();
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    isFullscreen.value = true;
+    await initializeFullscreenMap();
 }
 
 async function exitFullscreenMap() {
-    if (
-        !isFullscreen.value ||
-        typeof document === 'undefined' ||
-        document.fullscreenElement !== mapShell.value
-    ) {
+    if (!isFullscreen.value || typeof document === 'undefined') {
         return;
     }
 
-    await document.exitFullscreen();
+    isFullscreen.value = false;
+    destroyFullscreenMap();
+    document.body.style.overflow = previousBodyOverflow ?? '';
+    previousBodyOverflow = null;
+
+    await nextTick();
+    refreshMapSize();
 }
 
 function handleFullscreenKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
         exitFullscreenMap();
     }
-}
-
-async function handleFullscreenChange() {
-    if (typeof document === 'undefined') {
-        return;
-    }
-
-    isFullscreen.value = document.fullscreenElement === mapShell.value;
-
-    if (isFullscreen.value) {
-        previousBodyOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-    } else {
-        document.body.style.overflow = previousBodyOverflow ?? '';
-        previousBodyOverflow = null;
-    }
-
-    await nextTick();
-    refreshMapSize();
 }
 
 function openPath(path?: string | null) {
@@ -695,6 +739,12 @@ watch(
     () => [filteredRoutes.value, filteredPins.value],
     () => {
         renderGeometry();
+        renderGeometry(
+            fullscreenMap,
+            fullscreenRouteLayerGroup,
+            fullscreenPinLayerGroup,
+            false,
+        );
     },
     { deep: true },
 );
@@ -714,7 +764,6 @@ watch(
 onMounted(() => {
     initializeMap();
     document.addEventListener('keydown', handleFullscreenKeydown);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     if (typeof ResizeObserver !== 'undefined' && mapShell.value) {
         mapResizeObserver = new ResizeObserver(() => refreshMapSize());
@@ -728,8 +777,8 @@ onBeforeUnmount(() => {
     }
 
     document.removeEventListener('keydown', handleFullscreenKeydown);
-    document.removeEventListener('fullscreenchange', handleFullscreenChange);
     if (isFullscreen.value && typeof document !== 'undefined') {
+        destroyFullscreenMap();
         document.body.style.overflow = previousBodyOverflow ?? '';
     }
     mapResizeObserver?.disconnect();
@@ -833,18 +882,9 @@ onBeforeUnmount(() => {
 
         <div
             ref="mapShell"
-            class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
-            :class="
-                isFullscreen
-                    ? 'rounded-none border-0 bg-white shadow-none'
-                    : 'relative'
-            "
-            :style="mapShellStyle"
+            class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
         >
-            <div
-                ref="mapElement"
-                :class="isFullscreen ? 'h-full w-full' : props.heightClass"
-            />
+            <div ref="mapElement" :class="props.heightClass" />
             <button
                 v-if="allowFullscreen"
                 type="button"
@@ -857,6 +897,24 @@ onBeforeUnmount(() => {
                 <Maximize2 v-else class="size-4" />
             </button>
         </div>
+
+        <Teleport to="body">
+            <div
+                v-if="isFullscreen"
+                class="fixed inset-0 z-[99999] bg-white"
+            >
+                <div ref="fullscreenMapElement" class="h-[100dvh] w-screen" />
+                <button
+                    type="button"
+                    class="absolute top-3 right-3 z-[500] inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/92 text-[color:var(--journal-text)] shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
+                    aria-label="Exit fullscreen map"
+                    title="Exit fullscreen"
+                    @click="exitFullscreenMap"
+                >
+                    <Minimize2 class="size-4" />
+                </button>
+            </div>
+        </Teleport>
 
         <div
             v-if="allowPinView && (pinnedView || pinFeedback === 'saved')"
