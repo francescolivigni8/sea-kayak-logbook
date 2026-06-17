@@ -247,6 +247,7 @@ const mapShellStyle = computed(() =>
               zIndex: '99999',
               width: '100vw',
               height: '100dvh',
+              backgroundColor: '#ffffff',
           }
         : undefined,
 );
