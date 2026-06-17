@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import L from 'leaflet';
+import { Maximize2, Minimize2 } from 'lucide-vue-next';
 import {
     computed,
     nextTick,
@@ -69,6 +70,7 @@ const props = withDefaults(
         emptyMessage?: string;
         pinPresentation?: PinPresentation;
         autoFitToGeometry?: boolean;
+        allowFullscreen?: boolean;
     }>(),
     {
         routes: () => [],
@@ -89,9 +91,11 @@ const props = withDefaults(
             'No mapped geometry yet. Attach GPX files or add launch coordinates to start building the route atlas.',
         pinPresentation: 'dot',
         autoFitToGeometry: true,
+        allowFullscreen: true,
     },
 );
 
+const mapShell = ref<HTMLElement | null>(null);
 const mapElement = ref<HTMLElement | null>(null);
 const selectedStyle = ref<MapStyle>('chart');
 const selectedYear = ref<string>('all');
@@ -99,6 +103,7 @@ const selectedKind = ref<SessionKind>('all');
 const selectedGeometry = ref<GeometryKind>('all');
 const pinnedView = ref<DefaultView | null>(null);
 const pinFeedback = ref<'idle' | 'saved'>('idle');
+const isFullscreen = ref(false);
 const mapTileStyles = useMapTileStyles();
 
 let map: L.Map | null = null;
@@ -550,6 +555,30 @@ function goToPinnedView() {
     );
 }
 
+function refreshMapSize() {
+    window.setTimeout(() => map?.invalidateSize(), 80);
+    window.setTimeout(() => map?.invalidateSize(), 280);
+}
+
+async function toggleFullscreen() {
+    if (!props.allowFullscreen || !mapShell.value || typeof document === 'undefined') {
+        return;
+    }
+
+    if (document.fullscreenElement === mapShell.value) {
+        await document.exitFullscreen?.();
+
+        return;
+    }
+
+    await mapShell.value.requestFullscreen?.();
+}
+
+function handleFullscreenChange() {
+    isFullscreen.value = document.fullscreenElement === mapShell.value;
+    refreshMapSize();
+}
+
 function openPath(path?: string | null) {
     if (!path || typeof window === 'undefined') {
         return;
@@ -633,6 +662,7 @@ watch(
 
 onMounted(() => {
     initializeMap();
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 });
 
 onBeforeUnmount(() => {
@@ -640,6 +670,7 @@ onBeforeUnmount(() => {
         window.clearTimeout(pinFeedbackTimeout);
     }
 
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
     map?.remove();
     map = null;
 });
@@ -738,9 +769,25 @@ onBeforeUnmount(() => {
         </div>
 
         <div
-            class="overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
+            ref="mapShell"
+            class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
+            :class="isFullscreen ? 'rounded-none border-0 bg-white' : ''"
         >
-            <div ref="mapElement" :class="props.heightClass" />
+            <div
+                ref="mapElement"
+                :class="isFullscreen ? 'h-screen w-screen' : props.heightClass"
+            />
+            <button
+                v-if="allowFullscreen"
+                type="button"
+                class="absolute top-3 right-3 z-[500] inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/92 text-[color:var(--journal-text)] shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
+                :aria-label="isFullscreen ? 'Exit fullscreen map' : 'Open fullscreen map'"
+                :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
+                @click="toggleFullscreen"
+            >
+                <Minimize2 v-if="isFullscreen" class="size-4" />
+                <Maximize2 v-else class="size-4" />
+            </button>
         </div>
 
         <div
