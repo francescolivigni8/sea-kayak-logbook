@@ -112,6 +112,7 @@ let pinLayerGroup: L.LayerGroup | null = null;
 let currentBaseLayer: L.TileLayer | null = null;
 let pinFeedbackTimeout: number | null = null;
 let initialViewportApplied = false;
+let mapResizeObserver: ResizeObserver | null = null;
 
 const styleOptions = computed(() => mapTileStyles.value);
 
@@ -556,12 +557,21 @@ function goToPinnedView() {
 }
 
 function refreshMapSize() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
     window.setTimeout(() => map?.invalidateSize(), 80);
     window.setTimeout(() => map?.invalidateSize(), 280);
+    window.setTimeout(() => map?.invalidateSize(), 600);
 }
 
 async function toggleFullscreen() {
-    if (!props.allowFullscreen || !mapShell.value || typeof document === 'undefined') {
+    if (
+        !props.allowFullscreen ||
+        !mapShell.value ||
+        typeof document === 'undefined'
+    ) {
         return;
     }
 
@@ -572,10 +582,13 @@ async function toggleFullscreen() {
     }
 
     await mapShell.value.requestFullscreen?.();
+    await nextTick();
+    refreshMapSize();
 }
 
-function handleFullscreenChange() {
+async function handleFullscreenChange() {
     isFullscreen.value = document.fullscreenElement === mapShell.value;
+    await nextTick();
     refreshMapSize();
 }
 
@@ -663,6 +676,11 @@ watch(
 onMounted(() => {
     initializeMap();
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    if (typeof ResizeObserver !== 'undefined' && mapShell.value) {
+        mapResizeObserver = new ResizeObserver(() => refreshMapSize());
+        mapResizeObserver.observe(mapShell.value);
+    }
 });
 
 onBeforeUnmount(() => {
@@ -671,6 +689,8 @@ onBeforeUnmount(() => {
     }
 
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    mapResizeObserver?.disconnect();
+    mapResizeObserver = null;
     map?.remove();
     map = null;
 });
@@ -771,11 +791,15 @@ onBeforeUnmount(() => {
         <div
             ref="mapShell"
             class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
-            :class="isFullscreen ? 'rounded-none border-0 bg-white' : ''"
+            :class="
+                isFullscreen
+                    ? 'h-screen w-screen rounded-none border-0 bg-white'
+                    : ''
+            "
         >
             <div
                 ref="mapElement"
-                :class="isFullscreen ? 'h-screen w-screen' : props.heightClass"
+                :class="isFullscreen ? 'h-full w-full' : props.heightClass"
             />
             <button
                 v-if="allowFullscreen"
