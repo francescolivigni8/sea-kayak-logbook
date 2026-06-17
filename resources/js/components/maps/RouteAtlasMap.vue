@@ -804,31 +804,33 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div
-            ref="mapShell"
-            class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
-            :class="
-                isFullscreen
-                    ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 bg-white shadow-none'
-                    : ''
-            "
-        >
+        <Teleport to="body" :disabled="!isFullscreen">
             <div
-                ref="mapElement"
-                :class="isFullscreen ? 'h-full w-full' : props.heightClass"
-            />
-            <button
-                v-if="allowFullscreen"
-                type="button"
-                class="absolute top-3 right-3 z-[500] inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/92 text-[color:var(--journal-text)] shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
-                :aria-label="isFullscreen ? 'Exit fullscreen map' : 'Open fullscreen map'"
-                :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
-                @click="toggleFullscreen"
+                ref="mapShell"
+                class="relative overflow-hidden rounded-[1.35rem] border border-[color:var(--journal-line)] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:rounded-[1.7rem]"
+                :class="
+                    isFullscreen
+                        ? 'fixed inset-0 z-[99999] h-[100dvh] w-screen rounded-none border-0 bg-white shadow-none'
+                        : ''
+                "
             >
-                <Minimize2 v-if="isFullscreen" class="size-4" />
-                <Maximize2 v-else class="size-4" />
-            </button>
-        </div>
+                <div
+                    ref="mapElement"
+                    :class="isFullscreen ? 'h-full w-full' : props.heightClass"
+                />
+                <button
+                    v-if="allowFullscreen"
+                    type="button"
+                    class="absolute top-3 right-3 z-[500] inline-flex size-10 items-center justify-center rounded-full border border-[color:var(--journal-line)] bg-white/92 text-[color:var(--journal-text)] shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[color:var(--journal-line-strong)]"
+                    :aria-label="isFullscreen ? 'Exit fullscreen map' : 'Open fullscreen map'"
+                    :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
+                    @click="toggleFullscreen"
+                >
+                    <Minimize2 v-if="isFullscreen" class="size-4" />
+                    <Maximize2 v-else class="size-4" />
+                </button>
+            </div>
+        </Teleport>
 
         <div
             v-if="allowPinView && (pinnedView || pinFeedback === 'saved')"
